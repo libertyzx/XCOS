@@ -120,6 +120,43 @@ static void XCSch_BlockedSched(XCOS_t* phXCOS, XCTCB_t *phTCB, XCuint_t Tick)
     phTCB->Blocked = _XC_B_NonBlocked;
 }
 
+/************************************************|
+ * 描述:    [私有]操作调度
+ * 函数名:  XCSch_OperSched
+ * 形参[I]: XCOS_t* phXCOS      //XCOS句柄
+ * 形参[I]: XCTCB_t *phTCB      //TCB句柄
+ * 形参[I]: XCuint_t Tick       //当前的Tick
+ * 返回:    void
+ * 说明:    为了中断安全的操作调度
+ * 例程:    无
+ ************************************************/
+static void XCSch_OperSched(XCOS_t* phXCOS, XCTCB_t *phTCB, XCuint_t Tick)
+{
+    /**操作值说明
+     *  Oper>0      表示任务唤醒(移动到就续表),唤醒类型等于Oper
+     *  Oper<0      表示需要挂起任务;
+     */
+    if(phTCB->Oper > 0){    //需唤醒任务
+        if(phTCB->ListNode.pRootList != &phXCOS->ReadyList){    //任务不在就绪表
+            //唤醒任务,且任务不在就绪表,将任务移动到就绪表
+            XCSch_ListNodeRemove(phXCOS, phTCB);                //移除节点
+            XCSch_ListNodeInsertIndexPrevious(phXCOS, phTCB);   //插入就绪表
+            phTCB->WakeType = phTCB->Oper;                      //唤醒类型
+        }
+    }
+    else{                   //需要挂起任务
+        if( (phTCB->ListNode.pRootList == &phXCOS->TimeList) &&
+            (phXCOS->NextTaskWakeTick == phTCB->ListNode.Value) ){
+            //任务在时间表,且是最近需要唤醒的任务,则更新下个唤醒时间表
+            phXCOS->NextTaskWakeTick = phTCB->ListNode.pNext->Value;        //下个唤醒时间
+            phXCOS->PreviousTick     = Tick;                                //更新保存的Tick
+        }
+        XCSch_ListNodeRemove(phXCOS, phTCB);                                //移除节点
+        XCList_InsertEnd(&phXCOS->BlockedList, &phTCB->ListNode);           //插入阻塞表
+    }
+    phTCB->Oper = _XC_Oper_Non;     //清除操作
+}
+
 /************************************************ 我是分割线 ************************************************/
 //任务链表节点处理
 
@@ -225,8 +262,13 @@ void XCSch_Run(XCOS_t* phXCOS)
         }
         Tick = XCTime_GetTick();                                //得到当前系统Tick
         XCSch_TimeSched(phXCOS, Tick);                          //时间调度处理
-        if( (phTCB!=NULL) && (phTCB->Blocked) ){
-            XCSch_BlockedSched(phXCOS, phTCB, Tick);            //阻塞调度处理
+        if(phTCB!=NULL){
+            if(phTCB->Blocked){
+                XCSch_BlockedSched(phXCOS, phTCB, Tick);        //阻塞调度处理
+            }
+            if(phTCB->Oper){
+                XCSch_OperSched(phXCOS, phTCB, Tick);                 //操作处理
+            }
         }
     }while(phXCOS->SchBlocked);                                 //任务调度是否阻塞处理
 }

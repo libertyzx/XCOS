@@ -43,51 +43,48 @@
  ************************************************************************************************************|
  */
 //=== 宏/枚举 ===================================|
-/**返回值*/
-typedef enum{
-    _XC_R_OK = 0,       //成功,没有问题
-    _XC_R_Fail,         //失败
-    _XC_R_Error,        //错误
-    _XC_R_Timeout,      //超时
-    _XC_R_Busy,         //忙
-    _XC_R_Wait,         //等待
-}TypeXC_Return;
 
 /**状态值(当前协程状态)*/
 typedef enum{
-    _XC_S_Run = 0,  //正常运行
-    _XC_S_Ready,    //就绪
-    _XC_S_Blocking, //阻塞
-}TypeXC_State;
-
-
+    _XC_S_Run = 0,      //运行
+    _XC_S_Ready,        //就绪
+    _XC_S_Blocking,     //阻塞
+    _XC_S_Suspend,      //挂起
+}XCTackState_t;
 
 /**阻塞类型*/
-#define _XC_B_NonBlocked    (_B0000_0000)           //没有阻塞(清除阻塞)
-#define _XC_B_Blocked       (_B0000_0001)           //阻塞
-#define _XC_B_WaitTime      (_B0000_0010)           //等待时间
-
+#define _XC_B_NonBlocked        (_B0000_0000)       //没有阻塞(清除阻塞)
+#define _XC_B_Blocked           (_B0000_0001)       //阻塞
+#define _XC_B_WaitTime          (_B0000_0010)       //等待时间
 
 /**唤醒状态*/
-#define _XC_Wake_Non        (0)         //无唤醒
-#define _XC_Wake_Time       (1)         //时间到达唤醒
-#define _XC_Wake_Notify     (2)         //通知到达唤醒
+#define _XC_Wake_Non            (0)                 //无唤醒
+#define _XC_Wake_Time           (1)                 //时间到达唤醒
+#define _XC_Wake_Notify         (2)                 //通知到达唤醒
+#define _XC_Wake_TaskResume     (3)                 //任务挂起后恢复
+
+/**操作值(>0移动到就绪表;<0移动到阻塞表)*/
+#define _XC_Oper_TaskSuspend    (-1)                    //任务挂起
+#define _XC_Oper_Non            (0)                     //无操作值
+#define _XC_Oper_SendNotify     (_XC_Wake_Notify)       //发送通知
+#define _XC_Oper_TaskResume     (_XC_Wake_TaskResume)   //任务恢复
 
 //=== 类型 ======================================|
 typedef COR_BP_t XCBP_t;                //断点类型
 
 /*协程任务控制块(Task Control Block)
- *  32位下占(16+4+4+4)+4
+ *  32位下占(16+4+4+4+4)+4
  */
 typedef struct _XCTCB_t{
     XCListNode_t ListNode;              //链表节点
-
     void(*fTask)(struct _XCTCB_t*);     //函数运行入口
     XCBP_t BP;                          //协程断点(Break Point)
     XCVar_t NotifyData;                 //通知的数据
+
     uint8_t Blocked;                    //阻塞状态
     uint8_t WakeType;                   //任务唤醒的类型
-    //===
+    int8_t Oper;                        //操作值
+    uint8_t State;                      //任务状态
 }XCTCB_t;
 
 /*
@@ -211,7 +208,7 @@ typedef struct _XCTCB_t{
  *  通知唤醒后获取通知是否超时;
  *  必须在协程块中使用;
  ************************************************/
-#define XC_GetNotifyState()     (_phXCTCB->WakeType == _XC_Wake_Time)
+#define XC_GetNotifyState()     (_phXCTCB->WakeType != _XC_Wake_Notify)
 
 /************************************************|
  * 描述:    [协程]获取通知的数据
@@ -224,51 +221,48 @@ typedef struct _XCTCB_t{
  ************************************************/
 #define XC_GetNotifyData()      (_phXCTCB->NotifyData)
 
-/**任务通知的函数声明*/
-
-//发送通知
-void XC_SendNotify(XCOS_t* phXCOS, XCTCB_t* phTCB, XCVar_t NotifyData);
-
-
-
-
-
-
-
-/************************************************ 我是分割线 ************************************************/
-
 /************************************************|
- * 描述:    [协程]初始化
- * 宏名:    XC_Init
- * 参数[H]: XCTCB_t* ph     //控制块句柄
+ * 描述:    发送通知
+ * 宏名:    sXC_SendNotify
+ * 参数[I]: XCTCB_t* phTCB      //通知的任务
+ * 参数[I]: XCVar_t NotifyData  //通知传递的数据
  * 返回:    void
  * 说明:
+ *  发送通知,异步操作;
+ *  任意位置可调用;
  ************************************************/
-
-
-/*协程控制*/
-
-/************************************************|
- * 描述:    [协程]运行协程
- * 宏名:    _XC_Run
- * 参数[H]: HandleXC_PCB* _ph
- * 返回:    void
- * 说明:    运行指定协程
- ************************************************/
-#define _XC_Run(_ph)
-
-/************************************************|
- * 描述:    [协程]停止协程
- * 宏名:    _XC_Stop
- * 参数[H]: HandleXC_PCB* _ph
- * 返回:    void
- * 说明:    停止指定协程
- ************************************************/
-#define _XC_Stop(_ph)
-
-
+#define XC_SendNotify(_phTCB, _NotifyData)      \
+{   \
+    _phTCB->NotifyData = _NotifyData;           \
+    _phTCB->Oper       = _XC_Oper_SendNotify;   \
+}
 
 /************************************************ 我是分割线 ************************************************/
+//任务挂起和恢复
+
+/************************************************|
+ * 描述:    任务挂起
+ * 宏名:  XC_TaskSuspend
+ * 参数[I]: XCTCB_t* phTCB      //任务TCB
+ * 返回:    void
+ * 说明:
+ *  挂起一个任务;
+ *  不可在中断中调用;
+ ************************************************/
+#define XC_TaskSuspend(_phTCB)  _phTCB->Oper = _XC_Oper_TaskSuspend
+
+/************************************************|
+ * 描述:    任务恢复
+ * 函数名:  XC_TaskResume
+ * 参数[I]: XCTCB_t* phTCB      //任务TCB
+ * 返回:    void
+ * 说明:
+ *  恢复一个任务;
+ *  不可在中断中调用;
+ ************************************************/
+#define XC_TaskResume(_phTCB)   _phTCB->Oper = _XC_Oper_TaskResume;
+
+
 /*
  ************************************************************************************************************|
  ************************************************ 我是分割线 ************************************************|
