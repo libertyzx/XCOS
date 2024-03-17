@@ -20,7 +20,7 @@
 #ifndef _XC_Sch_H_
 #define _XC_Sch_H_
 //=== 头文件
-#include "XC_Core.h"
+#include "XC_Task.h"
 #include "XC_List.h"
 
 /*
@@ -51,17 +51,13 @@ typedef struct{
  */
 //=== 函数声明 ===========================================|
 
-/**任务链表节点处理(其它模块调用)*/
-void XCSch_ListNodeRemove(XCOS_t* phXCOS, XCTCB_t* phXCTCB);                //链表节点移除
-void XCSch_ListNodeInsertIndexPrevious(XCOS_t* phXCOS, XCTCB_t* phXCTCB);   //将节点插入索引前
-
 /**调度器处理*/
 void XCSch_Init(XCOS_t* phXCOS, uint8_t SchBlocked);    //初始化调度器
 void XCSch_Run(XCOS_t* phXCOS);                         //调度器运行
 
 /**任务处理*/
-void XCSch_TaskReg(XCOS_t* phXCOS, XCTCB_t* phXCTCB, void(*fTask)(XCTCB_t*));   //注册一个任务
-void XCSch_TaskRemove(XCOS_t* phXCOS, XCTCB_t* phXCTCB);                        //移除一个任务
+void XCSch_TaskReg(XCOS_t* phXCOS, XCTCB_t* phTCB, void(*fTask)(XCTCB_t*)); //注册一个任务
+void XCSch_TaskRemove(XCOS_t* phXCOS, XCTCB_t* phTCB);                      //移除一个任务
 
 
 /************************************************ 我是分割线 ************************************************/

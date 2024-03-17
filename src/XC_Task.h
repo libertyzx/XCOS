@@ -1,6 +1,6 @@
 /*=========================================================|
- | 文件名: XC_Core.h
- | 描述  : XCOS核心
+ | 文件名: XC_Task.h
+ | 描述  : 任务的实现
  | 版本  : 1.00
  | 日期  : 2024/03/17
  | 语言  : C语言
@@ -10,15 +10,16 @@
  | 开源协议: MIT License
  +-----------------------------------------------|
  +--- 说明
- |  核心处理
+ |  1.实现了所有协程相关的操作;
+ |  2.实现了任务处理需要的操作;
  +-----------------------------------------------|
  +--- 版本说明
  |  V1.00:-2024/03/17
  |      1.协程实现
  *========================================================*/
 //=== 防重复定义
-#ifndef _XC_Core_H_
-#define _XC_Core_H_
+#ifndef _XC_Task_H_
+#define _XC_Task_H_
 //=== 头文件
 #include "XC_Type.h"
 #include "XC_Time.h"
@@ -73,13 +74,18 @@ typedef enum{
 typedef COR_BP_t XCBP_t;                //断点类型
 
 /*协程任务控制块(Task Control Block)
- *  32位下占(16+4+4+4+4)+4
+ *  32位下占(16+4+4+4)+4
  */
 typedef struct _XCTCB_t{
     XCListNode_t ListNode;              //链表节点
     void(*fTask)(struct _XCTCB_t*);     //函数运行入口
     XCBP_t BP;                          //协程断点(Break Point)
-    XCVar_t NotifyData;                 //通知的数据
+
+    //通知数据
+    union{
+        uint32_t NotifyData;            //通知的数据(数值)
+        void* pNotifyData;              //通知的数据(指针)
+    };
 
     uint8_t Blocked;                    //阻塞状态
     uint8_t WakeType;                   //任务唤醒的类型
@@ -93,20 +99,39 @@ typedef struct _XCTCB_t{
  ************************************************************************************************************|
  */
 
+/**初始化任务*/
+/************************************************|
+ * 描述:    [协程]初始化任务
+ * 宏名:    XC_TaskInit
+ * 参数[H]: XCTCB_t* _phTCB     //控制块句柄
+ * 返回:    void
+ * 说明:    只在注册任务时调用
+ ************************************************/
+#define XC_TaskInit(_phTCB) \
+{   \
+    _COR_Init(_phTCB->BP);                  \
+    _phTCB->NotifyData = 0;                 \
+    _phTCB->Blocked    = _XC_B_NonBlocked;  \
+    _phTCB->WakeType   = _XC_Wake_Non;      \
+    _phTCB->Oper       = _XC_Oper_Non;      \
+    _phTCB->State      = _XC_S_Ready;       \
+}
+
+
 /*协程块*/
 
 /************************************************|
  * 描述:    [协程]进入
  * 宏名:    XC_Enter
- * 参数[H]: XCTCB_t* ph     //控制块句柄
+ * 参数[H]: XCTCB_t* phTCB  S//控制块句柄
  * 返回:    void
  * 说明:    协程的启动处理;
  *  必须搭配"XC_Leave"使用;
  ************************************************/
-#define XC_Enter(_ph)   \
+#define XC_Enter(_phTCB)    \
 {   \
     /*全局变量转局部变量可加快运行速度*/                \
-    XCTCB_t *_phXCTCB = (_ph);          /*得到PCB*/     \
+    XCTCB_t *_phXCTCB = (_phTCB);       /*得到PCB*/     \
     XCBP_t   _XCPB    = _phXCTCB->BP;   /*得到断点*/    \
     /*启动协程*/                                        \
     _COR_Start(_XCPB);                  /*启动*/        \
@@ -174,11 +199,11 @@ typedef struct _XCTCB_t{
  ************************************************ 我是分割线 ************************************************|
  ************************************************************************************************************|
  */
-//任务通知处理
+/**任务通知处理*/
 
 /************************************************|
  * 描述:    [协程]等待通知
- * 宏名:    XC_NotifyTake
+ * 宏名:    XC_WaitNotify
  * 参数[I]: XCuint_t TickTimeout    //超时时间
  *  +=参数
  *  | 0     //阻塞死等
@@ -225,42 +250,42 @@ typedef struct _XCTCB_t{
  * 描述:    发送通知
  * 宏名:    sXC_SendNotify
  * 参数[I]: XCTCB_t* phTCB      //通知的任务
- * 参数[I]: XCVar_t NotifyData  //通知传递的数据
+ * 参数[I]: uint32_t NotifyData //通知传递的数据
  * 返回:    void
  * 说明:
  *  发送通知,异步操作;
- *  任意位置可调用;
+ *  任意位置调用;
  ************************************************/
 #define XC_SendNotify(_phTCB, _NotifyData)      \
 {   \
-    _phTCB->NotifyData = _NotifyData;           \
+    _phTCB->NotifyData = (_NotifyData);         \
     _phTCB->Oper       = _XC_Oper_SendNotify;   \
 }
 
 /************************************************ 我是分割线 ************************************************/
-//任务挂起和恢复
+/**任务挂起和恢复*/
 
 /************************************************|
  * 描述:    任务挂起
- * 宏名:  XC_TaskSuspend
+ * 宏名:    XC_TaskSuspend
  * 参数[I]: XCTCB_t* phTCB      //任务TCB
  * 返回:    void
  * 说明:
  *  挂起一个任务;
- *  不可在中断中调用;
+ *  任意位置调用;
  ************************************************/
 #define XC_TaskSuspend(_phTCB)  _phTCB->Oper = _XC_Oper_TaskSuspend
 
 /************************************************|
  * 描述:    任务恢复
- * 函数名:  XC_TaskResume
+ * 宏名:    XC_TaskResume
  * 参数[I]: XCTCB_t* phTCB      //任务TCB
  * 返回:    void
  * 说明:
  *  恢复一个任务;
- *  不可在中断中调用;
+ *  任意位置调用;
  ************************************************/
-#define XC_TaskResume(_phTCB)   _phTCB->Oper = _XC_Oper_TaskResume;
+#define XC_TaskResume(_phTCB)   _phTCB->Oper = _XC_Oper_TaskResume
 
 
 /*

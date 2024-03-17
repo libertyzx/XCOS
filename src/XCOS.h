@@ -26,7 +26,7 @@
     #include "XC_Type.h"            //数据类型
     #include "XC_MacroFunc.h"       //通用函数宏
     #include "XC_Time.h"            //时间处理
-    #include "XC_Core.h"            //OS核心实现
+    #include "XC_Task.h"            //任务处理
     #include "XC_Sch.h"             //调度处理
 
 //=== 标准库
