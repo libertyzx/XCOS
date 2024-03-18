@@ -32,7 +32,7 @@
  */
 
 /*协程底层实现("ANSI-C"和"GNU-C"区分)*/
-#if( defined(__GNUC__) )
+#ifdef __GNUC__
     #include "COR_GNU.h"                    //运行"GNU-C"库
 #else
     #include "COR_ANSI.h"                   //运行"ANSI-C"库
@@ -64,22 +64,17 @@ typedef enum{
 #define _XC_Wake_Notify         (2)                 //通知到达唤醒
 #define _XC_Wake_TaskResume     (3)                 //任务挂起后恢复
 
-/**操作值(>0移动到就绪表;<0移动到阻塞表)*/
-#define _XC_Oper_TaskSuspend    (-1)                    //任务挂起
-#define _XC_Oper_Non            (0)                     //无操作值
-#define _XC_Oper_SendNotify     (_XC_Wake_Notify)       //发送通知
-#define _XC_Oper_TaskResume     (_XC_Wake_TaskResume)   //任务恢复
-
 //=== 类型 ======================================|
 typedef COR_BP_t XCBP_t;                //断点类型
 
 /*协程任务控制块(Task Control Block)
- *  32位下占(16+4+4+4)+4
+ *  32位下占16
  */
 typedef struct _XCTCB_t{
-    XCListNode_t ListNode;              //链表节点
-    void(*fTask)(struct _XCTCB_t*);     //函数运行入口
-    XCBP_t BP;                          //协程断点(Break Point)
+    XCListNode_t     ListNode;              //链表节点
+    struct _XCOS_t*  phXCOS;                //任务所属的框架句柄
+    void(*fTask)(struct _XCTCB_t*);         //函数运行入口
+    XCBP_t BP;                              //协程断点(Break Point)
 
     //通知数据
     union{
@@ -89,8 +84,7 @@ typedef struct _XCTCB_t{
 
     uint8_t Blocked;                    //阻塞状态
     uint8_t WakeType;                   //任务唤醒的类型
-    int8_t Oper;                        //操作值
-    uint8_t State;                      //任务状态
+    uint8_t State;                      //任务状态(XCTackState_t)
 }XCTCB_t;
 
 /*
@@ -98,25 +92,6 @@ typedef struct _XCTCB_t{
  ************************************************ 我是分割线 ************************************************|
  ************************************************************************************************************|
  */
-
-/**初始化任务*/
-/************************************************|
- * 描述:    [协程]初始化任务
- * 宏名:    XC_TaskInit
- * 参数[H]: XCTCB_t* _phTCB     //控制块句柄
- * 返回:    void
- * 说明:    只在注册任务时调用
- ************************************************/
-#define XC_TaskInit(_phTCB) \
-{   \
-    _COR_Init(_phTCB->BP);                  \
-    _phTCB->NotifyData = 0;                 \
-    _phTCB->Blocked    = _XC_B_NonBlocked;  \
-    _phTCB->WakeType   = _XC_Wake_Non;      \
-    _phTCB->Oper       = _XC_Oper_Non;      \
-    _phTCB->State      = _XC_S_Ready;       \
-}
-
 
 /*协程块*/
 
@@ -246,47 +221,16 @@ typedef struct _XCTCB_t{
  ************************************************/
 #define XC_GetNotifyData()      (_phXCTCB->NotifyData)
 
-/************************************************|
- * 描述:    发送通知
- * 宏名:    sXC_SendNotify
- * 参数[I]: XCTCB_t* phTCB      //通知的任务
- * 参数[I]: uint32_t NotifyData //通知传递的数据
- * 返回:    void
- * 说明:
- *  发送通知,异步操作;
- *  任意位置调用;
- ************************************************/
-#define XC_SendNotify(_phTCB, _NotifyData)      \
-{   \
-    _phTCB->NotifyData = (_NotifyData);         \
-    _phTCB->Oper       = _XC_Oper_SendNotify;   \
-}
+/**任务通知处理-函数声明*/
+
+uint32_t XC_SendNotify(XCTCB_t* phTCB, uint32_t NotifyData);    //发送通知
 
 /************************************************ 我是分割线 ************************************************/
-/**任务挂起和恢复*/
 
-/************************************************|
- * 描述:    任务挂起
- * 宏名:    XC_TaskSuspend
- * 参数[I]: XCTCB_t* phTCB      //任务TCB
- * 返回:    void
- * 说明:
- *  挂起一个任务;
- *  任意位置调用;
- ************************************************/
-#define XC_TaskSuspend(_phTCB)  _phTCB->Oper = _XC_Oper_TaskSuspend
+/**任务挂起和恢复-函数声明*/
 
-/************************************************|
- * 描述:    任务恢复
- * 宏名:    XC_TaskResume
- * 参数[I]: XCTCB_t* phTCB      //任务TCB
- * 返回:    void
- * 说明:
- *  恢复一个任务;
- *  任意位置调用;
- ************************************************/
-#define XC_TaskResume(_phTCB)   _phTCB->Oper = _XC_Oper_TaskResume
-
+void XC_TaskSuspend(XCTCB_t* phTCB);    //任务挂起
+void XC_TaskResume(XCTCB_t* phTCB);     //任务恢复
 
 /*
  ************************************************************************************************************|
