@@ -20,7 +20,7 @@
 #ifndef _XC_Cnf_H_
 #define _XC_Cnf_H_
 //=== 头文件
-#include "XC_Type.h"
+#include <stdint.h>
 
 /*
  ************************************************************************************************************|
@@ -44,7 +44,7 @@
  */
 #ifndef XCuint_t
     #define XCuint_t uint32_t
-#endif 
+#endif
 
 /**系统滴答计数
  *  滴答计数是一个累加值,累加时间必须和"_XC_SysTickPerScond"时间一致;
@@ -66,7 +66,7 @@
  *      2.将计数值作为"_XC_SysTickCount"的指向;
  */
 #ifndef _XC_SysTickCount
-    #define _XC_CreateSysTickCount()    volatile XCuint_t g_SysTickCount=0  //创建系统Tick计数
+    #define _XC_CreateSysTickCount      volatile XCuint_t g_SysTickCount=0  //创建系统Tick计数
     extern volatile XCuint_t g_SysTickCount;    //全局滴答时间计数
     #define _XC_SysTickCount g_SysTickCount
 #endif

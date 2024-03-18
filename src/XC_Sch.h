@@ -2,7 +2,7 @@
  | 文件名:  XC_Sch.h
  | 描述:    调度器实现
  | 版本:    V1.00
- | 日期:    2024/03/05
+ | 日期:    2024/03/18
  | 语言:    C语言
  | 作者:    libertyzx
  | E-mail:  libertyzx@163.com
@@ -13,15 +13,16 @@
  |  用于调度任务;
  +-----------------------------------------------|
  +--- 版本说明:
- |  V1.00:-2024/03/06
+ |  V1.00:-2024/03/18
  |      1.初始化
  *========================================================*/
 //=== 防重复定义
 #ifndef _XC_Sch_H_
 #define _XC_Sch_H_
 //=== 头文件
-#include "XC_Task.h"
+#include "XC_Type.h"
 #include "XC_List.h"
+#include "XC_Task.h"
 
 /*
  ************************************************************************************************************|
@@ -31,7 +32,7 @@
 //=== 数据类型 ===========================================|
 
 /**XCOS句柄*/
-typedef struct{
+typedef struct _XCOS_t{
     //链表
     XCListRoot_t ReadyList;             //就绪链表
     XCListRoot_t TimeList;              //延时/超时/等待的链表
@@ -41,7 +42,8 @@ typedef struct{
     XCListNode_t *pReadyListNodeIndex;  //就绪表节点索引,指向运行的节点
     XCuint_t NextTaskWakeTick;          //下个任务唤醒的Tick
     XCuint_t PreviousTick;              //上个Tick
-    uint8_t SchBlocked;                 //阻塞调度标志
+
+    uint8_t SchBlocked;                 //阻塞调度标志(0的话运行调度的时候不阻塞)
 }XCOS_t;
 
 /*
@@ -50,6 +52,9 @@ typedef struct{
  ************************************************************************************************************|
  */
 //=== 函数声明 ===========================================|
+/**[内部函数]任务链表节点处理*/
+void XCSch_ListNodeRemove(XCOS_t* phXCOS, XCTCB_t* phXCTCB);                //链表节点移除
+void XCSch_ListNodeInsertIndexPrevious(XCOS_t* phXCOS, XCTCB_t* phXCTCB);   //将节点插入索引前
 
 /**调度器处理*/
 void XCSch_Init(XCOS_t* phXCOS, uint8_t SchBlocked);    //初始化调度器
@@ -57,7 +62,7 @@ void XCSch_Run(XCOS_t* phXCOS);                         //调度器运行
 
 /**任务处理*/
 void XCSch_TaskReg(XCOS_t* phXCOS, XCTCB_t* phTCB, void(*fTask)(XCTCB_t*)); //注册一个任务
-void XCSch_TaskRemove(XCOS_t* phXCOS, XCTCB_t* phTCB);                      //移除一个任务
+void XCSch_TaskRemove(XCTCB_t* phTCB);                                      //移除一个任务
 
 
 /************************************************ 我是分割线 ************************************************/
