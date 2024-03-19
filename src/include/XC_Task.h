@@ -45,13 +45,18 @@
  */
 //=== 宏/枚举 ===================================|
 
-/**状态值(当前协程状态)*/
+/**函数返回值*/
 typedef enum{
-    _XC_S_Run = 0,      //运行
-    _XC_S_Ready,        //就绪
-    _XC_S_Blocking,     //阻塞
-    _XC_S_Suspend,      //挂起
-}XCTackState_t;
+    _XC_R_Fail = -1,    //失败
+    _XC_R_OK   = 0,     //成功
+    _XC_R_Continue,     //继续
+}XCRetuen_t;
+
+/**任务状态值(当前协程状态)*/
+#define _XC_S_Run               (0)                 //运行
+#define _XC_S_Ready             (1)                 //就绪
+#define _XC_S_Blocking          (2)                 //阻塞
+#define _XC_S_Suspend           (3)                 //挂起
 
 /**阻塞类型*/
 #define _XC_B_NonBlocked        (_B0000_0000)       //没有阻塞(清除阻塞)
@@ -84,7 +89,7 @@ typedef struct _XCTCB_t{
 
     uint8_t Blocked;                    //阻塞状态
     uint8_t WakeType;                   //任务唤醒的类型
-    uint8_t State;                      //任务状态(XCTackState_t)
+    uint8_t State;                      //任务状态(_XC_S_***)
 }XCTCB_t;
 
 /*
@@ -109,7 +114,7 @@ typedef struct _XCTCB_t{
     XCTCB_t *_phXCTCB = (_phTCB);       /*得到PCB*/     \
     XCBP_t   _XCPB    = _phXCTCB->BP;   /*得到断点*/    \
     /*启动协程*/                                        \
-    _COR_Start(_XCPB);                  /*启动*/        \
+    _COR_Start(_XCPB);                  /*启动*/
 
 /************************************************|
  * 描述:    [协程]离开
@@ -169,6 +174,16 @@ typedef struct _XCTCB_t{
 #define XC_Delay_h(_n)      XC_DelayTick(_Time_h2Tick(_n))
 #define XC_Delay_day(_n)    XC_DelayTick(_Time_day2Tick(_n))
 
+/**协程状态*/
+/************************************************|
+ * 描述:    [协程]获取任务状态
+ * 宏名:    XC_GetTaskState
+ * 参数[N]: void
+ * 返回:    _XC_S_***   //返回任务状态
+ * 说明:    任意位置可调用,获取任务运行的状态;
+ ************************************************/
+#define XC_GetTaskState(_phTCB)     ((const)_phTCB->State)
+
 /*
  ************************************************************************************************************|
  ************************************************ 我是分割线 ************************************************|
@@ -223,14 +238,14 @@ typedef struct _XCTCB_t{
 
 /**任务通知处理-函数声明*/
 
-uint32_t XC_SendNotify(XCTCB_t* phTCB, uint32_t NotifyData);    //发送通知
+int32_t XC_SendNotify(XCTCB_t* phTCB, uint32_t NotifyData);     //发送通知
 
 /************************************************ 我是分割线 ************************************************/
 
 /**任务挂起和恢复-函数声明*/
 
-void XC_TaskSuspend(XCTCB_t* phTCB);    //任务挂起
-void XC_TaskResume(XCTCB_t* phTCB);     //任务恢复
+int32_t XC_TaskSuspend(XCTCB_t* phTCB);     //任务挂起
+int32_t XC_TaskResume(XCTCB_t* phTCB);      //任务恢复
 
 /*
  ************************************************************************************************************|

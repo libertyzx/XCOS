@@ -33,27 +33,34 @@
  * 函数名:  XC_SendNotify
  * 参数[I]: XCTCB_t* phTCB      //通知的任务
  * 参数[I]: XCVar_t NotifyData  //通知传递的数据
- * 返回:    uint32_t            //状态
+ * 返回:    int32_t
  *  +=说明
- *  | 0     //成功
- *  | 1     //任务运行中(在就绪表)
+ *  | _XC_R_OK          //通知成功
+ *  | _XC_R_Continue    //任务已经唤醒(已在就绪表)
+ *  | _XC_R_Fail        //任务被挂起
  * 说明:
  *  发送通知,唤醒任务;
+ *  只有在任务成功被通知(_XC_R_OK)时,传递的数据才有效;
  *  不可在中断中调用;
  ************************************************/
-uint32_t XC_SendNotify(XCTCB_t* phTCB, uint32_t NotifyData)
+int32_t XC_SendNotify(XCTCB_t* phTCB, uint32_t NotifyData)
 {
     //在就绪表
     if(phTCB->ListNode.pRootList == &phTCB->phXCOS->ReadyList){
-        return(1);
+        return(_XC_R_Continue);
+    }
+    //任务被挂起
+    if(phTCB->State == _XC_S_Suspend){
+        return(_XC_R_Fail);
     }
 
     XCSch_ListNodeRemove(phTCB->phXCOS, phTCB);                 //删除任务
     XCSch_ListNodeInsertIndexPrevious(phTCB->phXCOS, phTCB);    //插入就续表
-    phTCB->NotifyData = NotifyData;
-    phTCB->State      = _XC_S_Ready;
+    phTCB->NotifyData = NotifyData;                             //传递的通知数据
+    phTCB->State      = _XC_S_Ready;                            //就绪态
+    phTCB->WakeType   = _XC_Wake_Notify;                        //被通知唤醒
     /*这里不处理时间表*/
-    return(0);
+    return(_XC_R_OK);
 }
 
 /*
@@ -67,38 +74,47 @@ uint32_t XC_SendNotify(XCTCB_t* phTCB, uint32_t NotifyData)
  * 描述:    任务挂起
  * 函数名:  XC_TaskSuspend
  * 参数[I]: XCTCB_t* phTCB      //任务TCB
- * 返回:    void
+ * 返回:    int32_t
+ *  +=说明
+ *  | _XC_R_OK          //挂起成功
+ *  | _XC_R_Continue    //已经被挂起
  * 说明:
  *  挂起一个任务;
  *  不可在中断中调用;
  ************************************************/
-void XC_TaskSuspend(XCTCB_t* phTCB)
+int32_t XC_TaskSuspend(XCTCB_t* phTCB)
 {
     if(phTCB->State == _XC_S_Suspend){
-        return;                         //已经被挂起
+        return(_XC_R_Continue);         //已经被挂起
     }
     XCSch_ListNodeRemove(phTCB->phXCOS, phTCB);                         //删除任务
     XCList_InsertEnd(&phTCB->phXCOS->BlockedList, &phTCB->ListNode);    //插入阻塞表
     phTCB->State = _XC_S_Suspend;       //挂起态
+    return(_XC_R_OK);
 }
 
 /************************************************|
  * 描述:    任务恢复
  * 函数名:  XC_TaskResume
  * 参数[I]: XCTCB_t* phTCB      //任务TCB
- * 返回:    void
+ * 返回:    int32_t
+ *  +=说明
+ *  | _XC_R_OK          //恢复成功
+ *  | _XC_R_Continue    //任务没有挂起
  * 说明:
  *  恢复一个任务;
  *  不可在中断中调用;
  ************************************************/
-void XC_TaskResume(XCTCB_t* phTCB)
+int32_t XC_TaskResume(XCTCB_t* phTCB)
 {
     if(phTCB->State != _XC_S_Suspend){
-        return;
+        return(_XC_R_Continue);                                 //没有被挂起
     }
     XCSch_ListNodeRemove(phTCB->phXCOS, phTCB);                 //删除任务
     XCSch_ListNodeInsertIndexPrevious(phTCB->phXCOS, phTCB);    //插入就续表
-    phTCB->State = _XC_S_Ready;     //就绪态
+    phTCB->State    = _XC_S_Ready;                              //就绪态
+    phTCB->WakeType = _XC_Wake_TaskResume;                      //被任务恢复唤醒
+    return(_XC_R_OK);
 }
 
 /************************************************ 我是分割线 ************************************************/
