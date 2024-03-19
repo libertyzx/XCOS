@@ -92,7 +92,7 @@ typedef unsigned long           ulong;
     #endif
 
 //扩展使能&除能类型-通用
-typedef enum {_DI = 0, _EN = !_DI}TypeDevSW;
+typedef enum {_DI = 0, _EN = !_DI}DevSW_t;
 #define _H      _EN
 #define _L      _DI
 
@@ -106,9 +106,6 @@ typedef enum {_DI = 0, _EN = !_DI}TypeDevSW;
 #ifndef null
     #define null    ((void*)(0))
 #endif
-
-//不使用参数配置
-#define _Unused(x)  do{ ((void)(x)); }while(0)      //设置不使用的变量
 
 /**数据类型集合
  *  变量类型,在32位数据下为32位大小
