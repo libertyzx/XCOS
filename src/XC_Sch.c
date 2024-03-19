@@ -272,7 +272,7 @@ void XCSch_TaskReg(XCOS_t* phXCOS, XCTCB_t* phTCB, void(*fTask)(XCTCB_t*))
 }
 
 /************************************************|
- * 描述:    [宏]任务移除
+ * 描述:    任务移除
  * 函数名:  XCSch_TaskRemove
  * 形参[I]: XCTCB_t* phTCB      //协程控制块
  * 返回:    void
@@ -284,7 +284,6 @@ void XCSch_TaskRemove(XCTCB_t* phTCB)
     if(phTCB->phXCOS != NULL){
         XCSch_ListNodeRemove(phTCB->phXCOS, phTCB);
     }
-
 }
 
 /************************************************ 我是分割线 ************************************************/
