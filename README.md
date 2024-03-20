@@ -100,6 +100,7 @@ XCOS的配置参数如下:
 | [XC_CPU.h](./docs/XC_Type.md) | 不同平台的数据类型,关键字统一 |
 | [XC_Type.h](./docs/XC_Type.md) | 通用数据类型定义 |
 | [XC_MacroFunc.h](./docs/XC_MacroFunc.md) | 通用函数宏实现 |
+| XC_BitFlag.h | 位标志的实现 |
 | XC_Cnf.h | 用于存放"XCOS"的配置参数 |
 | [XC_Time.h](./docs/XC_Time.md) | 时间处理,及编译时间输出 |
 | XC_List.c | 链表实现 |

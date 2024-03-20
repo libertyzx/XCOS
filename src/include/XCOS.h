@@ -25,6 +25,7 @@
     #include "XC_Cnf.h"             //配置
     #include "XC_Type.h"            //数据类型
     #include "XC_MacroFunc.h"       //通用函数宏
+    #include "XC_BitFlag.h"         //位标志的实现
     #include "XC_Time.h"            //时间处理
     #include "XC_Task.h"            //任务处理
     #include "XC_Sch.h"             //调度处理
