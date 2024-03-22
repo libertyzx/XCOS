@@ -50,14 +50,14 @@ int32_t XC_SendNotify(XCTCB_t* phTCB, uint32_t NotifyData)
         return(_XC_R_Continue);
     }
     //任务被挂起
-    if(phTCB->State == _XC_S_Suspend){
+    if(phTCB->TaskState == _XC_S_Suspend){
         return(_XC_R_Fail);
     }
 
     XCSch_ListNodeRemove(phTCB->phXCOS, phTCB);                 //删除任务
     XCSch_ListNodeInsertIndexPrevious(phTCB->phXCOS, phTCB);    //插入就续表
     phTCB->NotifyData = NotifyData;                             //传递的通知数据
-    phTCB->State      = _XC_S_Ready;                            //就绪态
+    phTCB->TaskState  = _XC_S_Ready;                            //任务状态:就绪
     phTCB->WakeType   = _XC_Wake_Notify;                        //被通知唤醒
     /*这里不处理时间表*/
     return(_XC_R_OK);
@@ -84,12 +84,12 @@ int32_t XC_SendNotify(XCTCB_t* phTCB, uint32_t NotifyData)
  ************************************************/
 int32_t XC_TaskSuspend(XCTCB_t* phTCB)
 {
-    if(phTCB->State == _XC_S_Suspend){
+    if(phTCB->TaskState == _XC_S_Suspend){
         return(_XC_R_Continue);         //已经被挂起
     }
+    phTCB->TaskState = _XC_S_Suspend;   //任务状态:挂起
     XCSch_ListNodeRemove(phTCB->phXCOS, phTCB);                         //删除任务
     XCList_InsertEnd(&phTCB->phXCOS->BlockedList, &phTCB->ListNode);    //插入阻塞表
-    phTCB->State = _XC_S_Suspend;       //挂起态
     return(_XC_R_OK);
 }
 
@@ -107,13 +107,13 @@ int32_t XC_TaskSuspend(XCTCB_t* phTCB)
  ************************************************/
 int32_t XC_TaskResume(XCTCB_t* phTCB)
 {
-    if(phTCB->State != _XC_S_Suspend){
+    if(phTCB->TaskState != _XC_S_Suspend){
         return(_XC_R_Continue);                                 //没有被挂起
     }
+    phTCB->TaskState = _XC_S_Ready;                             //任务状态:就绪
     XCSch_ListNodeRemove(phTCB->phXCOS, phTCB);                 //删除任务
     XCSch_ListNodeInsertIndexPrevious(phTCB->phXCOS, phTCB);    //插入就续表
-    phTCB->State    = _XC_S_Ready;                              //就绪态
-    phTCB->WakeType = _XC_Wake_TaskResume;                      //被任务恢复唤醒
+    phTCB->WakeType  = _XC_Wake_TaskResume;                     //被任务恢复唤醒
     return(_XC_R_OK);
 }
 

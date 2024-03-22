@@ -139,7 +139,7 @@
  *  判断位标志是否为空
  * 例程:    无
  ************************************************/
-__STATIC_INLINE int32_t _XCBitFlag_Check_(uint8_t Name[], uint32_t Num)
+__STATIC_INLINE int32_t XCBitFlag_Check_(uint8_t Name[], uint32_t Num)
 {
     while(Num--){
         if(*Name++ != 0){
@@ -148,7 +148,7 @@ __STATIC_INLINE int32_t _XCBitFlag_Check_(uint8_t Name[], uint32_t Num)
     }
     return(0);
 }
-#define XCBitFlag_Check(_Name)              _XCBitFlag_Check_(_Name, _ArraySize(_Name))
+#define XCBitFlag_Check(_Name)              XCBitFlag_Check_(_Name, _ArraySize(_Name))
 
 
 /*

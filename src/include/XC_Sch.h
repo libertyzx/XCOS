@@ -42,8 +42,8 @@ typedef struct _XCOS_t{
     XCListNode_t *pReadyListNodeIndex;  //就绪表节点索引,指向运行的节点
     XCuint_t NextTaskWakeTick;          //下个任务唤醒的Tick
     XCuint_t PreviousTick;              //上个Tick
+    //信号
 
-    uint8_t SchBlocked;                 //阻塞调度标志(0的话运行调度的时候不阻塞)
 }XCOS_t;
 
 /*
@@ -57,8 +57,8 @@ void XCSch_ListNodeRemove(XCOS_t* phXCOS, XCTCB_t* phXCTCB);                //链
 void XCSch_ListNodeInsertIndexPrevious(XCOS_t* phXCOS, XCTCB_t* phXCTCB);   //将节点插入索引前
 
 /**调度器处理*/
-void XCSch_Init(XCOS_t* phXCOS, uint8_t SchBlocked);    //初始化调度器
-void XCSch_Run(XCOS_t* phXCOS);                         //调度器运行
+void XCSch_Init(XCOS_t* phXCOS);        //初始化调度器
+void XCSch_Run(XCOS_t* phXCOS);         //调度器运行
 
 /**任务处理*/
 void XCSch_TaskReg(XCOS_t* phXCOS, XCTCB_t* phTCB, void(*fTask)(XCTCB_t*)); //注册一个任务
