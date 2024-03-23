@@ -53,8 +53,8 @@ typedef struct _XCOS_t{
  */
 //=== 函数声明 ===========================================|
 /**[内部函数]任务链表节点处理*/
-void XCSch_ListNodeRemove(XCOS_t* phXCOS, XCTCB_t* phXCTCB);                //链表节点移除
-void XCSch_ListNodeInsertIndexPrevious(XCOS_t* phXCOS, XCTCB_t* phXCTCB);   //将节点插入索引前
+void XCSch_ListNodeRemove(XCOS_t* phXCOS, XCTCB_t* phTCB);                  //链表节点移除
+void XCSch_ListNodeInsertIndexPrevious(XCOS_t* phXCOS, XCTCB_t* phTCB);     //将节点插入索引前
 
 /**调度器处理*/
 void XCSch_Init(XCOS_t* phXCOS);        //初始化调度器
