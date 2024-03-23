@@ -62,17 +62,17 @@ typedef struct _XCListRoot_t{
 //=== 函数宏 =============================================|
 
 /************************************************|
- * 描述:    链表是否有节点
- * 宏名:    XCList_NodeExistence
+ * 描述:    链表是否有效
+ * 宏名:    XCList_ListValid
  * 形参[I]: XCListRoot_t* _pList    //链表
  * 返回:    boot
  *  +=返回
  *  | 0     //没有节点
  *  | 1     //有节点
- * 说明:    判断一个链表的节点是否有效
+ * 说明:    判断一个链表的是否有效(是否有节点)
  * 例程:    无
  ************************************************/
-#define XCList_NodeExistence(_pList)            ( ((XCListNode_t*)&((_pList)->RootNode)) != ((_pList)->RootNode.pNext) )
+#define XCList_ListValid(_pList)                ( ((XCListNode_t*)&((_pList)->RootNode)) != ((_pList)->RootNode.pNext) )
 
 /************************************************|
  * 描述:    节点是否到达结尾节点

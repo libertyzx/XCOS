@@ -114,10 +114,10 @@ typedef struct _XCTCB_t{
 #define XC_Enter(_phTCB)    \
 {   \
     /*全局变量转局部变量可加快运行速度*/                \
-    XCTCB_t *_phXCTCB = (_phTCB);       /*得到PCB*/     \
-    XCBP_t   _XCPB    = _phXCTCB->BP;   /*得到断点*/    \
+    XCTCB_t* _phXCTCB = (_phTCB);       /*得到PCB*/     \
+    XCBP_t*  _pXCPB   = &_phXCTCB->BP;  /*得到断点*/    \
     /*启动协程*/                                        \
-    _COR_Start(_XCPB);                  /*启动*/
+    _COR_Start(*_pXCPB);                /*启动*/
 
 /************************************************|
  * 描述:    [协程]离开
@@ -146,7 +146,7 @@ typedef struct _XCTCB_t{
 #define XC_Yield()  \
 {   \
     _phXCTCB->TaskState = _XC_S_Ready;  /*任务状态:就绪*/   \
-    _COR_SetBPBreak(_XCPB)              /*设置断点并跳出*/  \
+    _COR_SetBPBreak(*_pXCPB)            /*设置断点并跳出*/  \
 }
 
 
@@ -164,7 +164,7 @@ typedef struct _XCTCB_t{
     _phXCTCB->WakeType  = _XC_Wake_Non;     /*清唤醒类型*/      \
     _phXCTCB->Blocked   = _XC_B_WaitTime;   /*等待时间*/        \
     _phXCTCB->TaskWakeTick = (_n);          /*保存时间*/        \
-    _COR_SetBPBreak(_XCPB);                 /*设置断点并跳出*/  \
+    _COR_SetBPBreak(*_pXCPB);               /*设置断点并跳出*/  \
 }
 
 /************************************************|
@@ -226,7 +226,7 @@ __STATIC_INLINE int32_t XC_GetTaskState(XCTCB_t* phTCB)
     _phXCTCB->WakeType  = _XC_Wake_Non;                             \
     _phXCTCB->Blocked   = _XC_B_Blocked | _XC_B_WaitTime;           \
     _phXCTCB->TaskWakeTick = (_TickTimeout);                        \
-    _COR_SetBPBreak(_XCPB);                 /*设置断点并跳出*/      \
+    _COR_SetBPBreak(*_pXCPB);               /*设置断点并跳出*/      \
 }
 
 /************************************************|

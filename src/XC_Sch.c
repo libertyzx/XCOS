@@ -212,7 +212,7 @@ static void XCSch_TimeSched(XCOS_t* phXCOS, XCuint_t Tick)
      */
     if(XCSch_GetPreviousTick(phXCOS) > Tick){
         //上个保存的Tick大于当前当前Tick,表示Tick已经溢出,判断表中是否有节点需要处理;
-        if(XCList_NodeExistence(&phXCOS->TimeList)){
+        if(XCList_ListValid(&phXCOS->TimeList)){
             //"TimeList"表中有节点,将所有节点移动到"ReadyList"表
             pIndex = XCList_GetListStartNode(&phXCOS->TimeList);    //得到时间链表初始节点
             while(!XCList_ReachEndNode(&phXCOS->TimeList, pIndex)){
@@ -225,7 +225,7 @@ static void XCSch_TimeSched(XCOS_t* phXCOS, XCuint_t Tick)
             XCList_SwapListToNodePrevious(phXCOS->pReadyListNodeIndex, &phXCOS->TimeList);
         }
         //判断"TimeOverflowList"表中是否有节点
-        if(XCList_NodeExistence(&phXCOS->TimeOverflowList)){        //表中有节点
+        if(XCList_ListValid(&phXCOS->TimeOverflowList)){            //表中有节点
             //"TimeList"表节点处理完成后,直接和"TimeOverflowList"表换,同等于"TimeOverflowList"表所有节点移动到"TimeList"表;
             XCList_SwapList(&phXCOS->TimeList, &phXCOS->TimeOverflowList);
             //更新下个唤醒时间
@@ -243,7 +243,7 @@ static void XCSch_TimeSched(XCOS_t* phXCOS, XCuint_t Tick)
      *  1.遍历"TimeList"表,唤醒时间到达的任务都移动到"ReadyList"表;
      *  2.更新下个唤醒的时间;
      */
-    if(XCList_NodeExistence(&phXCOS->TimeList)){
+    if(XCList_ListValid(&phXCOS->TimeList)){
         //链表中是有节点的
         if(Tick >= XCSch_GetNextWakeTaskTick(phXCOS)){
             //唤醒时间到达

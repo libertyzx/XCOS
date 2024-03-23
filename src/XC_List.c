@@ -175,10 +175,10 @@ void XCList_SwapList(XCListRoot_t* pList1, XCListRoot_t* pList2)
     //保存链表1的上下节点,给于链表2
     pNext     = pList1->RootNode.pNext;
     pPrevious = pList1->RootNode.pPrevious;
-    List1NodeExistence = XCList_NodeExistence(pList1);
+    List1NodeExistence = XCList_ListValid(pList1);
 
     //链表2有节点
-    if(XCList_NodeExistence(pList2)){
+    if(XCList_ListValid(pList2)){
         //将链表2的上下节点给链表1
         pList1->RootNode.pNext     = pList2->RootNode.pNext;
         pList1->RootNode.pPrevious = pList2->RootNode.pPrevious;
