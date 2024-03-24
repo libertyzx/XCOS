@@ -196,7 +196,7 @@ void XCSch_ListNodeInsertAsc(XCListRoot_t* pList, XCTCB_t* phTCB)
 
 
 /************************************************ 我是分割线 ************************************************/
-//调度处理
+/**调度处理*/
 
 /************************************************|
  * 描述:    [私有]时间调度
@@ -353,8 +353,9 @@ void XCSch_Init(XCOS_t* phXCOS)
     XCList_Init(&phXCOS->TimeOverflowList);
     XCList_Init(&phXCOS->BlockedList);
     phXCOS->pReadyListNodeIndex = (XCListNode_t*)&phXCOS->ReadyList.RootNode;   //就绪表的根链表
-    phXCOS->NextTaskWakeTick = ~0;                  //下个任务唤醒时间为最大
-    phXCOS->PreviousTick     = 0;                   //保存上个Tick值
+    phXCOS->NextTaskWakeTick = ~0;      //下个任务唤醒时间为最大
+    phXCOS->PreviousTick     = 0;       //保存上个Tick值
+    phXCOS->TaskNum          = 0;       //任务数量
 }
 
 /************************************************|
@@ -394,6 +395,18 @@ void XCSch_Run(XCOS_t* phXCOS)
     }
 }
 
+/************************************************|
+ * 描述:    获取任务数
+ * 函数名:  XCSch_GetTaskNum
+ * 形参[I]: XCOS_t* phXCOS      //XCOS句柄
+ * 返回:    uint8_t             //返回当前框架中任务数量
+ * 说明:    无
+ * 例程:    无
+ ************************************************/
+uint8_t XCSch_GetTaskNum(XCOS_t* phXCOS)
+{
+    return(phXCOS->TaskNum);
+}
 
 /************************************************ 我是分割线 ************************************************/
 
@@ -403,21 +416,35 @@ void XCSch_Run(XCOS_t* phXCOS)
  * 形参[I]: XCOS_t* phXCOS          //XCOS句柄
  * 形参[I]: XCTCB_t* phTCB          //协程任务控制块
  * 形参[I]: void(*fTask)(XCPCB_t*)  //任务的函数指针
- * 返回:    void
+ * 返回:    int32_t
+ *  +=返回值
+ *  | _XC_R_OK      //注册成功
+ *  | _XC_R_Fail    //注册失败,任务太多
  * 说明:    挂载到就绪表;
  * 例程:    无
  ************************************************/
-void XCSch_TaskReg(XCOS_t* phXCOS, XCTCB_t* phTCB, void(*fTask)(XCTCB_t*))
+int32_t XCSch_TaskReg(XCOS_t* phXCOS, XCTCB_t* phTCB, void(*fTask)(XCTCB_t*))
 {
+    if(phXCOS->TaskNum >= _XC_Cnf_TaskMaxNum){
+        return(_XC_R_Fail);
+    }
+
     XCList_InitNode(&phTCB->ListNode);          //初始化链表
-    phTCB->phXCOS = phXCOS;                     //保存任务的所属框架句柄
-    phTCB->TaskWakeTick = ~0;                   //任务下个唤醒的时间
     phTCB->fTask     = fTask;                   //更新任务入口
+    phTCB->TaskWakeTick = ~0;                   //任务下个唤醒的时间
     _COR_Init(phTCB->BP);                       //初始化断点
     phTCB->Blocked   = _XC_B_NonBlocked;        //没有阻塞
     phTCB->WakeType  = _XC_Wake_Non;            //没有唤醒
     phTCB->TaskState = _XC_S_Ready;             //任务状态:就绪
+
+    //任务添加处理
+    if(phTCB->phXCOS == NULL){
+        phXCOS->TaskNum++;
+    }
+    phTCB->phXCOS = phXCOS;                     //保存任务的所属框架句柄
     XCSch_ListNodeInsertIndexPrevious(phXCOS, phTCB);
+
+    return(_XC_R_OK);
 }
 
 /************************************************|
@@ -432,6 +459,7 @@ void XCSch_TaskRemove(XCTCB_t* phTCB)
 {
     if(phTCB->phXCOS != NULL){
         XCSch_ListNodeRemove(phTCB->phXCOS, phTCB);
+        phTCB->phXCOS->TaskNum--;
     }
 }
 

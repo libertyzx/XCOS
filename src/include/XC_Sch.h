@@ -42,7 +42,8 @@ typedef struct _XCOS_t{
     XCListNode_t *pReadyListNodeIndex;  //就绪表节点索引,指向运行的节点
     XCuint_t NextTaskWakeTick;          //下个任务唤醒的Tick
     XCuint_t PreviousTick;              //上个Tick
-    //信号
+
+    uint8_t TaskNum;                    //任务数量
 
 }XCOS_t;
 
@@ -57,12 +58,13 @@ void XCSch_ListNodeRemove(XCOS_t* phXCOS, XCTCB_t* phTCB);                  //链
 void XCSch_ListNodeInsertIndexPrevious(XCOS_t* phXCOS, XCTCB_t* phTCB);     //将节点插入索引前
 
 /**调度器处理*/
-void XCSch_Init(XCOS_t* phXCOS);        //初始化调度器
-void XCSch_Run(XCOS_t* phXCOS);         //调度器运行
+void XCSch_Init(XCOS_t* phXCOS);            //初始化调度器
+void XCSch_Run(XCOS_t* phXCOS);             //调度器运行
+uint8_t XCSch_GetTaskNum(XCOS_t* phXCOS);   //返回当前任务数量
 
 /**任务处理*/
-void XCSch_TaskReg(XCOS_t* phXCOS, XCTCB_t* phTCB, void(*fTask)(XCTCB_t*)); //注册一个任务
-void XCSch_TaskRemove(XCTCB_t* phTCB);                                      //移除一个任务
+int32_t XCSch_TaskReg(XCOS_t* phXCOS, XCTCB_t* phTCB, void(*fTask)(XCTCB_t*));  //注册一个任务
+void XCSch_TaskRemove(XCTCB_t* phTCB);                                          //移除一个任务
 
 
 /************************************************ 我是分割线 ************************************************/

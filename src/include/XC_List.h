@@ -109,13 +109,14 @@ typedef struct _XCListRoot_t{
 void XCList_Init(XCListRoot_t* pList);      //初始化链表
 void XCList_InitNode(XCListNode_t* pNode);  //初始化节点
 
-/**节点操作*/
+/**基础节点操作(不操作节点所属)*/
 void XCList_InsertNodePrevious(XCListNode_t* pListNode, XCListNode_t* pNewNode);    //将新节点插入某节点之前
 void XCList_InsertNodeNext(XCListNode_t* pListNode, XCListNode_t* pNewNode);        //将新节点插入某节点之后
 void XCList_LinkNode(XCListNode_t* pPreviousNode, XCListNode_t* pNextNode);         //连接2个节点
-void XCList_Remove(XCListNode_t* pNode);                                            //从链表中移除一个节点
+void XCList_RemoveBasicNode(XCListBasic_t* pNode);                                  //移除一个基础节点
 
-/**链表插入操作*/
+/**链表操作*/
+void XCList_Remove(XCListNode_t* pNode);                                //从链表中移除一个节点
 void XCList_InsertStart(XCListRoot_t* pList, XCListNode_t* pNewNode);   //节点插入链表开始
 void XCList_InsertEnd(XCListRoot_t* pList, XCListNode_t* pNewNode);     //节点插入链表结尾
 

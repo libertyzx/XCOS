@@ -50,8 +50,8 @@ void XCList_Init(XCListRoot_t* pList)
  ************************************************/
 void XCList_InitNode(XCListNode_t* pNode)
 {
-    pNode->pNext     = NULL;
-    pNode->pPrevious = NULL;
+    pNode->pNext     = pNode;
+    pNode->pPrevious = pNode;
     pNode->pRootList = NULL;
 }
 
@@ -108,14 +108,29 @@ void XCList_LinkNode(XCListNode_t* pPreviousNode, XCListNode_t* pNextNode)
 }
 
 /************************************************|
+ * 描述:    移除基础节点
+ * 函数名:  XCList_RemoveBasicNode
+ * 形参[I]: XCListNode_t* pNode     //需要删除的节点
+ * 返回:    void
+ * 说明:    只处理链表节点部分,不影响节点挂载的其他数据;
+ * 例程:    无
+ ************************************************/
+void XCList_RemoveBasicNode(XCListBasic_t* pNode)
+{
+    XCList_LinkNode(pNode->pPrevious, pNode->pNext);  //从唤醒表删除
+    pNode->pNext     = (XCListNode_t*)pNode;
+    pNode->pPrevious = (XCListNode_t*)pNode;
+}
+
+/************************************************ 我是分割线 ************************************************/
+/**链表操作*/
+
+/************************************************|
  * 描述:    从链表中移除一个节点
  * 函数名:  XCList_Remove
  * 形参[I]: XCListNode_t* pNode     //需要删除的节点
  * 返回:    void
- * 说明:
- *  节点在插入时就已经保存自身所在的链表;
- *  调用此函数会清除节点中除辅助值(Value)外所有数据;
- *  注意:只处理链表节点部分,不影响节点挂载的其他数据;
+ * 说明:    只处理链表节点部分,不影响节点挂载的其他数据;
  * 例程:    无
  ************************************************/
 void XCList_Remove(XCListNode_t* pNode)
@@ -123,9 +138,6 @@ void XCList_Remove(XCListNode_t* pNode)
     XCList_LinkNode(pNode->pPrevious, pNode->pNext);    //删除节点
     XCList_InitNode(pNode);                             //初始化链表
 }
-
-/************************************************ 我是分割线 ************************************************/
-/**链表操作*/
 
 /************************************************|
  * 描述:    将节点插入开始
