@@ -48,7 +48,7 @@ typedef struct{
 }XCListBasic_t;
 
 /**双向链表根节点类型
- *  32位下占12字节;
+ *  32位下占8字节;
  */
 typedef struct _XCListRoot_t{
     XCListBasic_t RootNode;             //根节点,最后/最初的节点

@@ -23,6 +23,7 @@
 #include "XC_Type.h"
 #include "XC_List.h"
 #include "XC_Task.h"
+#include "XC_Sem.h"
 
 /*
  ************************************************************************************************************|
@@ -31,21 +32,66 @@
  */
 //=== 数据类型 ===========================================|
 
-/**XCOS句柄*/
+/**XCOS句柄
+ *  32位下占:8*5+4*3+4=56
+ */
 typedef struct _XCOS_t{
     //链表
     XCListRoot_t ReadyList;             //就绪链表
     XCListRoot_t TimeList;              //延时/超时/等待的链表
     XCListRoot_t TimeOverflowList;      //时间溢出的链表
     XCListRoot_t BlockedList;           //阻塞链表
+    XCListRoot_t SemList;               //信号表
     //数据
     XCListNode_t *pReadyListNodeIndex;  //就绪表节点索引,指向运行的节点
     XCuint_t NextTaskWakeTick;          //下个任务唤醒的Tick
     XCuint_t PreviousTick;              //上个Tick
 
     uint8_t TaskNum;                    //任务数量
-
+    uint8_t ListOperationFlag;          //表操作标记(1操作中,0没有操作)
+    uint8_t SemWakeCount;               //信号唤醒计数
+    uint8_t SemWakeFlag;                //信号唤醒标记
 }XCOS_t;
+
+/*
+ ************************************************************************************************************|
+ ************************************************ 我是分割线 ************************************************|
+ ************************************************************************************************************|
+ */
+/**函数宏*/
+
+/************************************************|
+ * 描述:    链表操作开始
+ * 宏名:    XCSch_ListOperationStart
+ * 形参[I]: XCOS_t* _phXCOS     //XCOS句柄(已强制转换)
+ * 返回:    void
+ * 说明:    无
+ * 例程:    无
+ ************************************************/
+#define XCSch_ListOperationStart(_phXCOS)       { ((XCOS_t*)(_phXCOS))->ListOperationFlag = 1; }
+
+/************************************************|
+ * 描述:    链表操作结束
+ * 宏名:    XCSch_ListOperationEnd
+ * 形参[I]: XCOS_t* _phXCOS     //XCOS句柄(已强制转换)
+ * 返回:    void
+ * 说明:    无
+ * 例程:    无
+ ************************************************/
+#define XCSch_ListOperationEnd(_phXCOS)         { ((XCOS_t*)(_phXCOS))->ListOperationFlag = 0; }
+
+/************************************************|
+ * 描述:    获取链表操作状态
+ * 宏名:    XCSch_GetListOperationState
+ * 形参[I]: XCOS_t* _phXCOS     //XCOS句柄(已强制转换)
+ * 返回:    uint8_t
+ *  +=返回值
+ *  | 0: 没有运行
+ *  | 1: 运行中
+ * 说明:    无
+ * 例程:    无
+ ************************************************/
+#define XCSch_GetListOperationState(_phXCOS)    ( ((XCOS_t*)(_phXCOS))->ListOperationFlag )
 
 /*
  ************************************************************************************************************|
@@ -54,18 +100,19 @@ typedef struct _XCOS_t{
  */
 //=== 函数声明 ===========================================|
 /**[内部函数]任务链表节点处理*/
-void XCSch_ListNodeRemove(XCOS_t* phXCOS, XCTCB_t* phTCB);                  //链表节点移除
-void XCSch_ListNodeInsertIndexPrevious(XCOS_t* phXCOS, XCTCB_t* phTCB);     //将节点插入索引前
+void XCSch_ListNodeRemove(XCTCB_t* phTCB);              //链表节点移除
+void XCSch_ListNodeInsertIndexPrevious(XCTCB_t* phTCB); //将节点插入索引前
 
 /**调度器处理*/
 void XCSch_Init(XCOS_t* phXCOS);            //初始化调度器
 void XCSch_Run(XCOS_t* phXCOS);             //调度器运行
+void XCSch_RunNonBlocked(XCOS_t* phXCOS);   //调度器运行(非阻塞)
 uint8_t XCSch_GetTaskNum(XCOS_t* phXCOS);   //返回当前任务数量
 
 /**任务处理*/
 int32_t XCSch_TaskReg(XCOS_t* phXCOS, XCTCB_t* phTCB, void(*fTask)(XCTCB_t*));  //注册一个任务
-void XCSch_TaskRemove(XCTCB_t* phTCB);                                          //移除一个任务
-
+void XCSch_TaskRemove(XCTCB_t* phTCB);      //移除一个任务
+void XCSch_TaskReset(XCTCB_t* phTCB);       //复位任务
 
 /************************************************ 我是分割线 ************************************************/
 /*

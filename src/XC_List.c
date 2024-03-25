@@ -117,7 +117,7 @@ void XCList_LinkNode(XCListNode_t* pPreviousNode, XCListNode_t* pNextNode)
  ************************************************/
 void XCList_RemoveBasicNode(XCListBasic_t* pNode)
 {
-    XCList_LinkNode(pNode->pPrevious, pNode->pNext);  //从唤醒表删除
+    XCList_LinkNode(pNode->pPrevious, pNode->pNext);  //表中删除
     pNode->pNext     = (XCListNode_t*)pNode;
     pNode->pPrevious = (XCListNode_t*)pNode;
 }

@@ -131,19 +131,18 @@
 /************************************************|
  * 描述:    链表节点移除
  * 函数名:  XCSch_ListNodeRemove
- * 形参[I]: XCOS_t* phXCOS      //XCOS句柄
  * 形参[I]: XCTCB_t* phTCB      //协程控制块
  * 返回:    void
  * 说明:
- *  处理"XCOS"索引,并移除节点;
+ *  处理"XCOS"就续表索引,并移除节点;
  *  适用"XCOS"下所以链表的节点;
  * 例程:    无
  ************************************************/
-void XCSch_ListNodeRemove(XCOS_t* phXCOS, XCTCB_t* phTCB)
+void XCSch_ListNodeRemove(XCTCB_t* phTCB)
 {
     //若移除的是索引指向的节点,则将索引指向上个节点
-    if(phXCOS->pReadyListNodeIndex == &phTCB->ListNode){
-        phXCOS->pReadyListNodeIndex = phTCB->ListNode.pPrevious;
+    if(phTCB->phXCOS->pReadyListNodeIndex == &phTCB->ListNode){
+        phTCB->phXCOS->pReadyListNodeIndex = phTCB->ListNode.pPrevious;
     }
     XCList_Remove(&phTCB->ListNode);      //移除节点
 }
@@ -151,20 +150,19 @@ void XCSch_ListNodeRemove(XCOS_t* phXCOS, XCTCB_t* phTCB)
 /************************************************|
  * 描述:    将节点插入索引前
  * 函数名:  XCSch_ListNodeInsertIndexPrevious
- * 形参[I]: XCOS_t* phXCOS      //XCOS句柄
  * 形参[I]: XCTCB_t* phTCB      //协程控制块
  * 返回:    void
  * 说明:    注意,索引指向的是就绪表,所以节点是插入就绪表的;
  * 例程:    无
  ************************************************/
-void XCSch_ListNodeInsertIndexPrevious(XCOS_t* phXCOS, XCTCB_t* phTCB)
+void XCSch_ListNodeInsertIndexPrevious(XCTCB_t* phTCB)
 {
-    XCList_InsertNodePrevious(phXCOS->pReadyListNodeIndex, &phTCB->ListNode); //插入索引节点前
-    phTCB->ListNode.pRootList = &phXCOS->ReadyList;                           //插在就绪表
+    XCList_InsertNodePrevious(phTCB->phXCOS->pReadyListNodeIndex, &phTCB->ListNode);    //插入索引节点前
+    phTCB->ListNode.pRootList = &phTCB->phXCOS->ReadyList;                              //插在就绪表
 }
 
 /************************************************|
- * 描述:    升序排列的插入节点
+ * 描述:    [私有]升序排列的插入节点
  * 函数名:  XCSch_ListNodeInsertAsc
  * 形参[I]: XCListRoot_t* pList     //需插入的链表
  * 形参[I]: XCTCB_t* phTCB          //协程控制块
@@ -172,11 +170,10 @@ void XCSch_ListNodeInsertIndexPrevious(XCOS_t* phXCOS, XCTCB_t* phTCB)
  * 说明:    从根节点向下(Next)查询辅助值,若值相同,新节点插入在旧节点的后面;
  * 例程:    无
  ************************************************/
-void XCSch_ListNodeInsertAsc(XCListRoot_t* pList, XCTCB_t* phTCB)
+static void XCSch_ListNodeInsertAsc(XCListRoot_t* pList, XCTCB_t* phTCB)
 {
     XCListNode_t* pIterator;
     XCuint_t MaxTick = ~0;          //Tick最大的值
-
 
     if(MaxTick == phTCB->TaskWakeTick){
         //若是唤醒值等于最大值,则设置为根节点
@@ -197,6 +194,73 @@ void XCSch_ListNodeInsertAsc(XCListRoot_t* pList, XCTCB_t* phTCB)
 
 /************************************************ 我是分割线 ************************************************/
 /**调度处理*/
+
+/************************************************|
+ * 描述:    [私有]信号调度
+ * 函数名:  XCSch_SemSched
+ * 形参[I]: XCOS_t* phXCOS      //XCOS句柄
+ * 返回:    void
+ * 说明:    信号量调度唤醒任务
+ * 例程:    无
+ ************************************************/
+static void XCSch_SemSched(XCOS_t* phXCOS)
+{
+    XCListNode_t* pIndex;
+    XCSemBin_t* phSem;
+
+    //链表判断
+    if(!XCList_ListValid(&phXCOS->SemList)){
+        return;             //链表无效
+    }
+    //唤醒信号判断
+    if( (phXCOS->SemWakeCount == 0) && (phXCOS->SemWakeFlag == 0) ){
+        return;             //没有唤醒信号
+    }
+
+    pIndex = XCList_GetListStartNode(&phXCOS->SemList);     //得到信号链表初始节点
+    while(!XCList_ReachEndNode(&phXCOS->SemList, pIndex)){
+        phSem = (XCSemBin_t*)pIndex;                        //得到信号
+        pIndex = pIndex->pNext;                             //指向下个节点
+        /**任务调度处理
+         *  只有在任务状态时等待信号(_XC_S_WaitSem)的情况下才可唤醒任务,
+         *  唤醒必须在锁状态时等待解锁时有效;
+         *  当任务状态不是等待信号(_XC_S_WaitSem)时,
+         *  说明任务被其他高优先级函数操作了(如挂起,任务复位等),这是直接移除信号量;
+         */
+        if(phSem->phTCB->TaskState == _XC_S_WaitSem){
+            //任务状态时等待信号,判断是否等待解锁
+            if(phSem->Lock == _XC_Lock_WaitUnlock){
+                //锁状态是等待解锁,唤醒任务
+                XCSch_ListOperationStart(phSem->phTCB->phXCOS);     //链表操作开始
+                XCList_Remove(&phSem->phTCB->ListNode);             //移除节点
+                XCSch_ListNodeInsertIndexPrevious(phSem->phTCB);    //插入就续表
+                phSem->phTCB->WakeType  = _XC_Wake_Sem;             //被信号唤醒
+                phSem->phTCB->TaskState = _XC_S_Ready;              //任务状态:就绪
+                XCSch_ListOperationEnd(phSem->phTCB->phXCOS);       //链表操作结束
+                XCSem_BinSemRemove(phSem);                          //移除自己
+            }
+            /*锁状态不是等待解锁,则继续等待释放信号*/
+        }
+        else{
+            XCSem_BinSemRemove(phSem);                              //移除自己
+        }
+    }
+    /**唤醒计数处理
+     *  唤醒计数是累加,其过程可能被被"释放信号"中断,
+     *  导致"SemWakeCount++"值不对(少加了一次或者多次),
+     *  或者在本函数清除时被累加导致累加失败;
+     *  但是所有的唤醒都是在此处轮询唤醒的,一次轮询可以解决所有信号唤醒;
+     *  所以只有在结束操作后"SemWakeCount"清零,然后再调度一次"XCSem_SemSched",
+     *  下次"SemWakeCount"值依然是零,则可以结束信号调度运行;
+     */
+    if(phXCOS->SemWakeCount == 0){
+        phXCOS->SemWakeFlag = 0;
+    }
+    else{
+        phXCOS->SemWakeCount = 0;
+        phXCOS->SemWakeFlag  = 1;
+    }
+}
 
 /************************************************|
  * 描述:    [私有]时间调度
@@ -222,6 +286,7 @@ static void XCSch_TimeSched(XCOS_t* phXCOS, XCuint_t Tick)
      */
     if(XCSch_GetPreviousTick(phXCOS) > Tick){
         //上个保存的Tick大于当前当前Tick,表示Tick已经溢出,判断表中是否有节点需要处理;
+        XCSch_ListOperationStart(phXCOS);                           //链表操作开始
         if(XCList_ListValid(&phXCOS->TimeList)){
             //"TimeList"表中有节点,将所有节点移动到"ReadyList"表
             pIndex = XCList_GetListStartNode(&phXCOS->TimeList);    //得到时间链表初始节点
@@ -244,6 +309,7 @@ static void XCSch_TimeSched(XCOS_t* phXCOS, XCuint_t Tick)
         else{
             XCSch_UpdataNextWakeTaskTick(phXCOS, ~0);               //若是没有节点,将唤醒时间调整为最大
         }
+        XCSch_ListOperationEnd(phXCOS);                             //链表操作结束
         XCSch_UpdataPreviousTick(phXCOS, Tick);                     //[注]更新保存的Tick
     }
 
@@ -256,15 +322,16 @@ static void XCSch_TimeSched(XCOS_t* phXCOS, XCuint_t Tick)
     if(XCList_ListValid(&phXCOS->TimeList)){
         //链表中是有节点的
         if(Tick >= XCSch_GetNextWakeTaskTick(phXCOS)){
-            //唤醒时间到达
+            //唤醒时间到达,处理s
+            XCSch_ListOperationStart(phXCOS);                       //链表操作开始
             pIndex = XCList_GetListStartNode(&phXCOS->TimeList);    //得到时间链表初始节点
             while( (!XCList_ReachEndNode(&phXCOS->TimeList, pIndex))  && (Tick >= XCSch_GetTaskWakeTick(pIndex)) ){
                 //节点没有到达结尾 && 当前索引任务唤醒时间到达
                 phTCB = (XCTCB_t*)pIndex;       //得到索引任务的TCB
                 pIndex = pIndex->pNext;         //指向下个任务
                 //唤醒任务移到就绪表
-                XCSch_ListNodeRemove(phXCOS, phTCB);                //原链表移除节点
-                XCSch_ListNodeInsertIndexPrevious(phXCOS, phTCB);   //插入就绪表
+                XCSch_ListNodeRemove(phTCB);                        //原链表移除节点
+                XCSch_ListNodeInsertIndexPrevious(phTCB);           //插入就绪表
                 XCSch_UpdataTaskState(phTCB, _XC_S_Ready);          //任务状态:就绪
                 XCSch_UpdataTaskWakeType(phTCB, _XC_Wake_Time);     //时间唤醒
             }
@@ -276,6 +343,7 @@ static void XCSch_TimeSched(XCOS_t* phXCOS, XCuint_t Tick)
             else{
                 XCSch_UpdataNextWakeTaskTick(phXCOS, ~0);           //若是没有节点,将唤醒时间调整为最大
             }
+            XCSch_ListOperationEnd(phXCOS);                         //链表操作结束
             XCSch_UpdataPreviousTick(phXCOS, Tick);                 //[注]更新保存的Tick
         }
     }
@@ -299,12 +367,13 @@ static void XCSch_BlockedSched(XCOS_t* phXCOS, XCTCB_t *phTCB, XCuint_t Tick)
 {
     XCuint_t TaskWakeTick;
 
+    XCSch_ListOperationStart(phXCOS);       //链表操作开始
     //时间阻塞处理(优先级最高)
     if( (phTCB->Blocked & _XC_B_WaitTime) && XCSch_GetTaskWakeTick(phTCB) ){
         //有时间处理 && 时间不为0
         TaskWakeTick = XCSch_GetTaskWakeTick(phTCB) + Tick;     //当前任务下次唤醒的时刻
         XCSch_UpdataTaskWakeTick(phTCB, TaskWakeTick);          //更新任务下次唤醒的时刻
-        XCSch_ListNodeRemove(phXCOS, phTCB);                    //移除当前节点
+        XCSch_ListNodeRemove(phTCB);                            //移除当前节点
         //唤醒时间是否是Tick溢出;
         if(TaskWakeTick < Tick){
             //下次唤醒的Tick溢出
@@ -323,12 +392,13 @@ static void XCSch_BlockedSched(XCOS_t* phXCOS, XCTCB_t *phTCB, XCuint_t Tick)
     }
     //阻塞处理
     else if(phTCB->Blocked & _XC_B_Blocked){
-        XCSch_ListNodeRemove(phXCOS, phTCB);                        //移除当前节点
+        XCSch_ListNodeRemove(phTCB);                                //移除当前节点
         XCList_InsertEnd(&phXCOS->BlockedList, &phTCB->ListNode);   //插入阻塞表
     }
 
     //清除阻塞标志
     phTCB->Blocked = _XC_B_NonBlocked;
+    XCSch_ListOperationEnd(phXCOS);                                 //链表操作结束
 }
 
 /*
@@ -356,6 +426,11 @@ void XCSch_Init(XCOS_t* phXCOS)
     phXCOS->NextTaskWakeTick = ~0;      //下个任务唤醒时间为最大
     phXCOS->PreviousTick     = 0;       //保存上个Tick值
     phXCOS->TaskNum          = 0;       //任务数量
+
+    phXCOS->ListOperationFlag = 0;      //表操作标记(1操作中,0没有操作)
+
+    phXCOS->SemWakeCount = 0;           //信号唤醒计数
+    phXCOS->SemWakeFlag  = 0;           //信号唤醒标记
 }
 
 /************************************************|
@@ -392,7 +467,46 @@ void XCSch_Run(XCOS_t* phXCOS)
                 XCSch_BlockedSched(phXCOS, phTCB, Tick);        //阻塞调度处理
             }
         }
+        //信号调度
+        XCSch_SemSched(phXCOS);
     }
+}
+
+/************************************************|
+ * 描述:    调度器运行(非阻塞)
+ * 函数名:  XCSch_RunNonBlocked
+ * 形参[I]: XCOS_t* phXCOS  //XCOS句柄
+ * 返回:    void
+ * 说明:
+ *  非阻塞运行,需要循环调度
+ *  和"XCSch_Run"一样的实现,只是去掉了循环;
+ * 例程:    无
+ ************************************************/
+void XCSch_RunNonBlocked(XCOS_t* phXCOS)
+{
+    XCTCB_t *phTCB;
+    XCuint_t Tick;
+
+    phXCOS->pReadyListNodeIndex = phXCOS->pReadyListNodeIndex->pNext;   //向下更新就绪表索引
+    //是否遍历到链表结尾(到根节点)
+    if(XCList_ReachEndNode(&phXCOS->ReadyList, phXCOS->pReadyListNodeIndex)){
+        //到达结尾(是根节点),只处理时间
+        Tick = XCTime_GetTick();                            //得到当前系统Tick
+        XCSch_TimeSched(phXCOS, Tick);                      //时间调度处理
+    }
+    else{
+        //不是根节点处理任务
+        phTCB = (XCTCB_t*)(phXCOS->pReadyListNodeIndex);    //得到任务TCB
+        phTCB->TaskState = _XC_S_Run;                       //任务状态:运行
+        phTCB->fTask(phTCB);                                //运行任务
+        Tick = XCTime_GetTick();                            //得到当前系统Tick
+        XCSch_TimeSched(phXCOS, Tick);                      //时间调度处理
+        if(phTCB->Blocked){
+            XCSch_BlockedSched(phXCOS, phTCB, Tick);        //阻塞调度处理
+        }
+    }
+    //信号调度
+    XCSch_SemSched(phXCOS);
 }
 
 /************************************************|
@@ -429,21 +543,16 @@ int32_t XCSch_TaskReg(XCOS_t* phXCOS, XCTCB_t* phTCB, void(*fTask)(XCTCB_t*))
         return(_XC_R_Fail);
     }
 
+    XC_TaskBasicInit(phTCB);
     XCList_InitNode(&phTCB->ListNode);          //初始化链表
-    phTCB->fTask     = fTask;                   //更新任务入口
-    phTCB->TaskWakeTick = ~0;                   //任务下个唤醒的时间
-    _COR_Init(phTCB->BP);                       //初始化断点
-    phTCB->Blocked   = _XC_B_NonBlocked;        //没有阻塞
-    phTCB->WakeType  = _XC_Wake_Non;            //没有唤醒
-    phTCB->TaskState = _XC_S_Ready;             //任务状态:就绪
-
-    //任务添加处理
-    if(phTCB->phXCOS == NULL){
-        phXCOS->TaskNum++;
-    }
+    phTCB->fTask  = fTask;                      //更新任务入口
     phTCB->phXCOS = phXCOS;                     //保存任务的所属框架句柄
-    XCSch_ListNodeInsertIndexPrevious(phXCOS, phTCB);
 
+    phXCOS->TaskNum++;                          //任务数+1
+
+    XCSch_ListOperationStart(phXCOS);           //链表操作开始
+    XCSch_ListNodeInsertIndexPrevious(phTCB);   //插入就续表
+    XCSch_ListOperationEnd(phXCOS);             //链表操作结束
     return(_XC_R_OK);
 }
 
@@ -452,15 +561,49 @@ int32_t XCSch_TaskReg(XCOS_t* phXCOS, XCTCB_t* phTCB, void(*fTask)(XCTCB_t*))
  * 函数名:  XCSch_TaskRemove
  * 形参[I]: XCTCB_t* phTCB      //协程控制块
  * 返回:    void
- * 说明:    注销任务,只是将任务从表中移除,需要时可以重新注册;
+ * 说明:
+ *  注意,会将任务从表中删除,并会清空整个TCB数据
  * 例程:    无
  ************************************************/
 void XCSch_TaskRemove(XCTCB_t* phTCB)
 {
     if(phTCB->phXCOS != NULL){
-        XCSch_ListNodeRemove(phTCB->phXCOS, phTCB);
-        phTCB->phXCOS->TaskNum--;
+        XC_TaskBasicInit(phTCB);                    //复位数据
+
+        //从表中删除任务
+        XCSch_ListOperationStart(phTCB->phXCOS);    //链表操作开始
+        XCSch_ListNodeRemove(phTCB);
+        phTCB->phXCOS->TaskNum--;                   //任务数-1
+        XCSch_ListOperationEnd(phTCB->phXCOS);      //链表操作结束
+
+        XCList_InitNode(&phTCB->ListNode);          //初始化链表
+        phTCB->fTask  = NULL;                       //清除任务入口
+        phTCB->phXCOS = NULL;                       //清除任务的所属框架句柄
+
+        phTCB->TaskState = _XC_S_Void;              //任务状态改为空
     }
+}
+
+/************************************************|
+ * 描述:    任务复位
+ * 函数名:  XCSch_TaskReset
+ * 参数[I]: XCTCB_t* phTCB      //任务TCB
+ * 返回:    void
+ * 说明:
+ *  不可在中断中调用;
+ *  清除所有状态(包含挂起),任务复位;
+ *  任务将重置到就绪表,然后从头运行;
+ *  任务TCB中除了"phXCOS"和"fTask",其他全部重置;
+ ************************************************/
+void XCSch_TaskReset(XCTCB_t* phTCB)
+{
+    XC_TaskBasicInit(phTCB);
+
+    //重置到就绪表
+    XCSch_ListOperationStart(phTCB->phXCOS);    //链表操作开始
+    XCSch_ListNodeRemove(phTCB);                //原链表移除节点
+    XCSch_ListNodeInsertIndexPrevious(phTCB);   //重新插入就绪表
+    XCSch_ListOperationEnd(phTCB->phXCOS);      //链表操作结束
 }
 
 /************************************************ 我是分割线 ************************************************/

@@ -71,7 +71,6 @@
     #define _XC_SysTickCount g_SysTickCount
 #endif
 
-
 /**最大任务数
  *  因为是协作式调度,任务数太多会导致每个任务运行卡顿;
  *  这个参数限制最大能注册的任务;
