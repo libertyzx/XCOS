@@ -53,10 +53,14 @@ typedef enum{
 }XCRetuen_t;
 
 /**任务状态值(当前协程状态)*/
-#define _XC_S_Run               (0)                 //运行
-#define _XC_S_Ready             (1)                 //就绪
-#define _XC_S_Blocking          (2)                 //阻塞
-#define _XC_S_Suspend           (3)                 //挂起
+#define _XC_S_Void              (0)                 //被移除后的状态
+#define _XC_S_Run               (1)                 //运行
+#define _XC_S_Ready             (2)                 //就绪
+#define _XC_S_Delay             (3)                 //[阻塞]延时
+#define _XC_S_WaitNotify        (4)                 //[阻塞]等待通知
+#define _XC_S_WaitSem           (5)                 //[阻塞]等待信号
+#define _XC_S_Suspend           (6)                 //[阻塞]挂起
+
 
 /**阻塞类型*/
 #define _XC_B_NonBlocked        (_B0000_0000)       //没有阻塞(清除阻塞)
@@ -68,18 +72,26 @@ typedef enum{
 #define _XC_Wake_Time           (1)                 //时间到达唤醒
 #define _XC_Wake_Notify         (2)                 //通知到达唤醒
 #define _XC_Wake_TaskResume     (3)                 //任务挂起后恢复
+#define _XC_Wake_Sem            (4)                 //信号唤醒
+
+/**锁值*/
+#define _XC_Lock_Unlock         (0)                 //没有锁(解锁)
+#define _XC_Lock_WaitLock       (1)                 //等待锁定
+#define _XC_Lock_Lock           (2)                 //锁定
+#define _XC_Lock_WaitUnlock     (3)                 //等待解锁
 
 //=== 类型 ======================================|
 typedef COR_BP_t XCBP_t;                //断点类型
 
 /*协程任务控制块(Task Control Block)
- *  32位下占16
+ *  32位下占12+4*4+4+4=36
  */
 typedef struct _XCTCB_t{
-    XCListNode_t     ListNode;              //链表节点
-    struct _XCOS_t*  phXCOS;                //任务所属的框架句柄
-    void(*fTask)(struct _XCTCB_t*);         //函数运行入口
-    XCBP_t BP;                              //协程断点(Break Point)
+    XCListNode_t ListNode;              //链表节点
+    struct _XCOS_t* phXCOS;             //任务所属的框架句柄
+    void(*fTask)(struct _XCTCB_t*);     //函数运行入口
+    XCuint_t TaskWakeTick;              //任务下个唤醒的时间
+    XCBP_t BP;                          //协程断点(Break Point)
 
     //通知数据
     union{
@@ -88,9 +100,17 @@ typedef struct _XCTCB_t{
     };
 
     uint8_t Blocked;                    //阻塞状态
-    uint8_t WakeType;                   //任务唤醒的类型
-    uint8_t State;                      //任务状态(_XC_S_***)
+    uint8_t WakeType;                   //任务唤醒的类型(_XC_Wake_**)
+    uint8_t TaskState;                  //任务状态(_XC_S_**)
 }XCTCB_t;
+
+/*
+ ************************************************************************************************************|
+ ************************************************ 我是分割线 ************************************************|
+ ************************************************************************************************************|
+ */
+/**内部调用的函数声明*/
+void XC_TaskBasicInit(XCTCB_t* phTCB);  //基本任务初始化
 
 /*
  ************************************************************************************************************|
@@ -111,10 +131,10 @@ typedef struct _XCTCB_t{
 #define XC_Enter(_phTCB)    \
 {   \
     /*全局变量转局部变量可加快运行速度*/                \
-    XCTCB_t *_phXCTCB = (_phTCB);       /*得到PCB*/     \
-    XCBP_t   _XCPB    = _phXCTCB->BP;   /*得到断点*/    \
+    XCTCB_t* _phXCTCB = (_phTCB);       /*得到PCB*/     \
+    XCBP_t*  _pXCPB   = &_phXCTCB->BP;  /*得到断点*/    \
     /*启动协程*/                                        \
-    _COR_Start(_XCPB);                  /*启动*/
+    _COR_Start(*_pXCPB);                /*启动*/
 
 /************************************************|
  * 描述:    [协程]离开
@@ -140,7 +160,100 @@ typedef struct _XCTCB_t{
  * 说明:    让出CPU的使用权,跳出协程,下次从此处继续;
  *  必须在协程块中使用;
  ************************************************/
-#define XC_Yield()          _COR_SetBPBreak(_XCPB)  /*设置断点并跳出*/
+#define XC_Yield()  \
+{   \
+    _phXCTCB->TaskState = _XC_S_Ready;  /*任务状态:就绪*/   \
+    _COR_SetBPBreak(*_pXCPB)            /*设置断点并跳出*/  \
+}
+
+/************************************************|
+ * 描述:    [协程]任务复位
+ * 宏名:    XC_TaskReset
+ * 形参[I]: void
+ * 返回:    void
+ * 说明:
+ *  必须在协程块中使用;
+ *  复位当前在运行的任务;
+ *  运行此宏后将立刻退出协程块
+ ************************************************/
+#define XC_TaskReset()  \
+{   \
+    XCSch_TaskReset(_phXCTCB);  \
+    _COR_Break(*_pXCPB);        \
+}
+
+/************************************************|
+ * 描述:    [协程]获取唤醒超时
+ * 函数名:  XC_GetWakeTimeout
+ * 参数[I]: void
+ * 返回:    boot
+ *  +=说明
+ *  | 0     //没有超时
+ *  | 1     //超时
+ * 说明:
+ *  用于判断消息和任务通知阻塞唤醒后是否超时;
+ *      消息函数:XCSem_BinSemTake
+ *      通知函数:XC_WaitNotify
+ *  必须在协程块中使用;
+ ************************************************/
+#define XC_GetWakeTimeout()         (_phXCTCB->WakeType == _XC_Wake_Time)
+
+/************************************************|
+ * 描述:    [内联][协程]获取任务运行状态
+ * 函数名:  XC_GetTaskState
+ * 参数[I]: XCTCB_t* phTCB      //任务TCB
+ * 返回:    int32_t
+ *  +=说明
+ *  | _XC_S_Run         //运行
+ *  | _XC_S_Ready       //就绪
+ *  | _XC_S_Delay       //[阻塞]延时
+ *  | _XC_S_WaitNotify  //[阻塞]等待通知
+ *  | _XC_S_WaitSem     //[阻塞]等待信号
+ *  | _XC_S_Suspend     //[阻塞]挂起
+ * 说明: 任意位置可调用,获取任务运行的状态;
+ ************************************************/
+__STATIC_INLINE int32_t XC_GetTaskState(XCTCB_t* phTCB)
+{
+    return(phTCB->TaskState);
+}
+
+/************************************************|
+ * 描述:    [内联][协程]更新通知数据
+ * 函数名:  XC_UpdateNotifyData
+ * 参数[I]: XCTCB_t* phTCB      //任务TCB
+ * 参数[I]: uint32_t NotifyData //通知数据
+ * 返回:    void
+ * 说明:
+ *  任意位置可调用;
+ *  在不使用任务通知的时候,可以用通知数据来传递数据;
+ *  此函数用于更新(写)通知数据;
+ ************************************************/
+__STATIC_INLINE void XC_UpdateNotifyData(XCTCB_t* phTCB, uint32_t NotifyData)
+{
+    phTCB->NotifyData = NotifyData;
+}
+
+/************************************************|
+ * 描述:    [内联][协程]读取通知数据
+ * 函数名:  XC_ReadNotifyData
+ * 参数[I]: XCTCB_t* phTCB      //任务TCB
+ * 返回:    uint32_t            //通知的数据
+ * 说明:
+ *  任意位置可调用;
+ *  在不使用任务通知的时候,可以用通知数据来传递数据;
+ *  此函数用于读取通知数据;
+ ************************************************/
+__STATIC_INLINE uint32_t XC_ReadNotifyData(XCTCB_t* phTCB)
+{
+    return(phTCB->TaskState);
+}
+
+/*
+ ************************************************************************************************************|
+ ************************************************ 我是分割线 ************************************************|
+ ************************************************************************************************************|
+ */
+/**延时处理*/
 
 /************************************************|
  * 描述:    [协程]延时Tick
@@ -152,10 +265,11 @@ typedef struct _XCTCB_t{
  ************************************************/
 #define XC_DelayTick(_n)    \
 {   \
-    _phXCTCB->WakeType = _XC_Wake_Non;                          \
-    _phXCTCB->Blocked  = _XC_B_WaitTime;    /*等待时间*/        \
-    _phXCTCB->ListNode.Value = (_n);        /*保存时间*/        \
-    _COR_SetBPBreak(_XCPB);                 /*设置断点并跳出*/  \
+    _phXCTCB->TaskState = _XC_S_Delay;      /*任务状态:延时*/   \
+    _phXCTCB->WakeType  = _XC_Wake_Non;     /*清唤醒类型*/      \
+    _phXCTCB->Blocked   = _XC_B_WaitTime;   /*等待时间*/        \
+    _phXCTCB->TaskWakeTick = (_n);          /*保存时间*/        \
+    _COR_SetBPBreak(*_pXCPB);               /*设置断点并跳出*/  \
 }
 
 /************************************************|
@@ -174,16 +288,6 @@ typedef struct _XCTCB_t{
 #define XC_Delay_h(_n)      XC_DelayTick(_Time_h2Tick(_n))
 #define XC_Delay_day(_n)    XC_DelayTick(_Time_day2Tick(_n))
 
-/**协程状态*/
-/************************************************|
- * 描述:    [协程]获取任务状态
- * 宏名:    XC_GetTaskState
- * 参数[N]: void
- * 返回:    _XC_S_***   //返回任务状态
- * 说明:    任意位置可调用,获取任务运行的状态;
- ************************************************/
-#define XC_GetTaskState(_phTCB)     ((const)_phTCB->State)
-
 /*
  ************************************************************************************************************|
  ************************************************ 我是分割线 ************************************************|
@@ -199,31 +303,19 @@ typedef struct _XCTCB_t{
  *  | 0     //阻塞死等
  *  | >0    //超时时间
  * 返回:    void
- * 说明:    等待一个通知;
+ * 说明:
  *  必须在协程块中使用;
+ *  等待一个通知;
+ *  唤醒后用"XC_GetTaskTimeout"判断是否超时;
  ************************************************/
 #define XC_WaitNotify(_TickTimeout) \
 {   \
-    _phXCTCB->WakeType = _XC_Wake_Non;                      \
-    _phXCTCB->Blocked  = _XC_B_Blocked | _XC_B_WaitTime;    \
-    _phXCTCB->ListNode.Value = (_TickTimeout);              \
-    _COR_SetBPBreak(_XCPB);     /*设置断点并跳出*/          \
+    _phXCTCB->TaskState = _XC_S_WaitNotify; /*任务状态:等待通知*/   \
+    _phXCTCB->WakeType  = _XC_Wake_Non;                             \
+    _phXCTCB->Blocked   = _XC_B_Blocked | _XC_B_WaitTime;           \
+    _phXCTCB->TaskWakeTick = (_TickTimeout);                        \
+    _COR_SetBPBreak(*_pXCPB);               /*设置断点并跳出*/      \
 }
-
-/************************************************|
- * 描述:    [协程]获取通知超时
- * 宏名:    XC_GetNotifyTimeout
- * 参数[N]: void
- * 返回:    boot        //通知状态
- *  +=返回值
- *  |   1   //超时
- *  |   0   //没有超时
- * 说明:
- *  适用于到超时的通知;
- *  通知唤醒后获取通知是否超时;
- *  必须在协程块中使用;
- ************************************************/
-#define XC_GetNotifyState()     (_phXCTCB->WakeType != _XC_Wake_Notify)
 
 /************************************************|
  * 描述:    [协程]获取通知的数据
@@ -231,8 +323,8 @@ typedef struct _XCTCB_t{
  * 参数[N]: void
  * 返回:    XCVar_t //得到通知的数据
  * 说明:
- *  通知唤醒后获取通知传递的数据
  *  必须在协程块中使用;
+ *  通知唤醒后获取通知传递的数据
  ************************************************/
 #define XC_GetNotifyData()      (_phXCTCB->NotifyData)
 
@@ -240,12 +332,46 @@ typedef struct _XCTCB_t{
 
 int32_t XC_SendNotify(XCTCB_t* phTCB, uint32_t NotifyData);     //发送通知
 
-/************************************************ 我是分割线 ************************************************/
+/*
+ ************************************************************************************************************|
+ ************************************************ 我是分割线 ************************************************|
+ ************************************************************************************************************|
+ */
 
-/**任务挂起和恢复-函数声明*/
+/**任务操作函数-函数声明*/
 
 int32_t XC_TaskSuspend(XCTCB_t* phTCB);     //任务挂起
 int32_t XC_TaskResume(XCTCB_t* phTCB);      //任务恢复
+
+/*
+ ************************************************************************************************************|
+ ************************************************ 我是分割线 ************************************************|
+ ************************************************************************************************************|
+ */
+/**信号量*/
+
+/************************************************|
+ * 描述:    获取信号(消费者)
+ * 宏名:    XCSem_BinSemTake
+ * 形参[I]: XCSemBin_t* _phSem      //信号句柄
+ * 参数[I]: XCuint_t _TickTimeout   //超时时间
+ * 返回:    boot
+ *  +=返回
+ *  | 0     //没有节点
+ *  | 1     //有节点
+ * 说明:
+ *  必须在协程块中使用;
+ *  等待获取二值信号;
+ *  唤醒后用"XC_GetTaskTimeout"判断是否超时;
+ ************************************************/
+#define XCSem_BinSemTake(_phSem, _TickTimeout)  \
+{   \
+    _phXCTCB->TaskWakeTick = (_TickTimeout);    /*超时Tick值*/  \
+    /*获取信号*/                                                \
+    if(XCSem_BinSemTake_(_phSem, _phXCTCB) == _XC_R_Continue){  \
+        _COR_SetBPBreak(*_pXCPB);   /*设置断点并跳出*/          \
+    }                                                           \
+}
 
 /*
  ************************************************************************************************************|

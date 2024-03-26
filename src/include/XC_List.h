@@ -30,31 +30,28 @@
 //=== 数据类型 ===========================================|
 
 /**双向链表节点
- *  32位下占16字节;
+ *  32位下占12字节;
  */
 typedef struct _XCListNode_t{
-    struct _XCListNode_t* pNext;            //指向下个节点
-    struct _XCListNode_t* pPrevious;        //指向上个节点
-    XCuint_t Value;                         //辅助值,用于排序
-    struct _XCListRoot_t* pRootList;        //指向节点所属的地址
+    struct _XCListNode_t* pNext;        //指向下个节点
+    struct _XCListNode_t* pPrevious;    //指向上个节点
+    struct _XCListRoot_t* pRootList;    //指向节点所属的地址
 }XCListNode_t;
 
 /**基础双向链表数据类型
  *  只有链表节点和辅助值;
- *  32位下占12字节;
+ *  32位下占8字节;
  */
 typedef struct{
-    XCListNode_t* pNext;                    //指向下个节点
-    XCListNode_t* pPrevious;                //指向上个节点
-    XCuint_t Value;                         //辅助值,用于排序
+    XCListNode_t* pNext;                //指向下个节点
+    XCListNode_t* pPrevious;            //指向上个节点
 }XCListBasic_t;
 
 /**双向链表根节点类型
- *  32位下占16字节;
+ *  32位下占8字节;
  */
 typedef struct _XCListRoot_t{
-    XCListBasic_t RootNode;                 //根节点,最后/最初的节点
-    uint32_t ListNodeNum;                   //当前链表总节点数,不含根接点
+    XCListBasic_t RootNode;             //根节点,最后/最初的节点
 }XCListRoot_t;
 
 /*
@@ -65,53 +62,41 @@ typedef struct _XCListRoot_t{
 //=== 函数宏 =============================================|
 
 /************************************************|
- * 描述:    [宏]将新节点插入旧节点之前
- * 宏名:    _XCList_InsertPrevious
- * 形参[I]: _pListNode      //要插入的节点指针
- * 形参[I]: _pNewNode       //新节点指针
- * 返回:    无
- * 说明:    只插入节点;
+ * 描述:    链表是否有效
+ * 宏名:    XCList_ListValid
+ * 形参[I]: XCListRoot_t* _pList    //链表
+ * 返回:    boot
+ *  +=返回
+ *  | 0     //没有节点
+ *  | 1     //有节点
+ * 说明:    判断一个链表的是否有效(是否有节点)
  * 例程:    无
  ************************************************/
-#define XCList_InsertPrevious(_pListNode, _pNewNode)    \
-{                                                       \
-    (_pNewNode)->pNext     = (_pListNode);              \
-    (_pNewNode)->pPrevious = (_pListNode)->pPrevious;   \
-    (_pListNode)->pPrevious->pNext = (_pNewNode);       \
-    (_pListNode)->pPrevious        = (_pNewNode);       \
-}
+#define XCList_ListValid(_pList)                ( ((XCListNode_t*)&((_pList)->RootNode)) != ((_pList)->RootNode.pNext) )
 
 /************************************************|
- * 描述:    [宏]将新节点插入旧节点之后
- * 宏名:    _XCList_InsertNext
- * 形参[I]: _pListNode      //要插入的节点指针
- * 形参[I]: _pNewNode       //新节点指针
- * 返回:    无
- * 说明:    只插入节点;
+ * 描述:    节点是否到达结尾节点
+ * 宏名:    XCList_ReachEndNode
+ * 形参[I]: XCListRoot_t* _pList    //链表
+ * 形参[I]: XCListNode_t* _pNode    //节点
+ * 返回:    boot
+ *  +=返回
+ *  | 0     //没有到达结尾节点
+ *  | 1     //到达结尾节点(节点和链表根地址相同)
+ * 说明:    用于遍历链表时,判断遍历的节点是否到达根节点(既是否结束遍历)
  * 例程:    无
  ************************************************/
-#define XCList_InsertNext(_pListNode, _pNewNode)            \
-{                                                           \
-    (_pNewNode)->pNext            = (_pListNode)->pNext;    \
-    (_pNewNode)->pNext->pPrevious = (_pNewNode);            \
-    (_pNewNode)->pPrevious        = (_pListNode);           \
-    (_pListNode)->pNext           = (_pNewNode);            \
-}
+#define XCList_ReachEndNode(_pList, _pNode)     ( ((XCListNode_t*)&((_pList)->RootNode)) == (_pNode) )
 
 /************************************************|
- * 描述:    [宏]连接2个节点
- * 宏名:    _XCList_LinkNode
- * 形参[I]: _pPreviousNode  //上个节点
- * 形参[I]: _pNextNode      //下个节点
- * 返回:    无
- * 说明:    这将删除2个节点间所有节点;
+ * 描述:    获取链表的开始节点
+ * 宏名:    XCList_GetListStartNode
+ * 形参[I]: XCListRoot_t* _pList    //链表地址(会强制转为链表指针类型)
+ * 返回:    XCListNode_t*           //返回节点地址
+ * 说明:    得到当前链表的开始地址
  * 例程:    无
  ************************************************/
-#define XCList_LinkNode(_pPreviousNode, _pNextNode)     \
-{                                                       \
-    (_pNextNode)->pPrevious = (_pPreviousNode);         \
-    (_pPreviousNode)->pNext = (_pNextNode);             \
-}
+#define XCList_GetListStartNode(_pList)         ( ((XCListRoot_t*)(_pList))->RootNode.pNext )
 
 /*
  ************************************************************************************************************|
@@ -120,20 +105,25 @@ typedef struct _XCListRoot_t{
  */
 //=== 函数声明 ===========================================|
 
-//初始化
+/**初始化*/
 void XCList_Init(XCListRoot_t* pList);      //初始化链表
 void XCList_InitNode(XCListNode_t* pNode);  //初始化节点
 
-//节点插入
-void XCList_InsertStart(XCListRoot_t* pList, XCListNode_t* pNewNode);   //插入开始
-void XCList_InsertEnd(XCListRoot_t* pList, XCListNode_t* pNewNode);     //插入结尾
-void XCList_InsertAsc(XCListRoot_t* pList, XCListNode_t* pNewNode);     //升序排列的插入节点
+/**基础节点操作(不操作节点所属)*/
+void XCList_InsertNodePrevious(XCListNode_t* pListNode, XCListNode_t* pNewNode);    //将新节点插入某节点之前
+void XCList_InsertNodeNext(XCListNode_t* pListNode, XCListNode_t* pNewNode);        //将新节点插入某节点之后
+void XCList_LinkNode(XCListNode_t* pPreviousNode, XCListNode_t* pNextNode);         //连接2个节点
+void XCList_RemoveBasicNode(XCListBasic_t* pNode);                                  //移除一个基础节点
 
-//节点移除
-void XCList_Remove(XCListNode_t* pNode);    //从链表中移除一个节点
+/**链表操作*/
+void XCList_Remove(XCListNode_t* pNode);                                //从链表中移除一个节点
+void XCList_InsertStart(XCListRoot_t* pList, XCListNode_t* pNewNode);   //节点插入链表开始
+void XCList_InsertEnd(XCListRoot_t* pList, XCListNode_t* pNewNode);     //节点插入链表结尾
 
-//其他操作
-void XCList_SwapList(XCListRoot_t* pList1, XCListRoot_t* pList2);   //交换2个链表
+/**链表操作*/
+void XCList_SwapList(XCListRoot_t* pList1, XCListRoot_t* pList2);       //交换2个链表
+void XCList_SwapListToNodePrevious(XCListNode_t* pDestNode, XCListRoot_t* pSrcList);    //将一个链表全部移动到一个节点前
+
 
 /************************************************ 我是分割线 ************************************************/
 /*
