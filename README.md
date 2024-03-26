@@ -73,10 +73,10 @@ XCOS的配置参数如下:
 | XCSch_Init | 函数 | 调度器 | 初始化一个调度器 |
 | XCSch_Run | 函数 | 调度器 | 运行调度器 |
 | XCSch_RunNonBlocked | 函数 | 调度器 | 运行调度器(非阻塞) |
+| XCSch_GetTaskNum | 函数 | 调度器 | 返回当前任务数量 |
 | XCSch_TaskReg | 函数 | 任务操作 | 注册一个任务 |
 | XCSch_TaskRemove | 函数 | 任务操作 | 移除一个任务 |
-| XCSch_TaskReset | 函数 | 任务操作 | 复位任务 |
-| XCSch_GetTaskNum | 函数 | 任务操作 | 返回当前任务数量 |
+| XCSch_TaskReset | 函数 | 任务操作 | **非自身调用**;复位任务 |
 
 协程任务处理函数
 | 函数名 | 函数类型 | 功能 | 说明 |
@@ -84,7 +84,8 @@ XCOS的配置参数如下:
 | XC_Enter | 宏 | 基础 | 进入协程块 |
 | XC_Leave | 宏 | 基础 | 离开协程块 |
 | XC_Yield | 宏 | 基础 | ***协程块内调用***;让出当前任务的控制权 |
-| XC_GetWakeTimeout | 宏 | 基础 | ***协程块内调用***;获取任务唤醒状态 |
+| XC_TaskReset | 宏 | 基础 | ***协程块内调用***;复位自身,立刻退出协程块 |
+| XC_GetWakeTimeout | 宏 | 基础 | ***协程块内调用***;获取任务唤醒超时状态 |
 | XC_GetTaskState | 内联 | 基础 | **任意位置调用**;获取任务运行状态 |
 | XC_UpdateNotifyData | 内联 | 基础 | **任意位置调用**;更新通知数据 |
 | XC_ReadNotifyData | 内联 | 基础 | **任意位置调用**;读取通知数据 |
@@ -102,7 +103,8 @@ XCOS的配置参数如下:
 | XCSem_BinSemInit | 函数 | 二值信号量 | 初始化一个信号量 |
 | XCSem_BinSemTake | 宏 | 二值信号量 | ***协程块内调用***;获取信号 |
 | XCSem_BinSemGive | 函数 | 二值信号量 | **任意位置调用(可中断调用)**;释放信号 |
-
+| XCSem_BinSemForceClrSem | 函数 | 二值信号量 | 强制清除信号 |
+| XCSem_BinSemForceSetSem | 函数 | 二值信号量 | 强制设置信号 |
 
 ## 5.文件说明
 

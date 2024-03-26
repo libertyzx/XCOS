@@ -167,6 +167,22 @@ void XC_TaskBasicInit(XCTCB_t* phTCB);  //基本任务初始化
 }
 
 /************************************************|
+ * 描述:    [协程]任务复位
+ * 宏名:    XC_TaskReset
+ * 形参[I]: void
+ * 返回:    void
+ * 说明:
+ *  必须在协程块中使用;
+ *  复位当前在运行的任务;
+ *  运行此宏后将立刻退出协程块
+ ************************************************/
+#define XC_TaskReset()  \
+{   \
+    XCSch_TaskReset(_phXCTCB);  \
+    _COR_Break(*_pXCPB);        \
+}
+
+/************************************************|
  * 描述:    [协程]获取唤醒超时
  * 函数名:  XC_GetWakeTimeout
  * 参数[I]: void
@@ -326,7 +342,6 @@ int32_t XC_SendNotify(XCTCB_t* phTCB, uint32_t NotifyData);     //发送通知
 
 int32_t XC_TaskSuspend(XCTCB_t* phTCB);     //任务挂起
 int32_t XC_TaskResume(XCTCB_t* phTCB);      //任务恢复
-
 
 /*
  ************************************************************************************************************|

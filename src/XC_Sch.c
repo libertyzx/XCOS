@@ -237,12 +237,12 @@ static void XCSch_SemSched(XCOS_t* phXCOS)
                 phSem->phTCB->WakeType  = _XC_Wake_Sem;             //被信号唤醒
                 phSem->phTCB->TaskState = _XC_S_Ready;              //任务状态:就绪
                 XCSch_ListOperationEnd(phSem->phTCB->phXCOS);       //链表操作结束
-                XCSem_BinSemRemove(phSem);                          //移除自己
+                XCSem_BinSemRemove(phSem, 0);                       //移除自己
             }
             /*锁状态不是等待解锁,则继续等待释放信号*/
         }
         else{
-            XCSem_BinSemRemove(phSem);                              //移除自己
+            XCSem_BinSemRemove(phSem, 1);                           //移除自己(不清楚信号)
         }
     }
     /**唤醒计数处理
@@ -422,6 +422,7 @@ void XCSch_Init(XCOS_t* phXCOS)
     XCList_Init(&phXCOS->TimeList);
     XCList_Init(&phXCOS->TimeOverflowList);
     XCList_Init(&phXCOS->BlockedList);
+    XCList_Init(&phXCOS->SemList);
     phXCOS->pReadyListNodeIndex = (XCListNode_t*)&phXCOS->ReadyList.RootNode;   //就绪表的根链表
     phXCOS->NextTaskWakeTick = ~0;      //下个任务唤醒时间为最大
     phXCOS->PreviousTick     = 0;       //保存上个Tick值
@@ -590,7 +591,7 @@ void XCSch_TaskRemove(XCTCB_t* phTCB)
  * 参数[I]: XCTCB_t* phTCB      //任务TCB
  * 返回:    void
  * 说明:
- *  不可在中断中调用;
+ *  不可在中断中调用,不可复位自身;
  *  清除所有状态(包含挂起),任务复位;
  *  任务将重置到就绪表,然后从头运行;
  *  任务TCB中除了"phXCOS"和"fTask",其他全部重置;

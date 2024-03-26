@@ -50,12 +50,15 @@ typedef struct _XCSem_t{
 /**[内部函数]二值信号量内部调用*/
 
 //移除一个信号量
-void XCSem_BinSemRemove(XCSemBin_t* phSem);
+void XCSem_BinSemRemove(XCSemBin_t* phSem, uint32_t RetainedSem);
 
 /**二值信号量-函数声明*/
 
 //初始化(清除信号)
 void XCSem_BinSemInit(XCSemBin_t* phSem);
+
+void XCSem_BinSemForceClrSem(XCSemBin_t* phSem);    //强制清除信号
+void XCSem_BinSemForceSetSem(XCSemBin_t* phSem);    //强制设置信号
 
 int32_t XCSem_BinSemTake_(XCSemBin_t* phSem, XCTCB_t* phTCB);   //获取信号(消费者)
 int32_t XCSem_BinSemGive(XCSemBin_t* phSem);                    //释放信号(生产者)
