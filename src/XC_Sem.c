@@ -32,15 +32,27 @@
 /************************************************|
  * 描述:    移除二值信号量
  * 函数名:  XCSem_BinSemRemove
- * 形参[I]: XCSemBin_t* phSem   //信号量句柄
+ * 形参[I]: XCSemBin_t* phSem       //信号量句柄
+ * 形参[I]: uint32_t RetainedSem    //保留信号(1保留;0不保留)
  * 返回:    void
  * 说明:    注意,这里会清除锁清除信号数;
  * 例程:    无
  ************************************************/
-void XCSem_BinSemRemove(XCSemBin_t* phSem)
+void XCSem_BinSemRemove(XCSemBin_t* phSem, uint32_t RetainedSem)
 {
     XCList_LinkNode(phSem->ListNode.pPrevious, phSem->ListNode.pNext);  //表中删除
-    XCSem_BinSemInit(phSem);
+    //清除信号
+    {
+        phSem->phTCB = NULL;                //不挂载TCB
+        //链表指向自己
+        phSem->ListNode.pNext     = (XCListNode_t*)&phSem->ListNode;
+        phSem->ListNode.pPrevious = (XCListNode_t*)&phSem->ListNode;
+        phSem->Lock   = _XC_Lock_Unlock;    //没有锁
+        //是否保留信号
+        if(!RetainedSem){
+            phSem->SemNum = 0;              //清除信号数
+        }
+    }
 }
 
 /*
@@ -70,6 +82,32 @@ void XCSem_BinSemInit(XCSemBin_t* phSem)
 }
 
 /************************************************|
+ * 描述:    二值信号量强制清除信号
+ * 函数名:  XCSem_BinSemForceClrSem
+ * 形参[I]: XCSemBin_t* phSem   //信号量句柄
+ * 返回:    void
+ * 说明:    只清除信号,其他不动;
+ * 例程:    无
+ ************************************************/
+void XCSem_BinSemForceClrSem(XCSemBin_t* phSem)
+{
+    phSem->SemNum = 0;
+}
+
+/************************************************|
+ * 描述:    二值信号量强制设置信号
+ * 函数名:  XCSem_BinSemForceSetSem
+ * 形参[I]: XCSemBin_t* phSem   //信号量句柄
+ * 返回:    void
+ * 说明:    只设置信号,其他不动;
+ * 例程:    无
+ ************************************************/
+void XCSem_BinSemForceSetSem(XCSemBin_t* phSem)
+{
+    phSem->SemNum = 1;
+}
+
+/************************************************|
  * 描述:    获取信号(消费者)
  * 函数名:  XCSem_BinSemTake_
  * 参数[I]: XCSemBin_t* phSem       //信号
@@ -90,7 +128,12 @@ int32_t XCSem_BinSemTake_(XCSemBin_t* phSem, XCTCB_t* phTCB)
         phTCB->TaskState = _XC_S_WaitSem;   //任务状态:等待信号
         phTCB->WakeType  = _XC_Wake_Non;    //清除唤醒类型
         phTCB->Blocked   = _XC_B_Blocked | _XC_B_WaitTime;  //阻塞状态
-        XCList_InsertNodePrevious((XCListNode_t*)&phTCB->phXCOS->SemList.RootNode, (XCListNode_t*)&phSem->ListNode);
+
+        //没有在链表中则插入链表
+        if(phSem->ListNode.pNext == (XCListNode_t*)&phSem->ListNode){
+            XCList_InsertNodePrevious((XCListNode_t*)&phTCB->phXCOS->SemList.RootNode, (XCListNode_t*)&phSem->ListNode);
+        }
+
         phSem->phTCB = phTCB;               //绑定TCB
         phSem->Lock  = _XC_Lock_WaitLock;   //等待锁定
 
@@ -143,10 +186,8 @@ int32_t XCSem_BinSemGive(XCSemBin_t* phSem)
      *  以下状态时,信号无效,返回"_XC_R_Fail"
      *  1."phTCB"为NULL:
      *      信号没有被挂载到任务上,被释放使只是有这个信号,但是不处理任务;
-     *  2."TaskState"为_XC_S_Suspend:
-     *      信号被挂载到任务,但是任务被挂起,依然是有信号,但是不处理任务;
-     *  3."TaskState"不为_XC_S_WaitSem,(这里包含第二条):
-     *      不是被获取信号挂起的任务不处理;
+     *  2."TaskState"不为_XC_S_WaitSem
+     *      在等待信号的状态下,任务被挂起,或者信号超时到达,则会出现非"_XC_S_WaitSem"的状态
      */
     if( (phSem->phTCB == NULL) || (phSem->phTCB->TaskState != _XC_S_WaitSem) ) {
         return(_XC_R_Fail);
@@ -198,7 +239,7 @@ int32_t XCSem_BinSemGive(XCSemBin_t* phSem)
             phSem->phTCB->WakeType   = _XC_Wake_Sem;            //被信号唤醒
             phSem->phTCB->TaskState  = _XC_S_Ready;             //任务状态:就绪
             XCSch_ListOperationEnd(phSem->phTCB->phXCOS);       //链表操作结束
-            XCSem_BinSemRemove(phSem);                          //移除自己
+            XCSem_BinSemRemove(phSem, 0);                       //移除自己
         }
     }
 
