@@ -1,8 +1,8 @@
 /*=========================================================|
  | 文件名:  XC_Task.c
  | 描述:    任务的实现
- | 版本:    V1.00
- | 日期:    2024/03/18
+ | 版本:    V1.01
+ | 日期:    2024/04/09
  | 语言:    C语言
  | 作者:    libertyzx
  | E-mail:  libertyzx@163.com
@@ -16,11 +16,13 @@
  +--- 版本说明:
  |  V1.00:-2024/03/18
  |      1.初始化
+ |  V1.01:-2024/04/09
+ |      1."XC_SendNotify"函数形参通知数据改为"void*"指针;
+ |      2."XC_TaskBasicInit"函数增加传入形参初始化;
  *========================================================*/
 //=== 头文件
 #include "XC_Task.h"
 #include "XC_Sch.h"
-
 
 /*
  ************************************************************************************************************|
@@ -44,9 +46,10 @@ void XC_TaskBasicInit(XCTCB_t* phTCB)
 
     phTCB->TaskWakeTick = ~0;                   //任务下个唤醒的时间
     _COR_Init(phTCB->BP);                       //初始化断点
-    phTCB->NotifyData = 0;  //通知数据清零
-    phTCB->Blocked   = _XC_B_NonBlocked;        //没有阻塞
-    phTCB->WakeType  = _XC_Wake_Non;            //没有唤醒
+    phTCB->NotifyData = 0;                      //通知数据清零
+    phTCB->Param = 0;                           //任务参数
+    phTCB->Blocked = _XC_B_NonBlocked;          //没有阻塞
+    phTCB->WakeType = _XC_Wake_Non;             //没有唤醒
 }
 
 /*
@@ -60,7 +63,7 @@ void XC_TaskBasicInit(XCTCB_t* phTCB)
  * 描述:    发送通知
  * 函数名:  XC_SendNotify
  * 参数[I]: XCTCB_t* phTCB      //通知的任务
- * 参数[I]: XCVar_t NotifyData  //通知传递的数据
+ * 参数[I]: void* pNotifyData   //通知传递的数据
  * 返回:    int32_t
  *  +=说明
  *  | _XC_R_OK          //通知成功
@@ -71,7 +74,7 @@ void XC_TaskBasicInit(XCTCB_t* phTCB)
  *  只有在任务成功被通知(_XC_R_OK)时,传递的数据才有效;
  *  不可在中断中调用;
  ************************************************/
-int32_t XC_SendNotify(XCTCB_t* phTCB, uint32_t NotifyData)
+int32_t XC_SendNotify(XCTCB_t* phTCB, void* pNotifyData)
 {
     /**无效处理
      *  只处理发送通知本身的唤醒,若是状态被改变则不处理;
@@ -88,9 +91,9 @@ int32_t XC_SendNotify(XCTCB_t* phTCB, uint32_t NotifyData)
     XCSch_ListOperationStart(phTCB->phXCOS);    //链表操作开始
     XCSch_ListNodeRemove(phTCB);                //删除任务
     XCSch_ListNodeInsertIndexPrevious(phTCB);   //插入就续表
-    phTCB->NotifyData = NotifyData;             //传递的通知数据
-    phTCB->WakeType   = _XC_Wake_Notify;        //被通知唤醒
-    phTCB->TaskState  = _XC_S_Ready;            //任务状态:就绪
+    phTCB->pNotifyData = pNotifyData;           //传递的通知数据
+    phTCB->WakeType  = _XC_Wake_Notify;         //被通知唤醒
+    phTCB->TaskState = _XC_S_Ready;             //任务状态:就绪
     XCSch_ListOperationEnd(phTCB->phXCOS);      //链表操作结束
     /*这里不处理时间表*/
     return(_XC_R_OK);

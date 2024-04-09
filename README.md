@@ -10,6 +10,7 @@
 - 没有上下文切换,框架无需任何中断支撑,没有临界段和中断开关;
 - 框架目前已实现:阻塞延时,任务通知,任务挂起恢复,二值信号量;
 > 二值信号量可在中断中调用唤醒任务;
+> 任务通知.任务挂起/恢复不可在中断中调用;
 
 ## 3.实现
 协程实现方式见我的CSDN:
@@ -26,10 +27,10 @@
 XCOS的配置参数如下:
 | 类型名 | 配置类型 | 说明 |
 | --- | --- | --- |
-| _XC_SysTickPerScond | 宏 | 系统每秒滴答数(滴答计数频率) |
-| _XC_SysTickCount | 宏 | 系统滴答计数 |
 | XCuint_t | 宏 | XCOS基础数据类型,默认32位(uint32_t) |
 | _XC_Cnf_TaskMaxNum | 宏 | 定义最大允许任务数(默认100)不建议修改 |
+| _XC_SysTickPerScond | 宏 | 系统每秒滴答数(滴答计数频率) |
+| _XC_SysTickCount | 宏 | 系统滴答计数 |
 
 **"_XC_SysTickPerScond"系统每秒滴答数(滴答计数频率)说明**
 - 单位Hz,是系统最小的时间单位;
@@ -39,6 +40,8 @@ XCOS的配置参数如下:
 **"_XC_SysTickCount"系统滴答计数说明**
 - 滴答计数是一个累加值,累加时间必须和"_XC_SysTickPerScond"时间一致;
 - 此值会在操作中被读取(只读),作为时间计算的依据;
+- "_XC_CreateSysTickCount"用于创建一个全局计数变量;
+- "XC_AccSysTickCount()"用户计数中断中调用,计数+1;
 
 **系统滴答计数可用2种方式实现:**
 
@@ -46,9 +49,9 @@ XCOS的配置参数如下:
 - 用一个变量在定时器中累加,每一个滴答时间则+1;
 - 宏"_XC_SysTickCount"指向此变量即可;
 > 用户需要处理:
-> 1. 在".c"文件中定义"volatile uint32_t"类型的全局变量"g_SysTickCount";
+> 1. 在".c"文件中定义"volatile uint32_t"类型的全局变量"g_SysTickCount",可直接使用"_XC_CreateSysTickCount";
 > 2. 创建定时器,按"_XC_SysTickPerScond"计数;
-> 3. 在定时器中累加系统滴答计数:"g_SysTickCount++";
+> 3. 在定时器中累加系统滴答计数:"g_SysTickCount++",可直接使用"XC_AccSysTickCount()";
 
 ***方式2:计数器形式;***
 - 因为协程并不需要中断来切换上下文,所以为了使效率最高可以用一个计数器来做系统滴答计数;
@@ -64,7 +67,7 @@ XCOS的配置参数如下:
 | 类型名 | 32位下占用字节 | 说明 |
 | --- | --- | --- |
 | XCOS_t | 56 | 定义一个XCOS框架的句柄 |
-| XCTCB_t | 36 | 定义一个协程任务控制块 |
+| XCTCB_t | 40 | 定义一个协程任务控制块 |
 | XCSemBin_t | 16 | 定义一个二值信号量句柄 |
 
 调度器函数
@@ -85,15 +88,23 @@ XCOS的配置参数如下:
 | XC_Leave | 宏 | 基础 | 离开协程块 |
 | XC_Yield | 宏 | 基础 | ***协程块内调用***;让出当前任务的控制权 |
 | XC_TaskReset | 宏 | 基础 | ***协程块内调用***;复位自身,立刻退出协程块 |
+| XC_GetTaskParam | 宏 | 基础 | ***协程块内调用***;获取注册任务时传递的参数 |
 | XC_GetWakeTimeout | 宏 | 基础 | ***协程块内调用***;获取任务唤醒超时状态 |
-| XC_GetTaskState | 内联 | 基础 | **任意位置调用**;获取任务运行状态 |
-| XC_UpdateNotifyData | 内联 | 基础 | **任意位置调用**;更新通知数据 |
-| XC_ReadNotifyData | 内联 | 基础 | **任意位置调用**;读取通知数据 |
+| XC_GetTaskState | 宏 | 基础 | **任意位置调用**;获取任务运行状态 |
+| XC_GetTaskParam | 宏 | 任务参数 | **任意位置调用**;获取任务注册时传递的参数(指针) |
+| XC_GetTaskParamUint | 宏 | 任务参数 | **任意位置调用**;获取任务注册时传递的参数(32位无符号) |
 | XC_DelayTick | 宏 | 时间调度 | ***协程块内调用***;延时n个Tick |
 | XC_Delay_** | 宏 | 时间调度 | ***协程块内调用***;延时n个时间(**=[ms,s,min,h,day]) |
+| XC_UpdateNotifyData | 宏 | 任务通知 | **任意位置调用**;更新通知数据(指针) |
+| XC_UpdateNotifyDataUint | 宏 | 任务通知 | **任意位置调用**;更新通知数据(32位无符号) |
+| XC_ReadNotifyData | 宏 | 任务通知 | **任意位置调用**;读取通知数据(指针) |
+| XC_ReadNotifyDataUint | 宏 | 任务通知 | **任意位置调用**;读取通知数据(32位无符号) |
 | XC_WaitNotify | 宏 | 任务通知 | ***协程块内调用***;等待通知到来 |
-| XC_GetNotifyData | 宏 | 任务通知 | ***协程块内调用***;获取通知的数据 |
-| XC_SendNotify | 函数 | 任务通知 | **不可在中断中调用**;发送通知 |
+| XC_WaitNotify_ms | 宏 | 任务通知 | ***协程块内调用***;等待通知到来(超时单位:ms) |
+| XC_GetNotifyData | 宏 | 任务通知 | ***协程块内调用***;获取通知的数据(指针) |
+| XC_GetNotifyDataUint | 宏 | 任务通知 | ***协程块内调用***;获取通知的数据(32位无符号) |
+| XC_SendNotify | 函数 | 任务通知 | **不可在中断中调用**;发送通知,数据是指针 |
+| XC_SendNotifyUint  | 宏 | 任务通知 | **不可在中断中调用**;发送通知,数据是32位无符号 |
 | XC_TaskSuspend | 函数 | 任务挂起 | **不可在中断中调用**;任务挂起 |
 | XC_TaskResume | 函数 | 任务挂起 | **不可在中断中调用**;任务恢复 |
 
@@ -102,6 +113,7 @@ XCOS的配置参数如下:
 | --- | --- | --- | --- |
 | XCSem_BinSemInit | 函数 | 二值信号量 | 初始化一个信号量 |
 | XCSem_BinSemTake | 宏 | 二值信号量 | ***协程块内调用***;获取信号 |
+| XCSem_BinSemTake_ms | 宏 | 二值信号量 | ***协程块内调用***;获取信号(超时单位:ms) |
 | XCSem_BinSemGive | 函数 | 二值信号量 | **任意位置调用(可中断调用)**;释放信号 |
 | XCSem_BinSemForceClrSem | 函数 | 二值信号量 | 强制清除信号 |
 | XCSem_BinSemForceSetSem | 函数 | 二值信号量 | 强制设置信号 |
@@ -129,7 +141,7 @@ XCOS的配置参数如下:
 | XC_Sem.c | 信号量实现 |
 | XC_Sem.h | 信号量实现 |
 | XCOS.h | 总包含 |
-
+| XCBase.h | 兼容"XCBase"库 |
 
 
 

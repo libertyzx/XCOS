@@ -1,8 +1,8 @@
 /*=========================================================|
  | 文件名: XC_Time.h
  | 描述  : 时间相关的数据
- | 版本  : V1.00
- | 日期  : 2024/03/19
+ | 版本  : V1.01
+ | 日期  : 2024/03/27
  | 语言  : C语言
  | 作者  : libertyzx
  | E-mail: libertyzx@163.com
@@ -17,6 +17,8 @@
  +--- 版本说明
  |  V1.00:-2024/03/19
  |      1.从"XCBase"中继承并重构;
+ |  V1.01:-2024/03/27
+ |      1.兼容基础库"XCBase";
  *========================================================*/
 //=== 防重复定义
 #ifndef _XC_Time_H_
@@ -160,6 +162,8 @@
  * 例程:    无
  ************************************************/
 #define XCTime_GetTickUnit()    (_XC_SysTickTime_us)
+//兼容基础库"XCBase.h"
+#define _Time_GetTickUnit       XCTime_GetTickUnit
 
 /************************************************|
  * 描述:    获取系统Tick
@@ -172,6 +176,8 @@
  *      Cache = _Time_GetTick();        //Cache = 2365
  ************************************************/
 #define XCTime_GetTick()        (_XC_SysTickCount)
+//兼容基础库"XCBase.h"
+#define _Time_GetTick           XCTime_GetTick
 
 /************************************************|
  * 描述:    获取系统Tick加上指定时间后的Tick
@@ -189,6 +195,12 @@
 #define XCTime_GetTick_min(_t)  ( _Time_GetTick() + _Time_min2Tick(_t) )    /*获取Tick+t(min)*/
 #define XCTime_GetTick_h(  _t)  ( _Time_GetTick() + _Time_h2Tick(_t) )      /*获取Tick+t(h)*/
 #define XCTime_GetTick_day(_t)  ( _Time_GetTick() + _Time_day2Tick(_t) )    /*获取Tick+t(day)*/
+//兼容基础库"XCBase.h"
+#define _Time_GetTick_ms        XCTime_GetTick_ms
+#define _Time_GetTick_s         XCTime_GetTick_s
+#define _Time_GetTick_min       XCTime_GetTick_min
+#define _Time_GetTick_h         XCTime_GetTick_h
+#define _Time_GetTick_day       XCTime_GetTick_day
 
 //===
 
@@ -201,6 +213,8 @@
  * 说明:    判断是否运行了"_c"个Tick,用于判断时间是否到达;
  ************************************************/
 #define XCTime_CompareTick(_Lc, _c)         ( (_XC_SysTickCount-(_Lc)) >= (_c) )
+//兼容基础库"XCBase.h"
+#define _Time_CompareTick       XCTime_CompareTick
 
 /************************************************|
  * 描述:    比较时间是否到达设定值
@@ -216,6 +230,12 @@
 #define XCTime_CompareTick_min(_Lc, _t)     ( _Time_CompareTick((_Lc), _Time_min2Tick(_t)) )    /*比较:分钟*/
 #define XCTime_CompareTick_h(  _Lc, _t)     ( _Time_CompareTick((_Lc), _Time_h2Tick(_t)) )      /*比较:小时*/
 #define XCTime_CompareTick_Day(_Lc, _t)     ( _Time_CompareTick((_Lc), _Time_day2Tick(_t)) )    /*比较:天*/
+//兼容基础库"XCBase.h"
+#define _Time_CompareTick_ms        XCTime_CompareTick_ms
+#define _Time_CompareTick_s         XCTime_CompareTick_s
+#define _Time_CompareTick_min       XCTime_CompareTick_min
+#define _Time_CompareTick_h         XCTime_CompareTick_h
+#define _Time_CompareTick_Day       XCTime_CompareTick_Day
 
 /************************************************|
  * 描述:    比较当前Tick
@@ -226,6 +246,8 @@
  * 例程:    无
  ************************************************/
 #define XCTime_CompareTick_t(_Lc)           ( _XC_SysTickCount >= (_Lc) )
+//兼容基础库"XCBase.h"
+#define _Time_CompareTick_t         XCTime_CompareTick_t
 
 //===
 
@@ -239,6 +261,8 @@
  * 例程:    无
  ************************************************/
 #define XCTime_Delay(_Lc, _Dc)              { (_Lc)=_Time_GetTick(); while(!_Time_CompareTick((_Lc),(_Dc))); }
+//兼容基础库"XCBase.h"
+#define _Time_Delay                 XCTime_Delay
 
 /************************************************|
  * 描述:    死循环延时
@@ -254,6 +278,12 @@
 #define XCTime_Delay_min(_Lc, _t)       _Time_Delay((_Lc), _Time_min2Tick(_t))      /*延时:分钟*/
 #define XCTime_Delay_h(  _Lc, _t)       _Time_Delay((_Lc), _Time_h2Tick(_t))        /*延时:小时*/
 #define XCTime_Delay_day(_Lc, _t)       _Time_Delay((_Lc), _Time_day2Tick(_t))      /*延时:天*/
+//兼容基础库"XCBase.h"
+#define _Time_Delay_ms              XCTime_Delay_ms
+#define _Time_Delay_s               XCTime_Delay_s
+#define _Time_Delay_min             XCTime_Delay_min
+#define _Time_Delay_h               XCTime_Delay_h
+#define _Time_Delay_day             XCTime_Delay_day
 
 //===
 
@@ -277,6 +307,8 @@ __STATIC_INLINE XCuint_t XCTime_GetRemainTick(XCuint_t _Lc, XCuint_t _c)
     }
     return(_c-(SysTickCount-_Lc));
 }
+//兼容基础库"XCBase.h"
+#define _Time_GetRemainTick     XCTime_GetRemainTick
 
 /************************************************|
  * 描述:    [内联]获取运行了多少Tick
@@ -298,6 +330,8 @@ __STATIC_INLINE XCuint_t XCTime_GetRunTick(XCuint_t _Lc, XCuint_t _c)
     }
     return(SysTickCount-_Lc);
 }
+//兼容基础库"XCBase.h"
+#define _Time_GetRunTick        XCTime_GetRunTick
 
 /*
  ************************************************************************************************************|
@@ -327,6 +361,8 @@ typedef struct{
  * 例程:    无
  ************************************************/
 #define XCTime_tUpdateTick(_tC, _c)         ( (_tC).TickCount=_XC_SysTickCount, (_tC).WaitCount=(_c) )
+//兼容基础库"XCBase.h"
+#define _Time_tUpdateTick           XCTime_tUpdateTick
 
 /************************************************|
  * 描述:    更新需要延时比较的时间
@@ -342,6 +378,13 @@ typedef struct{
 #define XCTime_tUpdateTick_min(_tC, _t)     XCTime_tUpdateTick((_tC), _Time_min2Tick(_t))   /*更新:_t分钟*/
 #define XCTime_tUpdateTick_h(  _tC, _t)     XCTime_tUpdateTick((_tC), _Time_h2Tick(_t))     /*更新:_t小时*/
 #define XCTime_tUpdateTick_Day(_tC, _t)     XCTime_tUpdateTick((_tC), _Time_day2Tick(_t))   /*更新:_t天*/
+//兼容基础库"XCBase.h"
+#define _Time_tUpdateTick_ms        XCTime_tUpdateTick_ms
+#define _Time_tUpdateTick_s         XCTime_tUpdateTick_s
+#define _Time_tUpdateTick_min       XCTime_tUpdateTick_min
+#define _Time_tUpdateTick_h         XCTime_tUpdateTick_h
+#define _Time_tUpdateTick_Day       XCTime_tUpdateTick_Day
+
 
 /************************************************|
  * 描述:    重复更新上次需要延时比较的时间
@@ -352,6 +395,8 @@ typedef struct{
  * 例程:    无
  ************************************************/
 #define XCTime_tRepeatLastTick(_tC)         ( (_tC).TickCount=_XC_SysTickCount )
+//兼容基础库"XCBase.h"
+#define _Time_tRepeatLastTick       XCTime_tRepeatLastTick
 
 //===
 
@@ -364,6 +409,8 @@ typedef struct{
  * 例程:    无
  ************************************************/
 #define XCTime_tCompareTick(_tC)            ( (_XC_SysTickCount-((_tC).TickCount)) >= ((_tC).WaitCount) )
+//兼容基础库"XCBase.h"
+#define _Time_tCompareTick          XCTime_tCompareTick
 
 //===
 
@@ -377,6 +424,8 @@ typedef struct{
  * 例程:    无
  ************************************************/
 #define XCTime_tDelay(_tC, _n)              { XCTime_tUpdateTick((_tC), (_n)); while(!XCTime_tCompareTick(_tC)); }
+//兼容基础库"XCBase.h"
+#define _Time_tDelay                XCTime_tDelay
 
 /************************************************|
  * 描述:    死循环延时n个时间
@@ -392,6 +441,12 @@ typedef struct{
 #define XCTime_tDelay_min(_tC, _n)          XCTime_tDelay((tD), _Time_min2Tick(_n))     /*延时:分钟*/
 #define XCTime_tDelay_h(  _tC, _n)          XCTime_tDelay((tD), _Time_h2Tick(_n))       /*延时:小时*/
 #define XCTime_tDelay_day(_tC, _n)          XCTime_tDelay((tD), _Time_day2Tick(_n))     /*延时:天*/
+//兼容基础库"XCBase.h"
+#define _Time_tDelay_ms             XCTime_tDelay_ms
+#define _Time_tDelay_s              XCTime_tDelay_s
+#define _Time_tDelay_min            XCTime_tDelay_min
+#define _Time_tDelay_h              XCTime_tDelay_h
+#define _Time_tDelay_day            XCTime_tDelay_day
 
 //===
 
@@ -404,6 +459,8 @@ typedef struct{
  * 例程:    无
  ************************************************/
 #define XCTime_tGetTickCount(_tC)           ((_tC).TickCount)
+//兼容基础库"XCBase.h"
+#define _Time_tGetTickCount         XCTime_tGetTickCount
 
 /************************************************|
  * 描述:    设置类型中的Tick计数值
@@ -415,6 +472,8 @@ typedef struct{
  * 例程:    无
  ************************************************/
 #define XCTime_tSetTickCount(_tC, _C)       ((_tC).TickCount=(_C))
+//兼容基础库"XCBase.h"
+#define _Time_tSetTickCount         XCTime_tSetTickCount
 
 /************************************************|
  * 描述:    清除类型中的Tick计数值
@@ -425,6 +484,8 @@ typedef struct{
  * 例程:    无
  ************************************************/
 #define XCTime_tClrTickCount(_tC)           ((_tC).TickCount=0)
+//兼容基础库"XCBase.h"
+#define _Time_tClrTickCount         XCTime_tClrTickCount
 
 //===
 
@@ -437,6 +498,8 @@ typedef struct{
  * 例程:    无
  ************************************************/
 #define XCTime_tGetWaitCount(_tC)           ((_tC).WaitCount)
+//兼容基础库"XCBase.h"
+#define _Time_tGetWaitCount         XCTime_tGetWaitCount
 
 /************************************************|
  * 描述:    设置类型中的等待计数值
@@ -448,6 +511,8 @@ typedef struct{
  * 例程:    无
  ************************************************/
 #define XCTime_tSetWaitCount(_tC, _C)       ((_tC).WaitCount=(_C))
+//兼容基础库"XCBase.h"
+#define _Time_tSetWaitCount         XCTime_tSetWaitCount
 
 /************************************************|
  * 描述:    清除类型中的等待计数值
@@ -458,6 +523,8 @@ typedef struct{
  * 例程:    无
  ************************************************/
 #define XCTime_tClrWaitCount(_tC)           ((_tC).WaitCount=0)
+//兼容基础库"XCBase.h"
+#define _Time_tClrWaitCount         XCTime_tClrWaitCount
 
 /************************************************|
  * 描述:    清除类型中所有计数
@@ -468,6 +535,8 @@ typedef struct{
  * 例程:    无
  ************************************************/
 #define XCTime_tClrAllCount(_tC)            ((_tC).TickCount=0, (_tC).WaitCount=0)
+//兼容基础库"XCBase.h"
+#define _Time_tClrAllCount          XCTime_tClrAllCount
 
 //===
 
@@ -490,6 +559,8 @@ __STATIC_INLINE XCuint_t XCTime_tGetRemainTick(XCTimeCount_t _tC)
     }
     return(_tC.WaitCount-(SysTickCount-_tC.TickCount));
 }
+//兼容基础库"XCBase.h"
+#define _Time_tGetRemainTick        XCTime_tGetRemainTick
 
 /************************************************|
  * 描述:    [内联]获取运行了多少Tick
@@ -510,6 +581,8 @@ __STATIC_INLINE XCuint_t XCTime_tGetRunTick(XCTimeCount_t _tC)
     }
     return(SysTickCount-_tC.TickCount);
 }
+//兼容基础库"XCBase.h"
+#define _Time_tGetRunTick           XCTime_tGetRunTick
 
 /*
  ************************************************************************************************************|
