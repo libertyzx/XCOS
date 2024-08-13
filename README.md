@@ -143,5 +143,5 @@ XCOS的配置参数如下:
 | XCOS.h | 总包含 |
 | XCBase.h | 兼容"XCBase"库 |
 
-
-
+## 6.更新说明
+见文件["XC_UpdateInfo.md"](./docs/XC_UpdateInfo.md)

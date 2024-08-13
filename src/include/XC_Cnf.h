@@ -81,9 +81,9 @@
     #define _XC_SysTickCount g_SysTickCount     //调用滴答时间计数
     extern volatile XCuint_t g_SysTickCount;    //外部声明全局滴答时间计数
     //创建系统Tick计数
-    #define _XC_CreateSysTickCount  volatile XCuint_t g_SysTickCount=0
+    #define _XC_CreateSysTickCount()    volatile XCuint_t g_SysTickCount=0
     //中断调用,累加滴答时间计数
-    #define XC_AccSysTickCount()    {g_SysTickCount++;}
+    #define XC_AccSysTickCount()        {g_SysTickCount++;}
 #endif
 
 
