@@ -1,8 +1,8 @@
 /*=========================================================|
  | 文件名: XC_TimeCount.h
  | 描述  : 时间计数相关的数据
- | 版本  : V1.00
- | 日期  : 2024/08/12
+ | 版本  : V1.01
+ | 日期  : 2024/08/28
  | 语言  : C语言
  | 作者  : libertyzx
  | E-mail: libertyzx@163.com
@@ -17,6 +17,9 @@
  |  V1.00:-2024/08/12
  |      1.从"XC_Time.h"中独立出;
  |      2.将"XCTime_CompareTick_t"重命名"XCTime_CompareTickt",防止认为是变量类型;
+ |  V1.01:-2024/08/28
+ |      1.修正"XCTime_GetRemainTick"函数,获取滴答计数变为ms的问题;
+ |      2.增加函数宏"XCTime_tGetRunTime_ms"获取运行了多少ms;
  *========================================================*/
 //=== 防重复定义
 #ifndef _XC_TimeCount_H_
@@ -270,7 +273,7 @@
 __STATIC_INLINE XCuint_t XCTime_GetRemainTick(XCuint_t _Lc, XCuint_t _c)
 {
     XCuint_t SysTickCount;
-    SysTickCount = Tick_GetCountms();
+    SysTickCount = _XC_SysTickCount;
 
     if( (SysTickCount-_Lc) >= _c ){
         return(0);
@@ -510,6 +513,9 @@ __STATIC_INLINE XCuint_t XCTime_tGetRunTick(XCTimeCount_t _tC)
     }
     return(SysTickCount-_tC.TickCount);
 }
+#define XCTime_tGetRunTime_ms(_tC)      _Time_Tick2ms(XCTime_tGetRunTick(_tC))      //获取运行了多少ms
+
+
 
 /*
  ************************************************************************************************************|

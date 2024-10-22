@@ -1,5 +1,12 @@
 # 更新说明
 
+## T2024/08/28
+### XC_Sch
+- 修改"XCSch_TaskReset"函数,任务复位不复位传递参数"Param";
+### XC_Time
+- 修正"XCTime_GetRemainTick"函数,获取滴答计数变为ms的问题;
+- 增加函数宏"XCTime_tGetRunTime_ms"获取运行了多少ms;
+
 ## T2024/08/12
 ### XC_Time
 - 将原"XCAPI"中的Time处理(时间戳,日历,秒转换计算处理)转移至"XC_Time"中;

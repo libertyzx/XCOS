@@ -1,8 +1,8 @@
 /*=========================================================|
  | 文件名:  XC_Sch.c
  | 描述:    调度器实现
- | 版本:    V1.01
- | 日期:    2024/04/09
+ | 版本:    V1.02
+ | 日期:    2024/08/28
  | 语言:    C语言
  | 作者:    libertyzx
  | E-mail:  libertyzx@163.com
@@ -18,6 +18,8 @@
  |  V1.01:-2024/04/09
  |      1."XCSch_TaskReg"形参增加任务参数;
  |      2."XCSch_SemSched"函数优化;
+ |  V1.02:-2024/08/28
+ |      1.修改"XCSch_TaskReset"函数,任务复位不复位传递参数"Param";
  *========================================================*/
 //=== 头文件
 #include "XC_Sch.h"
@@ -596,11 +598,18 @@ void XCSch_TaskRemove(XCTCB_t* phTCB)
  *  不可在中断中调用,不可复位自身;
  *  清除所有状态(包含挂起),任务复位;
  *  任务将重置到就绪表,然后从头运行;
- *  任务TCB中除了"phXCOS"和"fTask",其他全部重置;
+ *  任务TCB中除了"phXCOS","fTask","Param"其他全部重置;
  ************************************************/
 void XCSch_TaskReset(XCTCB_t* phTCB)
 {
-    XC_TaskBasicInit(phTCB);
+    {
+        phTCB->TaskState = _XC_S_Ready;         //任务就绪
+        phTCB->TaskWakeTick = ~0;               //任务下个唤醒的时间
+        _COR_Init(phTCB->BP);                   //初始化断点
+        phTCB->NotifyData = 0;                  //通知数据清零
+        phTCB->Blocked = _XC_B_NonBlocked;      //没有阻塞
+        phTCB->WakeType = _XC_Wake_Non;         //没有唤醒
+    }
 
     //重置到就绪表
     XCSch_ListOperationStart(phTCB->phXCOS);    //链表操作开始
