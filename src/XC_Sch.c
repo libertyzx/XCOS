@@ -43,7 +43,7 @@
 
 /************************************************|
  * 描述:    更新任务的唤醒的Tick
- * 宏名:    XCSch_GetTaskWakeTick
+ * 宏名:    XCSch_UpdataTaskWakeTick
  * 形参[I]: XCTCB_t* _phTCB     //任务TCB(会强制转为"XCTCB_t*"类型)
  * 形参[I]: XCuint_t _WakeTick  //任务唤醒的Tick
  * 返回:    void
