@@ -270,7 +270,7 @@ uint32_t XCTime_CalendarToUnix(XCTime_Calendar_t *pCalendar, int8_t Timezone)
 
 /************************************************|
  * 描述:    由Unix时间戳计算日历
- * 函数名:  Time_UnixToCalendar
+ * 函数名:  XCTime_UnixToCalendar
  * 参数[I]: uint32_t UnixSec                //Unix时间戳
  * 参数[I]: int8_t Timezone                 //时区(+-12)
  * 参数[O]: XCTime_Calendar_t *pCalendar    //得到的日历指针
