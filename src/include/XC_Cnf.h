@@ -1,8 +1,8 @@
 /*=========================================================|
  | 文件名: XC_Cnf.h
  | 描述  : 配置
- | 版本  : V1.00
- | 日期  : 2023/03/01
+ | 版本  : V1.01
+ | 日期  : 2024/04/09
  | 语言  : C语言
  | 作者  : libertyzx
  | E-mail: libertyzx@163.com
@@ -15,6 +15,8 @@
  +--- 版本说明
  |  V1.00:-2023/03/01
  |      1.初始化
+ |  V1.01:-2024/04/09
+ |      1.配置"_XC_SysTickCount"增加变量创建和中断调用;
  *========================================================*/
 //=== 防重复定义
 #ifndef _XC_Cnf_H_
@@ -29,6 +31,24 @@
  */
 //=== 需要配置的参数
 
+/**XCOS基础数据类型
+ * 默认32位
+ * 一般用于系统滴答计数的数据
+ */
+#ifndef XCuint_t
+    #define XCuint_t uint32_t
+#endif
+
+/**最大任务数
+ *  因为是协作式调度,任务数太多会导致每个任务运行卡顿;
+ *  这个参数限制最大能注册的任务;
+ *  数值范围:0~255;
+ *  默认:100
+ */
+#ifndef _XC_Cnf_TaskMaxNum
+    #define _XC_Cnf_TaskMaxNum  (100)
+#endif
+
 /**系统每秒滴答数(滴答计数频率)
  * 单位Hz,是系统最小的时间单位;
  * 最大值是1000000Hz;对应时间是1us;
@@ -36,14 +56,6 @@
  */
 #ifndef _XC_SysTickPerScond
     #define _XC_SysTickPerScond (1000)
-#endif
-
-/**XCOS基础数据类型
- * 默认32位
- * 一般用于系统滴答计数的数据
- */
-#ifndef XCuint_t
-    #define XCuint_t uint32_t
 #endif
 
 /**系统滴答计数
@@ -66,20 +78,15 @@
  *      2.将计数值作为"_XC_SysTickCount"的指向;
  */
 #ifndef _XC_SysTickCount
-    #define _XC_CreateSysTickCount      volatile XCuint_t g_SysTickCount=0  //创建系统Tick计数
-    extern volatile XCuint_t g_SysTickCount;    //全局滴答时间计数
-    #define _XC_SysTickCount g_SysTickCount
+    #define _XC_SysTickCount g_SysTickCount     //调用滴答时间计数
+    extern volatile XCuint_t g_SysTickCount;    //外部声明全局滴答时间计数
+    //创建系统Tick计数
+    #define _XC_CreateSysTickCount()    volatile XCuint_t g_SysTickCount=0
+    //中断调用,累加滴答时间计数
+    #define XC_AccSysTickCount()        {g_SysTickCount++;}
 #endif
 
-/**最大任务数
- *  因为是协作式调度,任务数太多会导致每个任务运行卡顿;
- *  这个参数限制最大能注册的任务;
- *  数值范围:0~255;
- *  默认:100
- */
-#ifndef _XC_Cnf_TaskMaxNum
-    #define _XC_Cnf_TaskMaxNum  (100)
-#endif
+
 
 /*
  ************************************************************************************************************|

@@ -1,8 +1,8 @@
 /*=========================================================|
  | 文件名:  XC_Sch.c
  | 描述:    调度器实现
- | 版本:    V1.00
- | 日期:    2024/03/18
+ | 版本:    V1.02
+ | 日期:    2024/08/28
  | 语言:    C语言
  | 作者:    libertyzx
  | E-mail:  libertyzx@163.com
@@ -15,6 +15,11 @@
  +--- 版本说明:
  |  V1.00:-2024/03/18
  |      1.初始化
+ |  V1.01:-2024/04/09
+ |      1."XCSch_TaskReg"形参增加任务参数;
+ |      2."XCSch_SemSched"函数优化;
+ |  V1.02:-2024/08/28
+ |      1.修改"XCSch_TaskReset"函数,任务复位不复位传递参数"Param";
  *========================================================*/
 //=== 头文件
 #include "XC_Sch.h"
@@ -38,7 +43,7 @@
 
 /************************************************|
  * 描述:    更新任务的唤醒的Tick
- * 宏名:    XCSch_GetTaskWakeTick
+ * 宏名:    XCSch_UpdataTaskWakeTick
  * 形参[I]: XCTCB_t* _phTCB     //任务TCB(会强制转为"XCTCB_t*"类型)
  * 形参[I]: XCuint_t _WakeTick  //任务唤醒的Tick
  * 返回:    void
@@ -208,13 +213,9 @@ static void XCSch_SemSched(XCOS_t* phXCOS)
     XCListNode_t* pIndex;
     XCSemBin_t* phSem;
 
-    //链表判断
-    if(!XCList_ListValid(&phXCOS->SemList)){
-        return;             //链表无效
-    }
-    //唤醒信号判断
-    if( (phXCOS->SemWakeCount == 0) && (phXCOS->SemWakeFlag == 0) ){
-        return;             //没有唤醒信号
+    //链表及唤醒信号
+    if( (!XCList_ListValid(&phXCOS->SemList)) || ((phXCOS->SemWakeCount == 0) && (phXCOS->SemWakeFlag == 0)) ){
+        return;             //链表无效 | 没有唤醒信号
     }
 
     pIndex = XCList_GetListStartNode(&phXCOS->SemList);     //得到信号链表初始节点
@@ -531,6 +532,7 @@ uint8_t XCSch_GetTaskNum(XCOS_t* phXCOS)
  * 形参[I]: XCOS_t* phXCOS          //XCOS句柄
  * 形参[I]: XCTCB_t* phTCB          //协程任务控制块
  * 形参[I]: void(*fTask)(XCPCB_t*)  //任务的函数指针
+ * 形参[I]: void* pParam            //传递给任务的参数
  * 返回:    int32_t
  *  +=返回值
  *  | _XC_R_OK      //注册成功
@@ -538,7 +540,7 @@ uint8_t XCSch_GetTaskNum(XCOS_t* phXCOS)
  * 说明:    挂载到就绪表;
  * 例程:    无
  ************************************************/
-int32_t XCSch_TaskReg(XCOS_t* phXCOS, XCTCB_t* phTCB, void(*fTask)(XCTCB_t*))
+int32_t XCSch_TaskReg(XCOS_t* phXCOS, XCTCB_t* phTCB, void(*fTask)(XCTCB_t*), void* pParam)
 {
     if(phXCOS->TaskNum >= _XC_Cnf_TaskMaxNum){
         return(_XC_R_Fail);
@@ -548,6 +550,8 @@ int32_t XCSch_TaskReg(XCOS_t* phXCOS, XCTCB_t* phTCB, void(*fTask)(XCTCB_t*))
     XCList_InitNode(&phTCB->ListNode);          //初始化链表
     phTCB->fTask  = fTask;                      //更新任务入口
     phTCB->phXCOS = phXCOS;                     //保存任务的所属框架句柄
+
+    phTCB->pParam = pParam;                     //传递给任务的参数
 
     phXCOS->TaskNum++;                          //任务数+1
 
@@ -594,11 +598,18 @@ void XCSch_TaskRemove(XCTCB_t* phTCB)
  *  不可在中断中调用,不可复位自身;
  *  清除所有状态(包含挂起),任务复位;
  *  任务将重置到就绪表,然后从头运行;
- *  任务TCB中除了"phXCOS"和"fTask",其他全部重置;
+ *  任务TCB中除了"phXCOS","fTask","Param"其他全部重置;
  ************************************************/
 void XCSch_TaskReset(XCTCB_t* phTCB)
 {
-    XC_TaskBasicInit(phTCB);
+    {
+        phTCB->TaskState = _XC_S_Ready;         //任务就绪
+        phTCB->TaskWakeTick = ~0;               //任务下个唤醒的时间
+        _COR_Init(phTCB->BP);                   //初始化断点
+        phTCB->NotifyData = 0;                  //通知数据清零
+        phTCB->Blocked = _XC_B_NonBlocked;      //没有阻塞
+        phTCB->WakeType = _XC_Wake_Non;         //没有唤醒
+    }
 
     //重置到就绪表
     XCSch_ListOperationStart(phTCB->phXCOS);    //链表操作开始

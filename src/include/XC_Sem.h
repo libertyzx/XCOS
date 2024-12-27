@@ -1,8 +1,8 @@
 /*=========================================================|
  | 文件名:  XC_Sem.h
  | 描述:    信号量实现
- | 版本:    V1.00
- | 日期:    2024/03/25
+ | 版本:    V1.01
+ | 日期:    2024/12/06
  | 语言:    C语言
  | 作者:    libertyzx
  | E-mail:  libertyzx@163.com
@@ -14,7 +14,9 @@
  +-----------------------------------------------|
  +--- 版本说明:
  |  V1.00:-2024/03/25
- |      1.见".c"文件;
+ |      1.初始;
+ |  V1.01:-2024/12/06
+ |      1.增加从"XC_Sem.h"移来的函数宏"XCSem_BinSemTake"和"XCSem_BinSemTake_ms";
  *========================================================*/
 //=== 防重复定义
 #ifndef _XC_Sem_H_
@@ -31,7 +33,7 @@
 //=== 数据类型 ===========================================|
 
 /**二值信号量句柄
- *  只负责一个任务;
+ *  一个信号量对应一个任务;
  *
  */
 typedef struct _XCSem_t{
@@ -49,19 +51,44 @@ typedef struct _XCSem_t{
  */
 /**[内部函数]二值信号量内部调用*/
 
-//移除一个信号量
-void XCSem_BinSemRemove(XCSemBin_t* phSem, uint32_t RetainedSem);
+void XCSem_BinSemRemove(XCSemBin_t* phSem, uint32_t RetainedSem);   //移除一个信号量
+int32_t XCSem_BinSemTake_(XCSemBin_t* phSem, XCTCB_t* phTCB);       //获取信号(消费者)
 
-/**二值信号量-函数声明*/
+/************************************************ 我是分割线 ************************************************/
+/**二值信号量-用户函数声明*/
 
-//初始化(清除信号)
-void XCSem_BinSemInit(XCSemBin_t* phSem);
+void XCSem_BinSemInit(XCSemBin_t* phSem);           //初始化(会清除信号)
 
-void XCSem_BinSemForceClrSem(XCSemBin_t* phSem);    //强制清除信号
-void XCSem_BinSemForceSetSem(XCSemBin_t* phSem);    //强制设置信号
+void XCSem_BinSemForceClrSem(XCSemBin_t* phSem);    //强制清除信号(获取信号,消费者)
+void XCSem_BinSemForceSetSem(XCSemBin_t* phSem);    //强制设置信号(释放信号,生产者)
 
-int32_t XCSem_BinSemTake_(XCSemBin_t* phSem, XCTCB_t* phTCB);   //获取信号(消费者)
-int32_t XCSem_BinSemGive(XCSemBin_t* phSem);                    //释放信号(生产者)
+int32_t XCSem_BinSemGive(XCSemBin_t* phSem);        //释放信号(生产者)
+
+/************************************************|
+ * 描述:    获取信号(消费者)
+ * 宏名:    XCSem_BinSemTake
+ * 形参[I]: XCSemBin_t* _phSem      //信号句柄
+ * 参数[I]: XCuint_t _TickTimeout   //超时时间
+ *  +=参数
+ *  | 0     //阻塞死等
+ *  | >0    //超时时间
+ * 返回:    void
+ * 说明:
+ *  必须在协程块中使用;
+ *  等待获取二值信号;
+ *  唤醒后用"XC_GetWakeTimeout"判断是否超时;
+ ************************************************/
+#define XCSem_BinSemTake(_phSem, _TickTimeout)  \
+{   \
+    _phXCTCB->TaskWakeTick = (_TickTimeout);    /*超时Tick值*/  \
+    /*获取信号*/                                                \
+    if(XCSem_BinSemTake_(_phSem, _phXCTCB) == _XC_R_Continue){  \
+        _COR_SetBPBreak(*_pXCPB);   /*设置断点并跳出*/          \
+    }                                                           \
+}
+#define XCSem_BinSemTake_ms(_phSem, _TickTimeout)       XCSem_BinSemTake(_phSem, _Time_ms2Tick(_TickTimeout))   //获取信号(超时单位:ms)
+
+
 
 /************************************************ 我是分割线 ************************************************/
 /*

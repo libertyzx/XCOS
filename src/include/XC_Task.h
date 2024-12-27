@@ -1,8 +1,8 @@
 /*=========================================================|
  | 文件名: XC_Task.h
  | 描述  : 任务的实现
- | 版本  : 1.00
- | 日期  : 2024/03/17
+ | 版本  : 1.02
+ | 日期  : 2024/12/06
  | 语言  : C语言
  | 作者  : libertyzx
  | E-mail: libertyzx@163.com
@@ -16,6 +16,31 @@
  +--- 版本说明
  |  V1.00:-2024/03/17
  |      1.协程实现
+ |  V1.01:-2024/04/09
+ |      1."XCTCB_t"增加任务参数"pParam";
+ |      2.增加函数:
+ |          "XC_GetTaskParam"           //获取任务注册时传递的参数(指针);
+ |          "XC_GetTaskParamUint"       //获取任务注册时传递的参数(32位无符号);
+ |          "XC_UpdateNotifyDataUint"   //更新通知数据(32位无符号);
+ |          "XC_ReadNotifyDataUint"     //读取通知数据(32位无符号);
+ |          "XC_GetNotifyDataUint"      //获取通知的数据(32位无符号);
+ |          "XC_SendNotifyUint"         //发送通知,数据为32位无符号;
+ |          "XC_WaitNotify_ms"          //等待通知,超时时间单位为:ms;
+ |          "XCSem_BinSemTake_ms"       //获取信号,超时时间单位为:ms;
+ |      3.修改函数:
+ |          "XC_GetTaskState"           //从内联改为宏;
+ |          "XC_UpdateNotifyData"       //从内联改为宏,修改更新通知数据为"void*"类型;
+ |          "XC_ReadNotifyData"         //从内联改为宏,修改读取通知数据为"void*"类型;
+ |          "XC_GetNotifyData"          //修改获取通知数据为"void*"类型;
+ |  V1.02:-2024/12/06
+ |      1.增加函数:
+ |          "XC_GetParam"               //协程块内获取任务注册时传递的参数(指针);
+ |          "XC_GetParamUint"           //协程块内获取任务注册时传递的参数(32位无符号);
+ |          "XC_Reset"                  //协程块内获复位自身;
+ |          "XC_GetParam"               //协程块内获取任务注册时传递的参数(指针);
+ |          "XC_GetParamUint"           //协程块内获取任务注册时传递的参数(32位无符号);
+ |          "XC_Suspend"                //协程块内挂起自身;
+ |      2.将"XCSem_BinSemTake"和"XCSem_BinSemTake_ms"函数宏移动到"XC_Sem.h"文件中;
  *========================================================*/
 //=== 防重复定义
 #ifndef _XC_Task_H_
@@ -55,12 +80,11 @@ typedef enum{
 /**任务状态值(当前协程状态)*/
 #define _XC_S_Void              (0)                 //被移除后的状态
 #define _XC_S_Run               (1)                 //运行
-#define _XC_S_Ready             (2)                 //就绪
+#define _XC_S_Ready             (2)                 //就绪(注册后的状态)
 #define _XC_S_Delay             (3)                 //[阻塞]延时
 #define _XC_S_WaitNotify        (4)                 //[阻塞]等待通知
 #define _XC_S_WaitSem           (5)                 //[阻塞]等待信号
 #define _XC_S_Suspend           (6)                 //[阻塞]挂起
-
 
 /**阻塞类型*/
 #define _XC_B_NonBlocked        (_B0000_0000)       //没有阻塞(清除阻塞)
@@ -84,19 +108,24 @@ typedef enum{
 typedef COR_BP_t XCBP_t;                //断点类型
 
 /*协程任务控制块(Task Control Block)
- *  32位下占12+4*4+4+4=36
+ *  32位下占12+4*4+4+4+4=40
  */
 typedef struct _XCTCB_t{
     XCListNode_t ListNode;              //链表节点
     struct _XCOS_t* phXCOS;             //任务所属的框架句柄
     void(*fTask)(struct _XCTCB_t*);     //函数运行入口
-    XCuint_t TaskWakeTick;              //任务下个唤醒的时间
+    XCuint_t TaskWakeTick;              //任务下个唤醒的时间(0则一直阻塞)
     XCBP_t BP;                          //协程断点(Break Point)
 
     //通知数据
     union{
         uint32_t NotifyData;            //通知的数据(数值)
         void* pNotifyData;              //通知的数据(指针)
+    };
+    //传递的参数
+    union{
+        uint32_t Param;
+        void* pParam;
     };
 
     uint8_t Blocked;                    //阻塞状态
@@ -123,18 +152,18 @@ void XC_TaskBasicInit(XCTCB_t* phTCB);  //基本任务初始化
 /************************************************|
  * 描述:    [协程]进入
  * 宏名:    XC_Enter
- * 参数[H]: XCTCB_t* phTCB  S//控制块句柄
+ * 参数[H]: XCTCB_t* phTCB  //控制块句柄
  * 返回:    void
  * 说明:    协程的启动处理;
  *  必须搭配"XC_Leave"使用;
  ************************************************/
 #define XC_Enter(_phTCB)    \
 {   \
-    /*全局变量转局部变量可加快运行速度*/                \
-    XCTCB_t* _phXCTCB = (_phTCB);       /*得到PCB*/     \
-    XCBP_t*  _pXCPB   = &_phXCTCB->BP;  /*得到断点*/    \
-    /*启动协程*/                                        \
-    _COR_Start(*_pXCPB);                /*启动*/
+    /*全局变量转局部变量可加快运行速度*/                    \
+    XCTCB_t* _phXCTCB = (_phTCB);           /*得到PCB*/     \
+    XCBP_t*  _pXCPB   = &_phXCTCB->BP;      /*得到断点*/    \
+    /*启动协程*/                                            \
+    _COR_Start(*_pXCPB);                    /*启动*/
 
 /************************************************|
  * 描述:    [协程]离开
@@ -168,7 +197,7 @@ void XC_TaskBasicInit(XCTCB_t* phTCB);  //基本任务初始化
 
 /************************************************|
  * 描述:    [协程]任务复位
- * 宏名:    XC_TaskReset
+ * 宏名:    XC_Reset
  * 形参[I]: void
  * 返回:    void
  * 说明:
@@ -176,11 +205,12 @@ void XC_TaskBasicInit(XCTCB_t* phTCB);  //基本任务初始化
  *  复位当前在运行的任务;
  *  运行此宏后将立刻退出协程块
  ************************************************/
-#define XC_TaskReset()  \
+#define XC_Reset() \
 {   \
     XCSch_TaskReset(_phXCTCB);  \
     _COR_Break(*_pXCPB);        \
 }
+#define XC_TaskReset XC_Reset       //兼容
 
 /************************************************|
  * 描述:    [协程]获取唤醒超时
@@ -191,17 +221,45 @@ void XC_TaskBasicInit(XCTCB_t* phTCB);  //基本任务初始化
  *  | 0     //没有超时
  *  | 1     //超时
  * 说明:
+ *  必须在协程块中使用;
  *  用于判断消息和任务通知阻塞唤醒后是否超时;
  *      消息函数:XCSem_BinSemTake
  *      通知函数:XC_WaitNotify
- *  必须在协程块中使用;
  ************************************************/
 #define XC_GetWakeTimeout()         (_phXCTCB->WakeType == _XC_Wake_Time)
 
 /************************************************|
- * 描述:    [内联][协程]获取任务运行状态
- * 函数名:  XC_GetTaskState
+ * 描述:    [协程]协程块内获取任务注册时传递的参数
+ * 函数名:  XC_GetParam
  * 参数[I]: XCTCB_t* phTCB      //任务TCB
+ * 返回:    void*               //返回传递的参数指针
+ * 说明:
+ *  必须在协程块中使用;
+ *  用来获取参数;
+ *  因为协程内上下文切换局部变量是不保存的,
+ *  所以若是要使用传递的参数需要再"XC_Enter"前将参数赋值给变量;
+ ************************************************/
+#define XC_GetParam()               (_phXCTCB->pParam)
+#define XC_GetParamUint()           (_phXCTCB->Param)       //数据是32位无符号变量
+
+/************************************************|
+ * 描述:    [协程]获取任务注册时传递的参数
+ * 函数名:  XC_GetTaskParam
+ * 参数[I]: XCTCB_t* phTCB      //任务TCB
+ * 返回:    void*               //返回传递的参数指针
+ * 说明:
+ *  任意位置可调用;
+ *  用来获取参数;
+ *  因为协程内上下文切换局部变量是不保存的,
+ *  所以若是要使用传递的参数需要再"XC_Enter"前将参数赋值给变量;
+ ************************************************/
+#define XC_GetTaskParam(_phTCB)         ((_phTCB)->pParam)
+#define XC_GetTaskParamUint(_phTCB)     ((_phTCB)->Param)   //数据是32位无符号变量
+
+/************************************************|
+ * 描述:    [协程]获取任务运行状态
+ * 函数名:  XC_GetTaskState
+ * 参数[I]: XCTCB_t* _phTCB     //任务TCB
  * 返回:    int32_t
  *  +=说明
  *  | _XC_S_Run         //运行
@@ -212,41 +270,34 @@ void XC_TaskBasicInit(XCTCB_t* phTCB);  //基本任务初始化
  *  | _XC_S_Suspend     //[阻塞]挂起
  * 说明: 任意位置可调用,获取任务运行的状态;
  ************************************************/
-__STATIC_INLINE int32_t XC_GetTaskState(XCTCB_t* phTCB)
-{
-    return(phTCB->TaskState);
-}
+#define XC_GetTaskState(_phTCB)     ((_phTCB)->TaskState)
 
 /************************************************|
- * 描述:    [内联][协程]更新通知数据
+ * 描述:    [协程]更新通知数据/指针
  * 函数名:  XC_UpdateNotifyData
  * 参数[I]: XCTCB_t* phTCB      //任务TCB
- * 参数[I]: uint32_t NotifyData //通知数据
+ * 参数[I]: void* pNotifyData   //通知传递的数据
  * 返回:    void
  * 说明:
  *  任意位置可调用;
  *  在不使用任务通知的时候,可以用通知数据来传递数据;
  *  此函数用于更新(写)通知数据;
  ************************************************/
-__STATIC_INLINE void XC_UpdateNotifyData(XCTCB_t* phTCB, uint32_t NotifyData)
-{
-    phTCB->NotifyData = NotifyData;
-}
+#define XC_UpdateNotifyData(_phTCB, _pNotifyData)       { (_phTCB)->pNotifyData = (_pNotifyData); }
+#define XC_UpdateNotifyDataUint(_phTCB, _NotifyData)    { (_phTCB)->pNotifyData = (_NotifyData); }      //数据是32位无符号变量
 
 /************************************************|
- * 描述:    [内联][协程]读取通知数据
+ * 描述:    [协程]读取通知数据/指针
  * 函数名:  XC_ReadNotifyData
  * 参数[I]: XCTCB_t* phTCB      //任务TCB
- * 返回:    uint32_t            //通知的数据
+ * 返回:    void*               //通知的数据
  * 说明:
  *  任意位置可调用;
  *  在不使用任务通知的时候,可以用通知数据来传递数据;
  *  此函数用于读取通知数据;
  ************************************************/
-__STATIC_INLINE uint32_t XC_ReadNotifyData(XCTCB_t* phTCB)
-{
-    return(phTCB->TaskState);
-}
+#define XC_ReadNotifyData(_phTCB)       ((_phTCB)->pNotifyData)
+#define XC_ReadNotifyDataUint(_phTCB)   ((_phTCB)->NotifyData)      //数据是32位无符号变量
 
 /*
  ************************************************************************************************************|
@@ -306,7 +357,7 @@ __STATIC_INLINE uint32_t XC_ReadNotifyData(XCTCB_t* phTCB)
  * 说明:
  *  必须在协程块中使用;
  *  等待一个通知;
- *  唤醒后用"XC_GetTaskTimeout"判断是否超时;
+ *  唤醒后用"XC_GetWakeTimeout"判断是否超时;
  ************************************************/
 #define XC_WaitNotify(_TickTimeout) \
 {   \
@@ -316,21 +367,26 @@ __STATIC_INLINE uint32_t XC_ReadNotifyData(XCTCB_t* phTCB)
     _phXCTCB->TaskWakeTick = (_TickTimeout);                        \
     _COR_SetBPBreak(*_pXCPB);               /*设置断点并跳出*/      \
 }
+#define XC_WaitNotify_ms(_TickTimeout)      XC_WaitNotify(_Time_ms2Tick(_TickTimeout))  //等待通知(超时单位:ms)
 
 /************************************************|
  * 描述:    [协程]获取通知的数据
  * 宏名:    XC_GetNotifyData
  * 参数[N]: void
- * 返回:    XCVar_t //得到通知的数据
+ * 返回:    void*   //得到通知的数据
  * 说明:
  *  必须在协程块中使用;
  *  通知唤醒后获取通知传递的数据
  ************************************************/
-#define XC_GetNotifyData()      (_phXCTCB->NotifyData)
+#define XC_GetNotifyData()      (_phXCTCB->pNotifyData)
+#define XC_GetNotifyDataUint()  (_phXCTCB->NotifyData)      //数据是32位无符号变量
 
 /**任务通知处理-函数声明*/
 
-int32_t XC_SendNotify(XCTCB_t* phTCB, uint32_t NotifyData);     //发送通知
+int32_t XC_SendNotify(XCTCB_t* phTCB, void* pNotifyData);   //发送通知
+
+//发送通知(通知数据为32位无符号变量)
+#define XC_SendNotifyUint(_phTCB, _NotifyData)      XC_SendNotify((_phTCB), (void*)(_NotifyData));
 
 /*
  ************************************************************************************************************|
@@ -343,35 +399,16 @@ int32_t XC_SendNotify(XCTCB_t* phTCB, uint32_t NotifyData);     //发送通知
 int32_t XC_TaskSuspend(XCTCB_t* phTCB);     //任务挂起
 int32_t XC_TaskResume(XCTCB_t* phTCB);      //任务恢复
 
-/*
- ************************************************************************************************************|
- ************************************************ 我是分割线 ************************************************|
- ************************************************************************************************************|
- */
-/**信号量*/
-
 /************************************************|
- * 描述:    获取信号(消费者)
- * 宏名:    XCSem_BinSemTake
- * 形参[I]: XCSemBin_t* _phSem      //信号句柄
- * 参数[I]: XCuint_t _TickTimeout   //超时时间
- * 返回:    boot
- *  +=返回
- *  | 0     //没有节点
- *  | 1     //有节点
+ * 描述:    [协程]将自身挂起
+ * 宏名:    XC_Suspend
+ * 参数[N]: void
+ * 返回:    void
  * 说明:
  *  必须在协程块中使用;
- *  等待获取二值信号;
- *  唤醒后用"XC_GetTaskTimeout"判断是否超时;
+ *  将自身挂起;
  ************************************************/
-#define XCSem_BinSemTake(_phSem, _TickTimeout)  \
-{   \
-    _phXCTCB->TaskWakeTick = (_TickTimeout);    /*超时Tick值*/  \
-    /*获取信号*/                                                \
-    if(XCSem_BinSemTake_(_phSem, _phXCTCB) == _XC_R_Continue){  \
-        _COR_SetBPBreak(*_pXCPB);   /*设置断点并跳出*/          \
-    }                                                           \
-}
+#define XC_Suspend()    { XC_TaskSuspend(_phXCTCB); _COR_SetBPBreak(*_pXCPB); /*设置断点并跳出*/ }
 
 /*
  ************************************************************************************************************|

@@ -1,8 +1,8 @@
 /*=========================================================|
  | 文件名:  XC_Sch.h
  | 描述:    调度器实现
- | 版本:    V1.00
- | 日期:    2024/03/18
+ | 版本:    V1.01
+ | 日期:    2024/04/09
  | 语言:    C语言
  | 作者:    libertyzx
  | E-mail:  libertyzx@163.com
@@ -15,6 +15,8 @@
  +--- 版本说明:
  |  V1.00:-2024/03/18
  |      1.初始化
+ |  V1.01:-2024/04/09
+ |      1."XCSch_TaskReg"形参增加任务参数;
  *========================================================*/
 //=== 防重复定义
 #ifndef _XC_Sch_H_
@@ -100,17 +102,20 @@ typedef struct _XCOS_t{
  */
 //=== 函数声明 ===========================================|
 /**[内部函数]任务链表节点处理*/
+
 void XCSch_ListNodeRemove(XCTCB_t* phTCB);              //链表节点移除
 void XCSch_ListNodeInsertIndexPrevious(XCTCB_t* phTCB); //将节点插入索引前
 
 /**调度器处理*/
+
 void XCSch_Init(XCOS_t* phXCOS);            //初始化调度器
 void XCSch_Run(XCOS_t* phXCOS);             //调度器运行
 void XCSch_RunNonBlocked(XCOS_t* phXCOS);   //调度器运行(非阻塞)
 uint8_t XCSch_GetTaskNum(XCOS_t* phXCOS);   //返回当前任务数量
 
 /**任务处理*/
-int32_t XCSch_TaskReg(XCOS_t* phXCOS, XCTCB_t* phTCB, void(*fTask)(XCTCB_t*));  //注册一个任务
+
+int32_t XCSch_TaskReg(XCOS_t* phXCOS, XCTCB_t* phTCB, void(*fTask)(XCTCB_t*), void* pParam);  //注册一个任务
 void XCSch_TaskRemove(XCTCB_t* phTCB);      //移除一个任务
 void XCSch_TaskReset(XCTCB_t* phTCB);       //复位任务
 

@@ -82,7 +82,7 @@ void XCSem_BinSemInit(XCSemBin_t* phSem)
 }
 
 /************************************************|
- * 描述:    二值信号量强制清除信号
+ * 描述:    二值信号量强制清除信号(获取信号,消费者)
  * 函数名:  XCSem_BinSemForceClrSem
  * 形参[I]: XCSemBin_t* phSem   //信号量句柄
  * 返回:    void
@@ -95,7 +95,7 @@ void XCSem_BinSemForceClrSem(XCSemBin_t* phSem)
 }
 
 /************************************************|
- * 描述:    二值信号量强制设置信号
+ * 描述:    二值信号量强制设置信号(释放信号,生产者)
  * 函数名:  XCSem_BinSemForceSetSem
  * 形参[I]: XCSemBin_t* phSem   //信号量句柄
  * 返回:    void
@@ -108,7 +108,7 @@ void XCSem_BinSemForceSetSem(XCSemBin_t* phSem)
 }
 
 /************************************************|
- * 描述:    获取信号(消费者)
+ * 描述:    [内部]获取信号(消费者)
  * 函数名:  XCSem_BinSemTake_
  * 参数[I]: XCSemBin_t* phSem       //信号
  * 参数[I]: XCTCB_t* phTCB          //挂载的任务

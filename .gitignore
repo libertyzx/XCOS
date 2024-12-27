@@ -7,3 +7,11 @@ src/bak/*
 *.7z
 *.rar
 *.zip
+*.log
+
+#examples
+examples/CortexM3_Test/Debug/*
+examples/CortexM3_Test/DebugConfig/*
+examples/CortexM3_Test/CortexM3_Test.uvguix.*
+examples/CortexM3_Test/.vscode/uv4.log.lock
+examples/CortexM3_Test/EventRecorderStub.scvd
