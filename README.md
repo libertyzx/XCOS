@@ -81,7 +81,7 @@ XCOS的配置参数如下:
 | ./src | [XC_Sch.c](./docs/XCOS.md) | 调度处理 |
 | ./src | [XC_Task.c](./docs/XCOS.md) | 任务处理 |
 | ./src | [XC_Sem.c](./docs/XCOS.md) | 信号量实现 |
-| ./src | [XC_Time.c](./docs/XC_Type.md) | 时间戳,日历,秒转换计算处理 |
+| ./src | [XC_Time.c](./docs/XC_Time.md) | 时间戳,日历,秒转换计算处理 |
 | ./src/include | - | 源码".h"文件,需包含 |
 | ./src/include | BinData.h | 二进制数值宏定义 |
 | ./src/include | COR_ANSI.h | 协程底层实现("ANSI-C"是由"switch case"实现) |
@@ -89,9 +89,9 @@ XCOS的配置参数如下:
 | ./src/include | CortexMx.h | 对应CortexMx使用的宏定义 |
 | ./src/include | [XC_Type.h](./docs/XC_Type.md) | 通用数据类型定义 |
 | ./src/include | [XC_Time.h](./docs/XC_Time.md) | 时间处理-头文件 |
-| ./src/include | [XC_TimeCompatibility.h](./docs/XC_Type.md) | 时间处理,兼容性代码 |
-| ./src/include | [XC_TimeCompile.h](./docs/XC_Type.md) | 时间处理,编译相关代码 |
-| ./src/include | [XC_TimeCount.h](./docs/XC_Type.md) | 时间处理,计数处理相关代码 |
+| ./src/include | [XC_TimeCompatibility.h](./docs/XC_Time.md) | 时间处理,兼容性代码 |
+| ./src/include | [XC_TimeCompile.h](./docs/XC_Time.md) | 时间处理,编译相关代码 |
+| ./src/include | [XC_TimeCount.h](./docs/XC_Time.md) | 时间处理,计数处理相关代码 |
 | ./src/include | [XC_MacroFunc.h](./docs/XC_MacroFunc.md) | 通用函数宏实现 |
 | ./src/include | [XC_BitFlag.h](./docs/XC_BitFlag.md) | 位标志的实现 |
 | ./src/include | XC_Cnf.h | 用于存放"XCOS"的配置参数 |
