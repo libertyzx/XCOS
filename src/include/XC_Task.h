@@ -78,7 +78,7 @@ typedef enum{
 }XCRetuen_t;
 
 /**任务状态值(当前协程状态)*/
-#define _XC_S_Void              (0)                 //被移除后的状态
+#define _XC_S_Void              (0)                 //空,被移除后的状态
 #define _XC_S_Run               (1)                 //运行
 #define _XC_S_Ready             (2)                 //就绪(注册后的状态)
 #define _XC_S_Delay             (3)                 //[阻塞]延时
@@ -113,7 +113,7 @@ typedef COR_BP_t XCBP_t;                //断点类型
 typedef struct _XCTCB_t{
     XCListNode_t ListNode;              //链表节点
     struct _XCOS_t* phXCOS;             //任务所属的框架句柄
-    void(*fTask)(struct _XCTCB_t*);     //函数运行入口
+    void(*fTask)(struct _XCTCB_t*);     //函数运行入口(任务入口)
     XCuint_t TaskWakeTick;              //任务下个唤醒的时间(0则一直阻塞)
     XCBP_t BP;                          //协程断点(Break Point)
 

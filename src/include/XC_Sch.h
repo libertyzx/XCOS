@@ -119,6 +119,9 @@ int32_t XCSch_TaskReg(XCOS_t* phXCOS, XCTCB_t* phTCB, void(*fTask)(XCTCB_t*), vo
 void XCSch_TaskRemove(XCTCB_t* phTCB);      //移除一个任务
 void XCSch_TaskReset(XCTCB_t* phTCB);       //复位任务
 
+void XCSch_SetTaskEntryPoint(XCTCB_t* phTCB, void(*fTask)(XCTCB_t*), void* pParam);     //设置任务入口
+int32_t XCSch_AddTask(XCOS_t* phXCOS, XCTCB_t* phTCB);  //添加任务
+
 /************************************************ 我是分割线 ************************************************/
 /*
  ************************************************************************************************************|

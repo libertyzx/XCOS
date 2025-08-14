@@ -38,16 +38,18 @@
  * 返回:    void
  * 说明:
  *  用户不调用;
- *  除了了"ListNode","fTask","phXCOS"外的初始化;
+ *  "TCB"中以下数据不会被初始化:
+ *      "ListNode"      //链表节点
+ *      "phXCOS"        //任务所属的框架句柄
+ *      "fTask"         //任务入口
+ *      "Param"         //传递给任务的参数
+ *      "TaskState"     //任务状态
  ************************************************/
 void XC_TaskBasicInit(XCTCB_t* phTCB)
 {
-    phTCB->TaskState = _XC_S_Ready;
-
     phTCB->TaskWakeTick = ~0;                   //任务下个唤醒的时间
     _COR_Init(phTCB->BP);                       //初始化断点
     phTCB->NotifyData = 0;                      //通知数据清零
-    phTCB->Param = 0;                           //任务参数
     phTCB->Blocked = _XC_B_NonBlocked;          //没有阻塞
     phTCB->WakeType = _XC_Wake_Non;             //没有唤醒
 }

@@ -531,14 +531,13 @@ uint8_t XCSch_GetTaskNum(XCOS_t* phXCOS)
  * 函数名:  XCSch_TaskReg
  * 形参[I]: XCOS_t* phXCOS          //XCOS句柄
  * 形参[I]: XCTCB_t* phTCB          //协程任务控制块
- * 形参[I]: void(*fTask)(XCPCB_t*)  //任务的函数指针
+ * 形参[I]: void(*fTask)(XCPCB_t*)  //任务的函数指针(任务入口)
  * 形参[I]: void* pParam            //传递给任务的参数
  * 返回:    int32_t
  *  +=返回值
  *  | _XC_R_OK      //注册成功
  *  | _XC_R_Fail    //注册失败,任务太多
  * 说明:    挂载到就绪表;
- * 例程:    无
  ************************************************/
 int32_t XCSch_TaskReg(XCOS_t* phXCOS, XCTCB_t* phTCB, void(*fTask)(XCTCB_t*), void* pParam)
 {
@@ -548,10 +547,12 @@ int32_t XCSch_TaskReg(XCOS_t* phXCOS, XCTCB_t* phTCB, void(*fTask)(XCTCB_t*), vo
 
     XC_TaskBasicInit(phTCB);
     XCList_InitNode(&phTCB->ListNode);          //初始化链表
-    phTCB->fTask  = fTask;                      //更新任务入口
-    phTCB->phXCOS = phXCOS;                     //保存任务的所属框架句柄
 
-    phTCB->pParam = pParam;                     //传递给任务的参数
+    phTCB->phXCOS    = phXCOS;                  //保存任务的所属框架句柄
+    phTCB->fTask     = fTask;                   //更新任务入口
+    phTCB->pParam    = pParam;                  //传递给任务的参数
+
+    phTCB->TaskState = _XC_S_Ready;             //任务更新状态为就绪
 
     phXCOS->TaskNum++;                          //任务数+1
 
@@ -573,7 +574,7 @@ int32_t XCSch_TaskReg(XCOS_t* phXCOS, XCTCB_t* phTCB, void(*fTask)(XCTCB_t*), vo
 void XCSch_TaskRemove(XCTCB_t* phTCB)
 {
     if(phTCB->phXCOS != NULL){
-        XC_TaskBasicInit(phTCB);                    //复位数据
+        XC_TaskBasicInit(phTCB);                    //基本数据初始化
 
         //从表中删除任务
         XCSch_ListOperationStart(phTCB->phXCOS);    //链表操作开始
@@ -582,8 +583,9 @@ void XCSch_TaskRemove(XCTCB_t* phTCB)
         XCSch_ListOperationEnd(phTCB->phXCOS);      //链表操作结束
 
         XCList_InitNode(&phTCB->ListNode);          //初始化链表
-        phTCB->fTask  = NULL;                       //清除任务入口
         phTCB->phXCOS = NULL;                       //清除任务的所属框架句柄
+        phTCB->fTask  = NULL;                       //清除任务入口
+        phTCB->Param = 0;                           //清除任务参数
 
         phTCB->TaskState = _XC_S_Void;              //任务状态改为空
     }
@@ -602,20 +604,71 @@ void XCSch_TaskRemove(XCTCB_t* phTCB)
  ************************************************/
 void XCSch_TaskReset(XCTCB_t* phTCB)
 {
-    {
-        phTCB->TaskState = _XC_S_Ready;         //任务就绪
-        phTCB->TaskWakeTick = ~0;               //任务下个唤醒的时间
-        _COR_Init(phTCB->BP);                   //初始化断点
-        phTCB->NotifyData = 0;                  //通知数据清零
-        phTCB->Blocked = _XC_B_NonBlocked;      //没有阻塞
-        phTCB->WakeType = _XC_Wake_Non;         //没有唤醒
-    }
+    XC_TaskBasicInit(phTCB);                    //基本数据初始化
+    phTCB->TaskState = _XC_S_Ready;             //任务更新状态为就绪
 
     //重置到就绪表
     XCSch_ListOperationStart(phTCB->phXCOS);    //链表操作开始
     XCSch_ListNodeRemove(phTCB);                //原链表移除节点
     XCSch_ListNodeInsertIndexPrevious(phTCB);   //重新插入就绪表
     XCSch_ListOperationEnd(phTCB->phXCOS);      //链表操作结束
+}
+
+/*
+ ************************************************************************************************************|
+ ************************************************ 我是分割线 ************************************************|
+ ************************************************************************************************************|
+ */
+
+/************************************************|
+ * 描述:    设置任务入口
+ * 函数名:  XCSch_SetTaskEntryPoint
+ * 形参[I]: XCTCB_t* phTCB          //协程任务控制块
+ * 形参[I]: void(*fTask)(XCPCB_t*)  //任务的函数指针(任务入口)
+ * 形参[I]: void* pParam            //传递给任务的参数
+ * 返回:    void
+ * 说明:
+ *  只设置任务入口和传递给任务的参数;
+ *  一般配合"XCSch_AddTask"使用;
+ ************************************************/
+void XCSch_SetTaskEntryPoint(XCTCB_t* phTCB, void(*fTask)(XCTCB_t*), void* pParam)
+{
+    phTCB->fTask  = fTask;      //更新任务入口
+    phTCB->pParam = pParam;     //传递给任务的参数
+}
+
+/************************************************|
+ * 描述:    添加任务
+ * 函数名:  XCSch_AddTask
+ * 形参[I]: XCOS_t* phXCOS          //XCOS句柄
+ * 形参[I]: XCTCB_t* phTCB          //协程任务控制块
+ * 返回:    int32_t
+ *  +=返回值
+ *  | _XC_R_OK      //注册成功
+ *  | _XC_R_Fail    //注册失败,任务太多或任务入口错误;
+ * 说明:
+ *  添加的任务必须先调用"XCSch_SetTaskEntryPoint",
+ *  设置好任务入口和传递的参数才可添加;
+ *  添加后挂载到就绪表;
+ ************************************************/
+int32_t XCSch_AddTask(XCOS_t* phXCOS, XCTCB_t* phTCB)
+{
+    if( (phXCOS->TaskNum >= _XC_Cnf_TaskMaxNum) ||
+        (phTCB->fTask == NULL) ){
+        return(_XC_R_Fail);
+    }
+
+    XC_TaskBasicInit(phTCB);
+    XCList_InitNode(&phTCB->ListNode);          //初始化链表
+
+    phTCB->phXCOS = phXCOS;                     //保存任务的所属框架句柄
+
+    phXCOS->TaskNum++;                          //任务数+1
+
+    XCSch_ListOperationStart(phXCOS);           //链表操作开始
+    XCSch_ListNodeInsertIndexPrevious(phTCB);   //插入就续表
+    XCSch_ListOperationEnd(phXCOS);             //链表操作结束
+    return(_XC_R_OK);
 }
 
 /************************************************ 我是分割线 ************************************************/

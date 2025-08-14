@@ -2,6 +2,16 @@
 
 ---
 
+## T2025/06/10
+- 修改"XC_TaskBasicInit"函数,删除任务状态和形参的初始化;
+- 修改"XCSch_TaskReg","XCSch_TaskRemove","XCSch_TaskReset"以适配新的"XC_TaskBasicInit"函数;
+- 增加函数:
+    - "void XCSch_SetTaskEntryPoint(XCTCB_t* phTCB, void(*fTask)(XCTCB_t*), void* pParam)" 设置任务入口;
+    - "int32_t XCSch_AddTask(XCOS_t* phXCOS, XCTCB_t* phTCB)" 添加任务;
+    两个函数配合调用,先"设置任务入口"在"添加任务",可以理解为"XCSch_TaskReg"的分步运行;
+
+---
+
 ## T2024/12/19
 - 完善说明文件,增加"XC_BitFlag"函数说明;
 
