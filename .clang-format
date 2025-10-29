@@ -1,0 +1,131 @@
+#T20251017修改
+
+# 基础格式设置
+BasedOnStyle:               GNU
+Language:                   Cpp
+IndentWidth:                4
+UseTab:                    Never
+TabWidth:                   8
+ColumnLimit:                0
+
+# 函数返回类型设置
+AlwaysBreakAfterDefinitionReturnType: None
+BreakAfterReturnType:               None
+AlwaysBreakAfterReturnType:         None
+
+# 大括号样式 - 关键设置：自定义大括号换行行为
+BreakBeforeBraces:         Custom  # 使用自定义大括号换行设置
+BraceWrapping:
+  AfterFunction:           true    # 函数后的大括号换行
+  AfterControlStatement:   false   # 控制语句后的大括号不换行
+  BeforeElse:              true    # else 前的大括号换行
+  AfterClass:              false   # 类后的大括号不换行
+  AfterStruct:             false   # 结构体后的大括号不换行
+  AfterUnion:              false   # 联合体后的大括号不换行
+  AfterNamespace:          false   # 命名空间后的大括号不换行
+  AfterEnum:               false   # 枚举后的大括号不换行
+  BeforeCatch:             false   # catch 前的大括号不换行
+  BeforeWhile:             false   # while 前的大括号不换行
+  SplitEmptyFunction:      true    # 空函数的大括号分开在不同行
+  SplitEmptyRecord:        true    # 空记录的大括号分开在不同行
+  SplitEmptyNamespace:     true    # 空命名空间的大括号分开在不同行
+
+# 对齐相关设置
+AlignConsecutiveAssignments:
+  Enabled:                 true
+  AcrossEmptyLines:        false
+  AcrossComments:          false
+  AlignCompound:           false
+  PadOperators:            true
+
+# 结构体成员对齐设置
+AlignConsecutiveDeclarations:
+  Enabled:                 true    # 启用连续声明对齐
+  AcrossEmptyLines:        false   # 不跨空行对齐
+  AcrossComments:          false   # 不跨注释对齐
+  AlignCompound:           false   # 不对齐复合声明
+  AlignFunctionDeclarations: true  # 对齐函数声明
+  PadOperators:            false   # 不在运算符前后填充空格
+
+# 宏定义对齐设置 - 新增配置
+AlignConsecutiveMacros:
+  Enabled:                 true    # 启用连续宏定义对齐
+  AcrossEmptyLines:        true    # 跨空行对齐宏定义
+  AcrossComments:          true    # 跨注释对齐宏定义
+  AlignCompound:           true    # 对齐复合宏定义
+
+# 注释对齐设置
+AlignTrailingComments:
+  Kind:                    Always   # 总是对齐尾随注释
+  OverEmptyLines:          0        # 不允许跨空行对齐注释
+
+SpacesInLineCommentPrefix:
+  Minimum:                 1        # 行注释前缀前最少1个空格
+  Maximum:                 -1       # 行注释前缀前最多空格数（无限制）
+
+SpacesBeforeTrailingComments: 1     # 行尾注释前有1个空格
+
+# 指针和引用对齐
+PointerAlignment:          Left
+ReferenceAlignment:        Pointer
+
+# 空格设置
+SpaceBeforeParens:         Never    # 括号前不加空格
+SpaceBeforeControlStatementOpenParen: false  # 控制语句的括号前不加空格
+SpaceBeforeParensOptions:
+  AfterControlStatements:  false    # 控制语句后不加空格
+  AfterForeachMacros:      false    # foreach 宏后不加空格
+  AfterFunctionDefinitionName: false # 函数定义名后不加空格
+  AfterFunctionDeclarationName: false # 函数声明名后不加空格
+  AfterIfMacros:           false    # if 宏后不加空格
+  AfterOverloadedOperator: false    # 重载运算符后不加空格
+  AfterPlacementOperator:  false    # placement new 运算符后不加空格
+  AfterRequiresInClause:   false    # requires 子句中的 requires 后不加空格
+  AfterRequiresInExpression: false  # requires 表达式中的 requires 后不加空格
+  BeforeNonEmptyParentheses: false  # 非空圆括号前不加空格
+
+SpaceBeforeAssignmentOperators: true
+
+# 函数相关设置
+AllowAllParametersOfDeclarationOnNextLine: false
+BinPackParameters:         false
+AllowShortFunctionsOnASingleLine: None
+
+# 控制语句设置
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine:        true   #允许短循环放在单行
+
+# 其他重要设置
+AlignOperands:             Align
+AlignAfterOpenBracket:     Align
+
+# 续行和换行设置
+BreakBeforeBinaryOperators: None
+BreakConstructorInitializers: BeforeColon
+BreakFunctionDefinitionParameters: false
+
+# 括号设置
+SpaceInParens:            Never    # 括号内不加空格
+SpacesInParentheses:      false    # 括号内不加空格（旧版选项）
+
+# 注释设置
+ReflowComments:           true     # 重新格式化注释
+
+# 缩进设置
+IndentCaseLabels:         true      # case标签缩进（关键修改）
+IndentCaseBlocks:         false     # 不缩进整个case块
+
+# 空行设置
+MaxEmptyLinesToKeep:      1
+KeepEmptyLinesAtTheStartOfBlocks: true
+
+# C++11 大括号初始化列表样式
+Cpp11BracedListStyle:      false   # 不使用 C++11 大括号初始化列表样式
+
+# 结构体初始化列表对齐
+AlignConsecutiveBitFields:
+  Enabled:                 false   # 不连续对齐位域
+
+# 数组对齐
+AlignArrayOfStructures:    None    # 不对齐结构体数组
+

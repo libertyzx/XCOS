@@ -1,59 +1,79 @@
-/*=========================================================|
- | 文件名:  XC_Sch.h
- | 描述:    调度器实现
- | 版本:    V1.01
- | 日期:    2024/04/09
- | 语言:    C语言
- | 作者:    libertyzx
- | E-mail:  libertyzx@163.com
- +-----------------------------------------------|
- | 开源协议: MIT License
- +-----------------------------------------------|
- +--- 说明
- |  用于调度任务;
- +-----------------------------------------------|
- +--- 版本说明:
- |  V1.00:-2024/03/18
- |      1.初始化
- |  V1.01:-2024/04/09
- |      1."XCSch_TaskReg"形参增加任务参数;
- *========================================================*/
+/**
+ * @file        XC_Sch.h
+ * @brief       调度器实现
+ * @author      libertyzx (libertyzx@163.com)
+ * @version     2.00
+ * @date        2025/10/29
+ * **********************************************
+ * @copyright   Copyright (c) 2024 libertyzx. All rights reserved.
+ * @license     This project is released under the MIT License.
+ * **********************************************
+ * @details     用于调度任务的代码
+ * **********************************************
+ *  修改日志
+ *  - 2024/03/18
+ *      - 版本:1.00
+ *      - 初始编写
+ *  - 2024/04/09
+ *      - 版本:1.01
+ *      - "XCSch_TaskReg"形参增加任务参数;
+ *  - 2025/10/29
+ *      - 见"XC_UpdateInfo.md"的更新说明;
+ */
 //=== 防重复定义
 #ifndef _XC_Sch_H_
 #define _XC_Sch_H_
 //=== 头文件
-#include "XC_Type.h"
+#include "XC_Cnf.h"
 #include "XC_List.h"
-#include "XC_Task.h"
-#include "XC_Sem.h"
 
 /*
  ************************************************************************************************************|
  ************************************************ 我是分割线 ************************************************|
  ************************************************************************************************************|
  */
-//=== 数据类型 ===========================================|
+/** 数据类型 */
 
-/**XCOS句柄
- *  32位下占:8*5+4*3+4=56
+/**
+ * @brief   [用户]XCOS句柄
+ * @details
+ *  用于记录XCOS实例的数据,一个工程中开源有多个XCOS实例,用此句柄区分; \n
+ *  字节数说明(32bit): 8*4+4*3+4+4 = 52Byte
  */
-typedef struct _XCOS_t{
-    //链表
-    XCListRoot_t ReadyList;             //就绪链表
-    XCListRoot_t TimeList;              //延时/超时/等待的链表
-    XCListRoot_t TimeOverflowList;      //时间溢出的链表
-    XCListRoot_t BlockedList;           //阻塞链表
-    XCListRoot_t SemList;               //信号表
-    //数据
-    XCListNode_t *pReadyListNodeIndex;  //就绪表节点索引,指向运行的节点
-    XCuint_t NextTaskWakeTick;          //下个任务唤醒的Tick
-    XCuint_t PreviousTick;              //上个Tick
+typedef struct _XCOS_t {
+    // 链表
+    XCListRoot_t ReadyList;        // 就绪链表
+    XCListRoot_t TimeList;         // 延时/超时/等待的链表
+    XCListRoot_t TimeOverflowList; // 时间溢出的链表
+    XCListRoot_t BlockedList;      // 阻塞链表
 
-    uint8_t TaskNum;                    //任务数量
-    uint8_t ListOperationFlag;          //表操作标记(1操作中,0没有操作)
-    uint8_t SemWakeCount;               //信号唤醒计数
-    uint8_t SemWakeFlag;                //信号唤醒标记
-}XCOS_t;
+    // 数据
+    XCListNode_t* pReadyListNodeIndex; // 就绪表节点索引,指向运行的节点
+    XCuint_t      NextTaskWakeTick;    // 下个任务唤醒的Tick
+    XCuint_t      PreviousTick;        // 上个Tick
+
+    uint8_t TaskNum;           // 任务数量
+    uint8_t ListOperationFlag; // 表操作标记(1操作中;0没有操作)
+    uint8_t TaskSchedFlag;     // 任务调度标记(0不需要调度;>0需要调度)
+
+// 配置框架休眠支持
+#if (_XC_Cnf_SleepSupport == 1)
+    /**
+     * @brief       框架休眠处理回调
+     * @param[in]   phXCOS          [XCOS_t*]框架句柄
+     * @param[in]   NextWakeTick    [XCuint_t]下次唤醒框架的Tick值
+     * @details
+     *  在此回调函数中处理休眠相关事宜; \n
+     *  当函数被调用时,必定没有任务是就绪的,可以直接休眠系统; \n
+     *  休眠系统后需在"NextWakeTick"后唤醒框架; \n
+     *  若是系统Tick计数也停止了则需要更新Tick值: \n
+     *  - 系统Tick是定时器中断计数运行的,可以使用"XCSch_UpdateTickAfterWakeup"更新;
+     *  - 系统Tick是一个计数器,则计数器需要更新为"phXCOS->NextTaskWakeTick";
+     */
+    void (*fSleep)(struct _XCOS_t*, XCuint_t);
+#endif
+
+} XCOS_t;
 
 /*
  ************************************************************************************************************|
@@ -62,65 +82,100 @@ typedef struct _XCOS_t{
  */
 /**函数宏*/
 
-/************************************************|
- * 描述:    链表操作开始
- * 宏名:    XCSch_ListOperationStart
- * 形参[I]: XCOS_t* _phXCOS     //XCOS句柄(已强制转换)
- * 返回:    void
- * 说明:    无
- * 例程:    无
- ************************************************/
-#define XCSch_ListOperationStart(_phXCOS)       { ((XCOS_t*)(_phXCOS))->ListOperationFlag = 1; }
+/**
+ * @brief       [内部]链表操作开始
+ * @param[in]   _phXCOS [XCOS_t*]框架句柄(会强制转换"XCOS句柄指针"类型)
+ * @details     设置链表操作标志;
+ */
+#define XCSch_ListOperationStart(_phXCOS)            \
+    {                                                \
+        ((XCOS_t*)(_phXCOS))->ListOperationFlag = 1; \
+    }
 
-/************************************************|
- * 描述:    链表操作结束
- * 宏名:    XCSch_ListOperationEnd
- * 形参[I]: XCOS_t* _phXCOS     //XCOS句柄(已强制转换)
- * 返回:    void
- * 说明:    无
- * 例程:    无
- ************************************************/
-#define XCSch_ListOperationEnd(_phXCOS)         { ((XCOS_t*)(_phXCOS))->ListOperationFlag = 0; }
+/**
+ * @brief       [内部]链表操作结束
+ * @param[in]   _phXCOS [XCOS_t*]框架句柄(会强制转换"XCOS句柄指针"类型)
+ * @details     清除链表操作标志;
+ */
+#define XCSch_ListOperationEnd(_phXCOS)              \
+    {                                                \
+        ((XCOS_t*)(_phXCOS))->ListOperationFlag = 0; \
+    }
 
-/************************************************|
- * 描述:    获取链表操作状态
- * 宏名:    XCSch_GetListOperationState
- * 形参[I]: XCOS_t* _phXCOS     //XCOS句柄(已强制转换)
- * 返回:    uint8_t
- *  +=返回值
- *  | 0: 没有运行
- *  | 1: 运行中
- * 说明:    无
- * 例程:    无
- ************************************************/
-#define XCSch_GetListOperationState(_phXCOS)    ( ((XCOS_t*)(_phXCOS))->ListOperationFlag )
+/**
+ * @brief       [内部]获取链表的操作状态
+ * @param[in]   _phXCOS [XCOS_t*]框架句柄(会强制转换"XCOS句柄指针"类型)
+ * @return      uint8_t
+ * @retval      0 : 没有运行
+ * @retval      1 : 运行中
+ * @details     判断当前链表是否在操作;
+ */
+#define XCSch_GetListOperationState(_phXCOS) (((XCOS_t*)(_phXCOS))->ListOperationFlag)
 
 /*
  ************************************************************************************************************|
  ************************************************ 我是分割线 ************************************************|
  ************************************************************************************************************|
  */
-//=== 函数声明 ===========================================|
-/**[内部函数]任务链表节点处理*/
+/** 函数声明-[用户]调度器处理 */
 
-void XCSch_ListNodeRemove(XCTCB_t* phTCB);              //链表节点移除
-void XCSch_ListNodeInsertIndexPrevious(XCTCB_t* phTCB); //将节点插入索引前
+/**
+ * @brief       [用户]调度器初始化
+ * @param[in]   phXCOS  框架句柄
+ * @details     在创建好"XCOS"句柄后,调用此函数初始化框架;
+ */
+void XCSch_Init(XCOS_t* phXCOS);
 
-/**调度器处理*/
+/**
+ * @brief       [用户]调度器运行(阻塞)
+ * @param[in]   phXCOS  框架句柄
+ * @details     阻塞的运行调度器,调用此函数后不会返回;
+ */
+void XCSch_Run(XCOS_t* phXCOS);
 
-void XCSch_Init(XCOS_t* phXCOS);            //初始化调度器
-void XCSch_Run(XCOS_t* phXCOS);             //调度器运行
-void XCSch_RunNonBlocked(XCOS_t* phXCOS);   //调度器运行(非阻塞)
-uint8_t XCSch_GetTaskNum(XCOS_t* phXCOS);   //返回当前任务数量
+/**
+ * @brief       [用户]调度器运行(非阻塞)
+ * @param[in]   phXCOS  框架句柄
+ * @details     非阻塞运行调度器,需要循环调用此函数;
+ */
+void XCSch_RunNonBlocked(XCOS_t* phXCOS);
 
-/**任务处理*/
+/**
+ * @brief       [用户]获取任务数
+ * @param[in]   phXCOS  框架句柄
+ * @return      uint8_t 返回任务数量
+ * @details     当前框架中有多少任务;
+ */
+uint8_t XCSc_GetTaskNum(XCOS_t* phXCOS);
 
-int32_t XCSch_TaskReg(XCOS_t* phXCOS, XCTCB_t* phTCB, void(*fTask)(XCTCB_t*), void* pParam);  //注册一个任务
-void XCSch_TaskRemove(XCTCB_t* phTCB);      //移除一个任务
-void XCSch_TaskReset(XCTCB_t* phTCB);       //复位任务
+/************************************************ 我是分割线 ************************************************/
 
-void XCSch_SetTaskEntryPoint(XCTCB_t* phTCB, void(*fTask)(XCTCB_t*), void* pParam);     //设置任务入口
-int32_t XCSch_AddTask(XCOS_t* phXCOS, XCTCB_t* phTCB);  //添加任务
+// 配置框架休眠支持
+#if (_XC_Cnf_SleepSupport == 1)
+
+/**
+ * @brief       [用户]设置休眠处理回调
+ * @param[in]   phXCOS  框架句柄
+ * @param[in]   fSleep  框架休眠处理回调
+ * @details
+ *  用于设置框架休眠处理回调; \n
+ *  若是需要清除回调则"fSleep"值为NULL即可;
+ */
+void XCSch_SetSleepCallback(XCOS_t* phXCOS, void (*fSleep)(XCOS_t*, XCuint_t));
+
+#ifdef __XC_SysTickIntAccMode__
+/**
+ * @brief       [用户]休眠唤醒后更新tick
+ * @param[in]   phXCOS  框架句柄
+ * @details
+ *  此函数是框架句柄中"fSleep"函数休眠框架,且定时器同时停止的情况下,在设备唤醒后调用;
+ *  直接将Tick的值更新到框架句柄中的"NextTaskWakeTick"值
+ *  注意:只有在系统Tick是定时器中断计数运行的情况下可以使用此函数;
+ */
+void XCSch_UpdateTickAfterWakeup(XCOS_t* phXCOS);
+#endif
+
+#endif
 
 /************************************************ 我是分割线 ************************************************/
 /*

@@ -1,7 +1,11 @@
 ####GIT忽略文件####
 
 #忽略文件夹
+bak/*
+docs/bak/*
 src/bak/*
+src/include/bak/*
+doxygen
 
 #文件类型
 *.7z
@@ -15,3 +19,6 @@ examples/CortexM3_Test/DebugConfig/*
 examples/CortexM3_Test/CortexM3_Test.uvguix.*
 examples/CortexM3_Test/.vscode/uv4.log.lock
 examples/CortexM3_Test/EventRecorderStub.scvd
+
+#doxygen
+doxygen/html/*

@@ -470,11 +470,6 @@
               <FilePath>..\..\src\XC_Sch.c</FilePath>
             </File>
             <File>
-              <FileName>XC_Sem.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\src\XC_Sem.c</FilePath>
-            </File>
-            <File>
               <FileName>XC_Task.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\src\XC_Task.c</FilePath>
