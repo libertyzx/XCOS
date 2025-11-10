@@ -3,7 +3,7 @@
  * @brief       框架包含
  * @author      libertyzx (libertyzx@163.com)
  * @version     2.00
- * @date        2025/10/29
+ * @date        2025/10/30
  * **********************************************
  * @copyright   Copyright (c) 2024 libertyzx. All rights reserved.
  * @license     This project is released under the MIT License.
@@ -11,11 +11,7 @@
  * @details     头文件合并,使用时只要包含此文件即可;
  * **********************************************
  *  修改日志
- *  - 2024/03/19
- *      - 版本:1.00
- *      - 初始编写
- *  - 2025/10/20
- *      - 见"XC_UpdateInfo.md"的更新说明;
+ *  - 见"XC_UpdateInfo.md"的更新说明;
  */
 //=== 防重复定义
 #ifndef _XCOS_h_

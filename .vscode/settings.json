@@ -4,7 +4,8 @@
         "xc_type.h": "c",
         "xc_timecount.h": "c",
         "cor_gnu.h": "c",
-        "cor_ansi.h": "c"
+        "cor_ansi.h": "c",
+        "stdint.h": "c"
     },
     //忽略的文件
     "files.exclude": {

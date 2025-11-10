@@ -11,9 +11,37 @@
 | 工具链 | ARM Compiler V5.06 |
 | 软件模拟芯片 | STM32F103ZE |
 
-MDK配置如下图:
+MDK配置如下图: \n
 ![](./图/MDK-芯片配置.jpg)
 
 ![](./图/MDK-C配置.jpg)
 
 ![](./图/MDK-调试配置.jpg)
+
+## 代码和内存占用说明
+
+在无任何框架函数及变量的情况下,MDK代码内存占用如下:
+- Program Size: Code=3404 RO-data=380 RW-data=16 ZI-data=1024
+
+添加以下框架代码:
+- 系统Tick,主文件添加全局变量"_XC_CreateSysTickCount",嘀嗒定时器运行"XC_AccSysTickCount()";
+- 1个"XCOS_t"类型框架句柄;
+- 框架初始化"XCSch_Init",框架运行"XCSch_Run"
+
+得到代码内存占用为:
+- Program Size: Code=4468 RO-data=380 RW-data=20 ZI-data=1076
+
+所以得到:
+- Flash占用:1068Byte
+- RAM占用: 56Byte (4Byte系统Tick; 52Byte框架句柄)
+
+再增加一个纯延时任务得到:
+- Program Size: Code=4656 RO-data=380 RW-data=20 ZI-data=1124
+
+新增加占用:
+- Flash占用:188Byte
+- RAM占用: 48Byte
+
+总占用:
+- Flash占用:1256Byte
+- RAM占用: 104Byte (4Byte系统Tick; 52Byte框架句柄; 44Byte任务控制块)

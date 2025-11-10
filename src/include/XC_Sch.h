@@ -3,7 +3,7 @@
  * @brief       调度器实现
  * @author      libertyzx (libertyzx@163.com)
  * @version     2.00
- * @date        2025/10/29
+ * @date        2025/10/30
  * **********************************************
  * @copyright   Copyright (c) 2024 libertyzx. All rights reserved.
  * @license     This project is released under the MIT License.
@@ -11,14 +11,7 @@
  * @details     用于调度任务的代码
  * **********************************************
  *  修改日志
- *  - 2024/03/18
- *      - 版本:1.00
- *      - 初始编写
- *  - 2024/04/09
- *      - 版本:1.01
- *      - "XCSch_TaskReg"形参增加任务参数;
- *  - 2025/10/29
- *      - 见"XC_UpdateInfo.md"的更新说明;
+ *  - 见"XC_UpdateInfo.md"的更新说明;
  */
 //=== 防重复定义
 #ifndef _XC_Sch_H_
@@ -54,23 +47,25 @@ typedef struct _XCOS_t {
 
     uint8_t TaskNum;           // 任务数量
     uint8_t ListOperationFlag; // 表操作标记(1操作中;0没有操作)
-    uint8_t TaskSchedFlag;     // 任务调度标记(0不需要调度;>0需要调度)
 
-// 配置框架休眠支持
-#if (_XC_Cnf_SleepSupport == 1)
+    uint8_t TaskSchedTrigger;   // 任务调度触发(用于通知,挂起,恢复异步操作触发)
+    uint8_t TaskSchedProcessed; // 任务调度处理(用于通知,挂起,恢复异步操作触发后处理)
+
+// 配置框架空闲支持
+#if (_XC_Cnf_IdleSupport == 1)
     /**
-     * @brief       框架休眠处理回调
+     * @brief       框架空闲处理回调
      * @param[in]   phXCOS          [XCOS_t*]框架句柄
-     * @param[in]   NextWakeTick    [XCuint_t]下次唤醒框架的Tick值
+     * @param[in]   NextWakeTick    [XCuint_t]空闲的Tick值
      * @details
-     *  在此回调函数中处理休眠相关事宜; \n
-     *  当函数被调用时,必定没有任务是就绪的,可以直接休眠系统; \n
-     *  休眠系统后需在"NextWakeTick"后唤醒框架; \n
+     *  在此回调函数中处理空闲相关事宜; \n
+     *  当函数被调用时,必定没有任务是就绪的,框架是空闲的; \n
+     *  若是在空闲时休眠系统,则需配置系统在"NextWakeTick"后唤醒框架; \n
      *  若是系统Tick计数也停止了则需要更新Tick值: \n
      *  - 系统Tick是定时器中断计数运行的,可以使用"XCSch_UpdateTickAfterWakeup"更新;
      *  - 系统Tick是一个计数器,则计数器需要更新为"phXCOS->NextTaskWakeTick";
      */
-    void (*fSleep)(struct _XCOS_t*, XCuint_t);
+    void (*fIdle)(struct _XCOS_t*, XCuint_t);
 #endif
 
 } XCOS_t;
@@ -146,29 +141,29 @@ void XCSch_RunNonBlocked(XCOS_t* phXCOS);
  * @return      uint8_t 返回任务数量
  * @details     当前框架中有多少任务;
  */
-uint8_t XCSc_GetTaskNum(XCOS_t* phXCOS);
+uint8_t XCSch_GetTaskNum(XCOS_t* phXCOS);
 
 /************************************************ 我是分割线 ************************************************/
 
-// 配置框架休眠支持
-#if (_XC_Cnf_SleepSupport == 1)
+// 配置框架空闲支持
+#if (_XC_Cnf_IdleSupport == 1)
 
 /**
- * @brief       [用户]设置休眠处理回调
+ * @brief       [用户]设置空闲处理回调
  * @param[in]   phXCOS  框架句柄
- * @param[in]   fSleep  框架休眠处理回调
+ * @param[in]   fIdle  框架空闲处理回调
  * @details
- *  用于设置框架休眠处理回调; \n
- *  若是需要清除回调则"fSleep"值为NULL即可;
+ *  用于设置框架空闲处理回调; \n
+ *  若是需要清除回调则"fIdle"值为NULL即可;
  */
-void XCSch_SetSleepCallback(XCOS_t* phXCOS, void (*fSleep)(XCOS_t*, XCuint_t));
+void XCSch_SetIdleCallback(XCOS_t* phXCOS, void (*fIdle)(XCOS_t*, XCuint_t));
 
 #ifdef __XC_SysTickIntAccMode__
 /**
  * @brief       [用户]休眠唤醒后更新tick
  * @param[in]   phXCOS  框架句柄
  * @details
- *  此函数是框架句柄中"fSleep"函数休眠框架,且定时器同时停止的情况下,在设备唤醒后调用;
+ *  此函数是框架句柄中"fIdle"函数休眠框架,且定时器同时停止的情况下,在设备唤醒后调用;
  *  直接将Tick的值更新到框架句柄中的"NextTaskWakeTick"值
  *  注意:只有在系统Tick是定时器中断计数运行的情况下可以使用此函数;
  */

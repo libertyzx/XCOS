@@ -2,11 +2,11 @@
 
 ---
 
-## T2025/10/29
+## T2025/11/10
 - 版本:2.00
-- 将所有源文件编码改为UTF-8;
 - 将所有注释改为"doxdocgen"形式;
 - 增加"clang-format"格式化配置文件".clang-format";
+- 清除文件修改日志,以后都在此文件说明;
 - 删除"二值信号量";
     > 任务通知可实现类似信号量的处理;
 - 优化以下操作,使中断中可调用:
@@ -17,9 +17,7 @@
 - 删除原"XC_Time.c"和"XC_Time.h"中所以日历相关函数,因为内核不使用;
 - 将文件"XC_TimeCount.h"所有代码移动到"XC_Time.h",并删除"XC_TimeCount.h"文件;
 - 增加配置(文件"XC_Cnf.h"):
-    - "_XC_Cnf_IntSupport"配置框架中断支持;
-    - "_XC_Cnf_SleepSupport"配置框架休眠支持;
-
+    - "_XC_Cnf_IdleSupport"配置框架休眠支持;
 - 删除函数(函数宏):
     | 函数                      | 文件              | 功能                                          | 删除原因                                          |
     | ---                       | ---               | ---                                           | ---                                               |
@@ -88,7 +86,7 @@
     | 函数名                        | 所在文件  | 功能                                                      |
     | ---                           | ---       | ---                                                       |
     | XCSch_TaskSched               | XC_Sch.c  | [私有]中断处理时任务唤醒,任务挂起,任务挂起恢复的异步操作  |
-    | XCSch_SetSleepCallback        | XC_Sch.c  | [用户]设置休眠处理回调                                    |
+    | XCSch_SetIdleCallback         | XC_Sch.c  | [用户]设置休眠处理回调                                    |
     | XCSch_UpdateTickAfterWakeup   | XC_Sch.c  | [用户]休眠唤醒后更新tick                                  |
 - 修改函数
     | 函数名                | 所在文件  | 功能                      | 修改说明          |
@@ -112,7 +110,6 @@
     | XCBase.h                  | 兼容"XCBase"      | 保证内核纯净,不在做兼容                       |
     | XC_Sem.c                  | 信号量实现        | 用通知替代                                    |
     | XC_Sem.h                  | 信号量实现        | 用通知替代                                    |
-
 
 ---
 
@@ -170,3 +167,8 @@
 - "XC_Time.h"中系统时间计数相关宏独立到"XC_TimeCount.h";
 - 将"XC_Time"中所有兼容性代码移至"XC_TimeCompatibility.h";
 - 将"XCTime_CompareTick_t"重命名"XCTime_CompareTickt",防止认为是变量类型;
+
+---
+
+## T2024/03/18
+- 初始编写;

@@ -68,7 +68,7 @@
 | XCSch_Run                     | 函数  | [用户]调度器运行(阻塞)    | XC_Sch.c  |
 | XCSch_RunNonBlocked           | 函数  | [用户]调度器运行(非阻塞)  | XC_Sch.c  |
 | XCSch_GetTaskNum              | 函数  | [用户]获取任务数          | XC_Sch.c  |
-| XCSch_SetSleepCallback        | 函数  | [用户]设置休眠处理回调    | XC_Sch.c  |
+| XCSch_SetIdleCallback         | 函数  | [用户]设置空闲处理回调    | XC_Sch.c  |
 | XCSch_UpdateTickAfterWakeup   | 函数  | [用户]休眠唤醒后更新tick  | XC_Sch.c  |
 
 ### 任务处理
@@ -139,7 +139,7 @@
     - [1]任意:     任何位置可调用;
     - [0]嘀嗒计数: 最高等级; 除了休眠,嘀嗒计数不能停;
     - 备注:
-        - [3]用户,也可是一个中断一个rtos的任务;
+        - [3]用户,也可是一个中断或者一个rtos的任务;
         - 小数字层能在大数字层中调用;
 
 | [4]协程层             | [3]用户                       | [2]中断           | [1]任意               | [0]嘀嗒计数           | 函数功能                                              |
@@ -163,7 +163,7 @@
 |                       | XCSch_Run                     |                   |                       |                       | [用户]调度器运行(阻塞)                                |
 |                       | XCSch_RunNonBlocked           |                   |                       |                       | [用户]调度器运行(非阻塞)                              |
 |                       |                               |                   | XCSch_GetTaskNum      |                       | [用户]获取任务数                                      |
-|                       | XCSch_SetSleepCallback        |                   |                       |                       | [用户]设置休眠处理回调                                |
+|                       | XCSch_SetIdleCallback         |                   |                       |                       | [用户]设置空闲处理回调                                |
 |                       | XCSch_UpdateTickAfterWakeup   |                   |                       |                       | [用户]休眠唤醒后更新tick                              |
 |                       | XC_TaskReg                    |                   |                       |                       | [用户]任务注册                                        |
 |                       | XC_TaskRemove                 |                   |                       |                       | [用户]任务移除                                        |

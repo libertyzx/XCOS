@@ -3,7 +3,7 @@
  * @brief       配置
  * @author      libertyzx (libertyzx@163.com)
  * @version     2.00
- * @date        2025/10/29
+ * @date        2025/10/30
  * **********************************************
  * @copyright   Copyright (c) 2024 libertyzx. All rights reserved.
  * @license     This project is released under the MIT License.
@@ -11,14 +11,7 @@
  * @details     用于存放"XCOS"的配置参数;
  * **********************************************
  *  修改日志
- *  - 2023/03/01
- *      - 版本:1.0
- *      - 1.初始化
- *  - 2024/04/09
- *      - 版本:1.01
- *      - 配置"_XC_SysTickCount"增加变量创建和中断调用;
- *  - 2025/10/29
- *      - 见"XC_UpdateInfo.md"的更新说明;
+ *  - 见"XC_UpdateInfo.md"的更新说明;
  */
 //=== 防重复定义
 #ifndef _XC_Cnf_H_
@@ -127,33 +120,18 @@ extern volatile XCuint_t g_SysTickCount;        // 外部声明全局滴答时间计数
 /** 以下是框架功能裁剪 */
 
 /**
- * @brief   配置框架中断支持
+ * @brief   配置框架空闲支持
  * @details
  *  默认"1"开启; \n
- *  若是以下函数处理不会在中断中调用,则此宏可以写"0"关闭; \n
- *      - 任务唤醒
- *      - 任务挂起
- *      - 任务挂起恢复
- *  写"0"关闭后,中断处理相关代码将被屏蔽,可有效降低Flash占用(约196Byte存储); \n
- *  但注意,此时在中断中调用相关函数(如任务唤醒)会出现不可预知错误; \n
- */
-#ifndef _XC_Cnf_IntSupport
-#define _XC_Cnf_IntSupport (1)
-#endif
-
-/**
- * @brief   配置框架休眠支持
- * @details
- *  默认"1"开启; \n
- *  当此配置为"1"时,在以下状态都满足的情况下可调用休眠回调函数: \n
+ *  当此配置为"1"时,在以下状态都满足的情况下可调用空闲回调函数: \n
  *      - 就绪表没有任务;
  *      - 下个唤醒Tick还没有到达时;
- *      - 休眠回调函数有效;
- *  在此配置为"0"时,休眠回调不可使用,且回调配置函数也将无效; \n
- *  关闭框架休眠支持可降低Flash和ram占用(约44Byte存储;4Byte内存); \n
+ *      - 空闲回调函数有效;
+ *  在此配置为"0"时,空闲回调不可使用,且回调配置函数也将无效; \n
+ *  关闭框架空闲支持可降低Flash和ram占用(约44Byte存储;4Byte内存); \n
  */
-#ifndef _XC_Cnf_SleepSupport
-#define _XC_Cnf_SleepSupport (1)
+#ifndef _XC_Cnf_IdleSupport
+#define _XC_Cnf_IdleSupport (1)
 #endif
 
 /*

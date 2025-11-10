@@ -3,7 +3,7 @@
  * @brief       任务的实现
  * @author      libertyzx (libertyzx@163.com)
  * @version     2.00
- * @date        2025/10/20
+ * @date        2025/10/30
  * **********************************************
  * @copyright   Copyright (c) 2024 libertyzx. All rights reserved.
  * @license     This project is released under the MIT License.
@@ -11,14 +11,7 @@
  * @details     实现了任务处理相关的操作
  * **********************************************
  *  修改日志
- *  - 2024/03/18
- *      - 初始编写
- *  - 2024/04/09
- *      - 版本:1.01
- *      - "XC_SendNotify"函数形参通知数据改为"void*"指针;
- *      - "XC_TaskBasicInit"函数增加传入形参初始化;
- *  - 2025/10/20
- *      - 见"XC_UpdateInfo.md"的"T2025/10/20"更新说明;
+ *  - 见"XC_UpdateInfo.md"的更新说明;
  */
 //=== 头文件
 #include "XC_Task.h"
@@ -51,7 +44,13 @@ void XC_TaskBasicInit(XCTCB_t* phTCB)
     phTCB->pNotifyData = NULL;             // 通知数据清零
     phTCB->Blocked     = _XC_B_NonBlocked; // 没有阻塞
     phTCB->WakeType    = _XC_Wake_Non;     // 没有唤醒
-    phTCB->Lock        = _XC_Lock_Unlock;  // 没有锁
+
+    phTCB->NotifyTrigger   = 0; // 通知触发
+    phTCB->NotifyProcessed = 0; // 通知触发处理
+
+    phTCB->StateChangeTrigger   = 0;          // 状态改变触发
+    phTCB->StateChangeProcessed = 0;          // 状态改变处理
+    phTCB->StateChangeType      = _XC_S_Void; // 最后一次改变的是什么状态(_XC_S_Suspend/_XC_S_Void)
 }
 
 /************************************************ 我是分割线 ************************************************/
@@ -278,93 +277,46 @@ int32_t XC_AddTask(XCOS_t* phXCOS, XCTCB_t* phTCB)
  * @retval      _XC_R_Continue :    异步操作中
  * @retval      _XC_R_Fail :        任务不是在等待通知
  * @details
+ *  **可在中断中调用** \n
  *  发送通知,唤醒任务; \n
- *  只有在任务成功被通知(_XC_R_OK)时,传递的数据才有效; \n
- *  注意:通知,挂起,解除挂起,锁是同个;
+ *  多次重复中断: \n
+ *      - 异步操作: 参数是最后一次操作的值; \n
+ *      - 同步操作: 参数是成功操作的值; \n
  */
 int32_t XC_SendNotify(XCTCB_t* phTCB, void* pNotifyData)
 {
-// 配置框架中断支持
-#if (_XC_Cnf_IntSupport == 1)
-
     /**
-     *  发送通知只会唤醒等待通知的任务,也就是状态为"_XC_S_WaitNotify"的任务;
-     *  非"_XC_S_WaitNotify"的任务会直接返回失败(_XC_R_Fail);
-     *  目前状态会被任务挂起所更新,更新为"_XC_S_Suspend";
+     * 只有等待通知的任务才能被通知唤醒;
      */
     if(phTCB->TaskState != _XC_S_WaitNotify) {
         return (_XC_R_Fail);
     }
 
     /**
-     *  锁定处理
-     *  这里锁处理,保证在唤醒时中断或多次中断嵌套中只有一次操作是有效的;
-     *  这里的逻辑是:
-     *      - Lock 赋值或判断时会在任意位置中断;
-     *      - Lock 初值必须是"_XC_Lock_WaitLock"也就是"等待唤醒"开始,不然就作为无效处理直接跳出;
-     *      - Lock 等于 _XC_Lock_WaitLock 在 Lock++ 后值为 _XC_Lock_Lock;
-     *      - 在以下2个if和累加中任意时刻被中断(包括多次中断嵌套),
-     *          在进入累加处理前Lock必定等于"_XC_Lock_WaitLock";
-     *          若是在累加处被中断(或多次嵌套中断)必定有一个(且只有一个)会得到Lock == "_XC_Lock_Lock";
-     *          在此函数运行完成后,Lock只会是"_XC_Lock_Unlock"或者大于"_XC_Lock_WaitUnlock",必定不等于"_XC_Lock_Lock";
-     *          所以以下语句得到在多个嵌套处理时,此函数只会运行一次;
+     *  若是任务运行中或者有链表操作,则异步操作;
+     *  若是此处是"有链表操作",必定是中断调用了;
+     *  这里是异步操作
      */
-    if(phTCB->Lock != _XC_Lock_WaitLock) {
-        return (_XC_R_Continue); // 不是等待锁定状态,被中断了;
-    }
-    phTCB->Lock++; // 加锁(核心部分),正在情况下值为"_XC_Lock_Lock",若是在累加开始前被中断,则累加结束后为"_XC_Lock_Lock+1";
-    if(phTCB->Lock != _XC_Lock_Lock) {
-        return (_XC_R_Continue); // 被中断,其他地方唤醒
-    }
-
-    /** 以下代码已经确定是中断安全的 */
-
-    phTCB->pNotifyData = pNotifyData; // 提前保存传递的通知数据
-    /**
-     *  设备在就绪表,表示被中断,等待通知已经处理,但是任务还没有切换到非就绪表;
-     *  这里直接更新解锁标志,需要在调度中异步处理任务唤醒;
-     * ---
-     *  判断是否在就绪表后,还需要判断当前是否有链表操作(防链表操作被中断);
-     *  若是有链表操作则标记,需要在调度中异步处理任务唤醒;
-     */
-    if((phTCB->ListNode.pRootList == &phTCB->phXCOS->ReadyList) || // 判断任务是否在就绪表
-       (XCSch_GetListOperationState(phTCB->phXCOS) == 1)) {        // 判断是否有链表操作
-        phTCB->Lock = _XC_Lock_WaitUnlockNotify;                   // 标记等待解锁,在调度中继续处理
-        // 任务触发标记
-        if(phTCB->phXCOS->TaskSchedFlag == 0) {
-            phTCB->phXCOS->TaskSchedFlag++;
-        }
+    if((phTCB->TaskState == _XC_S_Run) ||                   // 判断任务是否在运行中
+       (XCSch_GetListOperationState(phTCB->phXCOS) == 1)) { // 判断是否有链表操作
+        phTCB->pNotifyData = pNotifyData;                   // 提前保存传递的通知数据
+        // 触发异步操作
+        phTCB->NotifyTrigger++;            // 通知触发
+        phTCB->phXCOS->TaskSchedTrigger++; // 异步调度触发
         return (_XC_R_Continue);
     }
 
-    /** 以下是非异步操作 */
+    /** 同步操作,没有运行中且没有操作链表,直接处理 */
 
     XCSch_ListOperationStart(phTCB->phXCOS); // 链表操作开始
-    XC_ListNodeRemove(phTCB);                // 删除任务
+    XC_ListNodeRemove(phTCB);                // 删除任务节点
     XC_ListNodeInsertIndexPrevious(phTCB);   // 插入就续表
-    phTCB->WakeType  = _XC_Wake_Notify;      // 被通知唤醒
-    phTCB->TaskState = _XC_S_Ready;          // 任务状态:就绪
-    XCSch_ListOperationEnd(phTCB->phXCOS);   // 链表操作结束
-
-    phTCB->Lock = _XC_Lock_Unlock; // 没有锁
-    return (_XC_R_OK);
-
-#else
-
-    // 发送通知只会唤醒等待通知的任务
-    if(phTCB->TaskState != _XC_S_WaitNotify) {
-        return (_XC_R_Fail);
-    }
-    XCSch_ListOperationStart(phTCB->phXCOS); // 链表操作开始
-    XC_ListNodeRemove(phTCB);                // 删除任务
-    XC_ListNodeInsertIndexPrevious(phTCB);   // 插入就续表
-    phTCB->WakeType  = _XC_Wake_Notify;      // 被通知唤醒
-    phTCB->TaskState = _XC_S_Ready;          // 任务状态:就绪
+    phTCB->pNotifyData = pNotifyData;        // 传递的通知数据
+    phTCB->WakeType    = _XC_Wake_Notify;    // 被通知唤醒
+    phTCB->TaskState   = _XC_S_Ready;        // 任务状态:就绪
     XCSch_ListOperationEnd(phTCB->phXCOS);   // 链表操作结束
 
     return (_XC_R_OK);
-
-#endif
 }
 
 /*
@@ -389,68 +341,36 @@ int32_t XC_SendNotify(XCTCB_t* phTCB, void* pNotifyData)
  */
 int32_t XC_TaskSuspend(XCTCB_t* phTCB)
 {
-// 配置框架中断支持
-#if (_XC_Cnf_IntSupport == 1)
-
-    // 挂起判断
+    /**
+     *  挂起操作优先级大于通知处理,在通知处理时可以挂起;
+     *  但是要注意,通知状态下挂起并恢复,会导致通知被唤醒,且"获取唤醒超时"为超时;
+     */
     if(phTCB->TaskState == _XC_S_Suspend) {
         return (_XC_R_OK); // 已经被挂起
     }
 
-    // 锁定,详细说明见"XC_SendNotify"函数;
-    if(phTCB->Lock != _XC_Lock_WaitLock) {
-        return (_XC_R_Continue); // 不是等待锁定状态,被中断了;
-    }
-    phTCB->Lock++; // 加锁(核心部分),正在情况下值为"_XC_Lock_Lock",若是在累加开始前被中断,则累加结束后为"_XC_Lock_Lock+1";
-    if(phTCB->Lock != _XC_Lock_Lock) {
-        return (_XC_R_Continue); // 被中断,其他地方唤醒
-    }
-
-    /** 以下代码已经确定是中断安全的 */
-
     /**
-     *  判断任务状态,任务状态在运行中,表示任务在运行中被中断;
-     *  需要异步处理挂起;
-     *  ---
-     *  然后还需要判断当前是否有链表操作(防链表操作被中断);
-     *  若是有链表操作则标记,需要在调度中异步处理任务唤醒;
+     *  若是任务运行中或者有链表操作,则异步操作
+     *  若是此处是"有链表操作",必定是中断调用了
      */
     if((phTCB->TaskState == _XC_S_Run) ||                   // 判断任务是否在运行中
        (XCSch_GetListOperationState(phTCB->phXCOS) == 1)) { // 判断是否有链表操作
-        phTCB->Lock = _XC_Lock_WaitUnlockSuspend;           // 标记等待解锁,在调度中继续处理
-        // 任务触发标记
-        if(phTCB->phXCOS->TaskSchedFlag == 0) {
-            phTCB->phXCOS->TaskSchedFlag++;
-        }
+        // 触发异步操作
+        phTCB->StateChangeTrigger++;            // 状态改变触发
+        phTCB->StateChangeType = _XC_S_Suspend; // 状态改变类型:挂起
+        phTCB->phXCOS->TaskSchedTrigger++;      // 异步调度触发
         return (_XC_R_Continue);
     }
 
-    /** 以下是非异步操作 */
+    /** 同步操作,没有运行中且没有操作链表,直接处理 */
 
     XCSch_ListOperationStart(phTCB->phXCOS);                         // 链表操作开始
     phTCB->TaskState = _XC_S_Suspend;                                // 任务状态:挂起
-    XC_ListNodeRemove(phTCB);                                        // 删除任务
-    XCList_InsertEnd(&phTCB->phXCOS->BlockedList, &phTCB->ListNode); // 插入阻塞表
-    XCSch_ListOperationEnd(phTCB->phXCOS);                           // 链表操作结束
-
-    phTCB->Lock = _XC_Lock_Unlock; // 没有锁
-    return (_XC_R_OK);
-
-#else
-
-    // 挂起判断
-    if(phTCB->TaskState == _XC_S_Suspend) {
-        return (_XC_R_OK); // 已经被挂起
-    }
-    XCSch_ListOperationStart(phTCB->phXCOS);                         // 链表操作开始
-    phTCB->TaskState = _XC_S_Suspend;                                // 任务状态:挂起
-    XC_ListNodeRemove(phTCB);                                        // 删除任务
+    XC_ListNodeRemove(phTCB);                                        // 删除任务节点
     XCList_InsertEnd(&phTCB->phXCOS->BlockedList, &phTCB->ListNode); // 插入阻塞表
     XCSch_ListOperationEnd(phTCB->phXCOS);                           // 链表操作结束
 
     return (_XC_R_OK);
-
-#endif
 }
 
 /**
@@ -458,73 +378,41 @@ int32_t XC_TaskSuspend(XCTCB_t* phTCB)
  * @param[in]   phTCB   任务控制块
  * @return      int32_t
  * @retval      _XC_R_OK :          恢复成功
- * @retval      _XC_R_Continue :    任务没有挂起
+ * @retval      _XC_R_Continue :    异步操作中
  * @details
  *  **可在中断中调用** \n
  *  只能恢复被挂起的任务;
  */
 int32_t XC_TaskResume(XCTCB_t* phTCB)
 {
-// 配置框架中断支持
-#if (_XC_Cnf_IntSupport == 1)
-
     // 任务没有被挂起,直接成功
     if(phTCB->TaskState != _XC_S_Suspend) {
         return (_XC_R_OK); // 没有被挂起
     }
 
-    // 锁定,详细说明见"XC_SendNotify"函数;
-    if(phTCB->Lock != _XC_Lock_WaitLock) {
-        return (_XC_R_Continue); // 不是等待锁定状态,被中断了;
-    }
-    phTCB->Lock++; // 加锁(核心部分),正在情况下值为"_XC_Lock_Lock",若是在累加开始前被中断,则累加结束后为"_XC_Lock_Lock+1";
-    if(phTCB->Lock != _XC_Lock_Lock) {
-        return (_XC_R_Continue); // 被中断,其他地方唤醒
-    }
-
-    /** 以下代码已经确定是中断安全的 */
-
     /**
-     *  判断当前是否有链表操作(防链表操作被中断);
-     *  若是有链表操作则标记,需要在调度中异步处理任务唤醒;
+     *  若是任务运行中或者有链表操作,则异步操作
+     *  若是此处是"有链表操作",必定是中断调用了
      */
-    if(XCSch_GetListOperationState(phTCB->phXCOS) == 1) {
-        phTCB->Lock = _XC_Lock_WaitUnlockResume; // 标记等待解锁,在调度中继续处理
-        // 任务触发标记
-        if(phTCB->phXCOS->TaskSchedFlag == 0) {
-            phTCB->phXCOS->TaskSchedFlag++;
-        }
+    if((phTCB->TaskState == _XC_S_Run) ||                   // 判断任务是否在运行中
+       (XCSch_GetListOperationState(phTCB->phXCOS) == 1)) { // 判断是否有链表操作
+        // 触发异步操作
+        phTCB->StateChangeTrigger++;         // 状态改变触发
+        phTCB->StateChangeType = _XC_S_Void; // 状态改变类型:未挂起(恢复)
+        phTCB->phXCOS->TaskSchedTrigger++;   // 异步调度触发
         return (_XC_R_Continue);
     }
 
-    /** 以下是非异步操作 */
+    /** 同步操作,没有运行中且没有操作链表,直接处理 */
 
     XCSch_ListOperationStart(phTCB->phXCOS); // 链表操作开始
-    XC_ListNodeRemove(phTCB);                // 删除任务
-    XC_ListNodeInsertIndexPrevious(phTCB);   // 插入就续表
-    phTCB->WakeType  = _XC_Wake_TaskResume;  // 被任务恢复唤醒
-    phTCB->TaskState = _XC_S_Ready;          // 任务状态:就绪
-    XCSch_ListOperationEnd(phTCB->phXCOS);   // 链表操作结束
-
-    phTCB->Lock = _XC_Lock_Unlock; // 没有锁
-    return (_XC_R_OK);
-
-#else
-
-    // 任务没有被挂起,直接成功
-    if(phTCB->TaskState != _XC_S_Suspend) {
-        return (_XC_R_OK); // 没有被挂起
-    }
-    XCSch_ListOperationStart(phTCB->phXCOS); // 链表操作开始
-    XC_ListNodeRemove(phTCB);                // 删除任务
+    XC_ListNodeRemove(phTCB);                // 删除任务节点
     XC_ListNodeInsertIndexPrevious(phTCB);   // 插入就续表
     phTCB->WakeType  = _XC_Wake_TaskResume;  // 被任务恢复唤醒
     phTCB->TaskState = _XC_S_Ready;          // 任务状态:就绪
     XCSch_ListOperationEnd(phTCB->phXCOS);   // 链表操作结束
 
     return (_XC_R_OK);
-
-#endif
 }
 
 /************************************************ 我是分割线 ************************************************/

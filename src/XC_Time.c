@@ -2,8 +2,8 @@
  * @file        XC_Time.c
  * @brief       时间处理
  * @author      libertyzx (libertyzx@163.com)
- * @version     0.1
- * @date        2025/10/17
+ * @version     2.00
+ * @date        2025/10/30
  * **********************************************
  * @copyright   Copyright (c) 2024 libertyzx. All rights reserved.
  * @license     This project is released under the MIT License.
@@ -11,8 +11,7 @@
  * @details     时间计数处理
  * **********************************************
  *  修改日志
- *  - 2025/10/17
- *      - 初始编写
+ *  - 见"XC_UpdateInfo.md"的更新说明;
  */
 //=== 头文件
 #include "XC_Time.h"

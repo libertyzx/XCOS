@@ -3,7 +3,7 @@
  * @brief       时间计数的实现
  * @author      libertyzx (libertyzx@163.com)
  * @version     2.00
- * @date        2025/10/29
+ * @date        2025/10/30
  * **********************************************
  * @copyright   Copyright (c) 2024 libertyzx. All rights reserved.
  * @license     This project is released under the MIT License.
@@ -11,20 +11,7 @@
  * @details     时间计数实现的相关代码
  * **********************************************
  *  修改日志
- *  - 2024/03/19
- *      - 版本:1.00
- *      - 从"XCBase"中继承并重构;
- *  - 2024/03/27
- *      - 版本:1.01
- *      - 兼容基础库"XCBase";
- *  - 2024/08/12
- *      - 版本:1.02
- *      - "XC_Time.h"中编译相关宏独立到"XC_TimeCompile.h";
- *      - "XC_Time.h"中系统时间计数相关宏独立到"XC_TimeCount.h";
- *      - 所有兼容处理独立到"XC_TimeCompatibility.h"文件;
- *  - 2025/10/29
- *      - 删除全部代码,再将"XC_TimeCount.h"内代码移回;
- *      - 见"XC_UpdateInfo.md"的更新说明;
+ *  - 见"XC_UpdateInfo.md"的更新说明;
  */
 //=== 防重复定义
 #ifndef _XC_Time_H_

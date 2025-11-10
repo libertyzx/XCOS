@@ -12,8 +12,7 @@
  *  本文件中所有类型都是内部使用;不建议用户使用;
  * **********************************************
  *  修改日志
- *  - 2024/03/18
- *      - 初始编写
+ *  - 见"XC_UpdateInfo.md"的更新说明;
  */
 //=== 防重复定义
 #ifndef _XC_List_H_
@@ -27,7 +26,7 @@
 /**数据类型 */
 
 /**
- * @brief       [内部]双向链表节点
+ * @brief       [内部]双向链表节点类型
  * @details     32位下占12字节;
  */
 typedef struct _XCListNode_t {
@@ -37,7 +36,7 @@ typedef struct _XCListNode_t {
 } XCListNode_t;
 
 /**
- * @brief       [内部]基础双向链表数据类型
+ * @brief       [内部]基础双向链表节点类型
  * @details     只有链表节点和辅助值;32位下占8字节;
  */
 typedef struct {

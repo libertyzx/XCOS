@@ -1,21 +1,22 @@
-/*=========================================================|
- | 文件名:  main.h
- | 描述:    主文件
- | 版本:    V1.00
- | 日期:    2024/12/06
- | 语言:    C语言
- | 作者:    libertyzx
- | E-mail:  libertyzx@163.com
- +-----------------------------------------------|
- | 开源协议: MIT License
- +-----------------------------------------------|
- +--- 说明
- |  演示XCOS的主文件
- +-----------------------------------------------|
- +--- 版本说明:
- |  V0.01:-2024/12/05
- |      初始;
- *========================================================*/
+
+/**
+ * @file        main.c
+ * @brief       主文件
+ * @author      libertyzx (libertyzx@163.com)
+ * @version     2.00
+ * @date        2025/10/30
+ * **********************************************
+ * @copyright   Copyright (c) 2023 libertyzx. All rights reserved.
+ * @license     This project is released under the MIT License.
+ * **********************************************
+ * @details     演示XCOS的主文件
+ *  :
+ *  Program Size: Code=3404 RO-data=380 RW-data=16 ZI-data=1024
+ * **********************************************
+ *  修改日志
+ *  - 2025/10/30
+ *      - 初始编写
+ */
 //=== 头文件
 #include "main.h"
 
@@ -26,12 +27,13 @@
  */
 
 // XCOS变量
-_XC_CreateSysTickCount;  // 创建系统Tick
-XCOS_t s_hXCOS1 = { 0 }; // XCOS句柄
-// XCTCB_t s_hTCBn[10] = { 0 }; // 任务控制块
-XCTCB_t s_hTCB0 = { 0 };
-//// 其他变量
-// uint32_t s_TickCount[10] = { 0 }; // 保存计数
+_XC_CreateSysTickCount;      // 创建系统Tick
+XCOS_t  s_hXCOS0;            // XCOS句柄
+XCTCB_t s_hTCBDelay;         // 纯延时任务控制块
+XCTCB_t s_hTCBn[10] = { 0 }; // 任务控制块
+
+// 其他变量
+uint32_t s_TickCount[10] = { 0 }; // 保存计数
 
 /*
  ************************************************************************************************************|
@@ -39,321 +41,284 @@ XCTCB_t s_hTCB0 = { 0 };
  ************************************************************************************************************|
  */
 
-/************************************************|
- * 描述:    任务
- * 函数名:  Task_TO
- * 形参[I]: XCTCB_t* phTCB
- * 返回:    void
- * 说明:    无
- ************************************************/
-void Task_TO(XCTCB_t* phTCB)
+/**
+ * @brief       任务
+ * @param[in]   phTCB   任务控制块
+ * @details
+ *  基础框架,演示延时
+ */
+void Task_Delay(XCTCB_t* phTCB)
 {
-    XC_Enter(phTCB);
-    //===
+    XC_Enter(phTCB); // 协程任务块开始标志
+    /** --- */
     while(1) {
-        XC_Delay_ms(15);
+        XC_Delay_ms(10); // 延时
     }
-    //===
+    /** --- */
+    XC_Leave(); // 协程任务块结束标志
+}
+
+/**
+ * @brief       任务0
+ * @param[in]   phTCB   任务控制块
+ * @details
+ *  基础框架,演示延时和让出控制,后被删除
+ */
+void Task_A0(XCTCB_t* phTCB)
+{
+    XC_Enter(phTCB); // 协程任务块开始标志
+    /** --- */
+    s_TickCount[0] = 0;
+    while(1) {
+        s_TickCount[0]++;
+        XC_Delay_ms(15); // 延时
+        XC_Yield();      // 让出控制
+    }
+    /** --- */
+    XC_Leave(); // 协程任务块结束标志
+}
+
+/**
+ * @brief       任务1
+ * @param[in]   phTCB   任务控制块
+ * @details
+ *  通知处理演示,等待通知唤醒任务;
+ */
+void Task_A1(XCTCB_t* phTCB)
+{
+    uint32_t Cache;
+
+    XC_Enter(phTCB);
+    /** --- */
+    s_TickCount[1] = 0;
+    while(1) {
+        XC_WaitNotify_ms(555);                    // 等待通知,超时555ms
+        if(XC_GetWakeTimeout() == 0) {            // 未超时,通知到达
+            Cache = (uint32_t)XC_GetNotifyData(); // 获取传递的参数
+            if(Cache == 2) {                      // 传递参数是2时
+                s_TickCount[1]++;                 // 计数+1
+            }
+        }
+    }
+    /** --- */
     XC_Leave();
 }
 
-///************************************************|
-// * 描述:    任务
-// * 函数名:  Task_A0
-// * 形参[I]: XCTCB_t* phTCB
-// * 返回:    void
-// * 说明:    基础任务样例
-// ************************************************/
-// void Task_A0(XCTCB_t* phTCB)
-//{
-//    __IO uint32_t Param;
+/**
+ * @brief       任务2
+ * @param[in]   phTCB   任务控制块
+ * @details
+ *  通知处理演示,唤醒任务1(Task_A1)
+ */
+void Task_A2(XCTCB_t* phTCB)
+{
+    XC_Enter(phTCB);
+    /** --- */
+    s_TickCount[2] = 0;
+    while(1) {
+        XC_Delay_ms(15);                      // 延时
+        XC_SendNotify(&s_hTCBn[1], (void*)7); // 唤醒任务1,传递参数7
+        XC_Delay_ms(15);                      // 延时
+        XC_SendNotify(&s_hTCBn[1], (void*)2); // 唤醒任务1,传递参数2
+        s_TickCount[2]++;                     // 计数+1
+    }
+    /** --- */
+    XC_Leave();
+}
 
-//    /**代码块0*/
+/**
+ * @brief       任务3
+ * @param[in]   phTCB   任务控制块
+ * @details
+ *  挂起恢复演示,挂起自身
+ */
+void Task_A3(XCTCB_t* phTCB)
+{
+    XC_Enter(phTCB);
+    /** --- */
+    s_TickCount[3] = 0;
+    while(1) {
+        /**
+         * 挂起自身;
+         * 可在其他任务调用"XC_TaskSuspend"挂起指定任务;
+         */
+        XC_Suspend();
+        s_TickCount[3]++;
+    }
+    /** --- */
+    XC_Leave();
+}
 
-//    /**任务块入口
-//     * 每个任务中必须有;
-//     * 任务块中代码按顺序执行,使用"XCOS"函数,可以做到类上下文切换;
-//     * "XC_Enter"前代码块(代码块0),每次任务运行都会执行;
-//     */
-//    XC_Enter(phTCB);
-//    //===
-//    /**获取传递的参数
-//     * 使用下面函数可以获取任务注册时传递的参数;
-//     *  XC_GetParam();                  //按(void*)传递
-//     * 若是要获指定任务传递的参数则使用下面函数;
-//     *  XC_GetTaskParam(任务TCB);       //按(void*)传递
-//     */
-//    Param = (uint32_t)XC_GetParam(); // 获取传递的参数(这里传递参数是666)
+/**
+ * @brief       任务4
+ * @param[in]   phTCB   任务控制块
+ * @details
+ *  挂起恢复演示,恢复任务3
+ */
+void Task_A4(XCTCB_t* phTCB)
+{
+    XC_Enter(phTCB);
+    /** --- */
+    s_TickCount[4] = 0;
+    while(1) {
+        XC_Delay_ms(19);            // 延时
+        XC_TaskResume(&s_hTCBn[3]); // 挂起恢复任务3
+        s_TickCount[4]++;
+    }
+    /** --- */
+    XC_Leave();
+}
 
-//    /**代码块1
-//     *  可以做初始化等一些单次调用的代码;
-//     */
+/**
+ * @brief       任务5
+ * @param[in]   phTCB   任务控制块
+ * @details
+ *  演示复位
+ */
+void Task_A5(XCTCB_t* phTCB)
+{
+    XC_Enter(phTCB);
+    /** --- */
+    s_TickCount[5] = 0;
+    while(1) {
+        XC_Delay_ms(10); // 延时
+        s_TickCount[5]++;
+        /**
+         *  计数到达10则复位任务,复位后任务重头运行,计数会被清零;
+         *  在其他任务中调用"XC_TaskReset"效果一样;
+         */
+        if(s_TickCount[5] == 10) {
+            XC_Reset();
+        }
+    }
+    /** --- */
+    XC_Leave();
+}
 
-//    s_TickCount[0] = 0; // 计数清零
-//    while(1) {
-//        /**代码块2
-//         *  循环处理的代码;
-//         */
+/**
+ * @brief       任务6
+ * @param[in]   phTCB   任务控制块
+ * @details
+ *  演示移除任务;计数到达指定值,移除任务0
+ */
+void Task_A6(XCTCB_t* phTCB)
+{
+    XC_Enter(phTCB);
+    /** --- */
+    s_TickCount[6] = 0;
+    while(1) {
+        XC_Delay_ms(10);                // 延时
+        if(s_TickCount[6] == 100) {     // 计数到达100
+            XC_TaskRemove(&s_hTCBn[0]); // 移除任务0
+        }
+        s_TickCount[6]++;
+    }
+    /** --- */
+    XC_Leave();
+}
 
-//        /**协程代码块内部调用函数
-//         * 注:让出控制权,跳出,延时等离开任务的调用,都会跳转到"XC_Leave";
-//         *  XC_Yield();         //让出控制权;
-//         *  XC_TaskReset();     //复位本任务,复位后会直接跳出;
-//         *  XC_DelayTick(100);  //按Tick延时,延时100个Tick;
-//         *  XC_Delay_ms(10);    //按毫秒延时;
-//         *  XC_Delay_s(100);    //按秒延时;
-//         *  XC_Delay_min(60);   //按分钟延时;
-//         *  XC_Delay_h(1);      //按小时延时;
-//         *  XC_Delay_day(1);    //按天延时;
-//         */
-//        XC_Delay_ms(10); // 延时10ms
+/**
+ * @brief       任务7
+ * @param[in]   phTCB   任务控制块
+ * @details
+ *  演示中断通知唤醒任务;
+ */
+void Task_A7(XCTCB_t* phTCB)
+{
+    uint32_t Cache;
 
-//        s_TickCount[0]++; // 每10ms累加一次
-//        /**代码块3*/
+    XC_Enter(phTCB);
+    /** --- */
+    s_TickCount[7] = 0;
+    while(1) {
+        XC_WaitNotify_ms(1001);                   // 等待通知
+        if(XC_GetWakeTimeout() == 0) {            // 未超时,通知到达
+            Cache = (uint32_t)XC_GetNotifyData(); // 获取传递的参数
+            if(Cache == 7) {                      // 传递参数是7时
+                s_TickCount[7]++;                 // 计数+1
+            }
+        }
+    }
+    /** --- */
+    XC_Leave();
+}
 
-//        if(s_TickCount[0] > 6000) {
-//            // 时间>60000,60s后复位任务
-//            XC_Reset(); // 复位任务
-//        }
-//    }
-//    //===
-//    /**任务块出口
-//     * 每个任务中必须有;
-//     * "XC_Leave"后的代码块(代码块4),每次调用完任务都会被调用;
-//     */
-//    XC_Leave();
+/**
+ * @brief       任务8
+ * @param[in]   phTCB   任务控制块
+ * @details
+ *  演示中断挂起恢复任务;
+ */
+void Task_A8(XCTCB_t* phTCB)
+{
+    XC_Enter(phTCB);
+    /** --- */
+    s_TickCount[8] = 0;
+    while(1) {
+        XC_Suspend(); // 挂起自身;
+        s_TickCount[8]++;
+    }
+    /** --- */
+    XC_Leave();
+}
 
-//    /**代码块4*/
-//}
+/**
+ * @brief       任务9
+ * @param[in]   phTCB   任务控制块
+ * @details
+ *  纯延时
+ */
+void Task_A9(XCTCB_t* phTCB)
+{
+    XC_Enter(phTCB);
+    /** --- */
+    s_TickCount[9] = 0;
+    while(1) {
+        XC_Delay_ms(10); // 延时
+        s_TickCount[9]++;
+    }
+    /** --- */
+    XC_Leave();
+}
 
-///************************************************|
-// * 描述:    任务
-// * 函数名:  Task_A1
-// * 形参[I]: XCTCB_t* phTCB
-// * 返回:    void
-// * 说明:    任务通知示例
-// ************************************************/
-// void Task_A1(XCTCB_t* phTCB)
-//{
-//    __IO uint32_t NotifyData;
-
-//    XC_Enter(phTCB);
-//    //===
-//    s_TickCount[1] = 0;
-//    while(1) {
-//        XC_WaitNotify_ms(1000); // 等待通知(超时1000ms)
-//        if(XC_GetWakeTimeout() == 1) {
-//            /*超时处理*/
-//        }
-//        else {
-//            /*非超时处理*/
-//            NotifyData = (uint32_t)XC_GetNotifyData(); // 获取通知的数据
-//        }
-//        s_TickCount[1]++;
-//        XC_Yield(); // 让出控制权
-//    }
-//    //===
-//    XC_Leave();
-//}
-
-///************************************************|
-// * 描述:    任务
-// * 函数名:  Task_A2
-// * 形参[I]: XCTCB_t* phTCB
-// * 返回:    void
-// * 说明:    二值信号示例
-// ************************************************/
-// void Task_A2(XCTCB_t* phTCB)
-//{
-//    XC_Enter(phTCB);
-//    //===
-//    s_TickCount[2] = 0;
-//    while(1) {
-//        s_TickCount[2]++;
-//        XC_Yield(); // 让出控制权
-//    }
-//    //===
-//    XC_Leave();
-//}
-
-///************************************************|
-// * 描述:    任务
-// * 函数名:  Task_A3
-// * 形参[I]: XCTCB_t* phTCB
-// * 返回:    void
-// * 说明:    通知任务A1启动,发送信号启动A2,并挂起A0
-// ************************************************/
-// void Task_A3(XCTCB_t* phTCB)
-//{
-//    XC_Enter(phTCB);
-//    //===
-//    s_TickCount[3] = 0;
-//    while(1) {
-//        XC_Delay_ms(20);                        // 延时20ms
-//        XC_SendNotify(&s_hTCBn[1], (void*)777); // 发送通知,通知数据是777
-//        XC_Delay_ms(70);                        // 延时70ms
-//        s_TickCount[3]++;
-//    }
-//    //===
-//    XC_Leave();
-//}
-
-///************************************************|
-// * 描述:    任务
-// * 函数名:  Task_A4
-// * 形参[I]: XCTCB_t* phTCB
-// * 返回:    void
-// * 说明:    中断测试信号量
-// ************************************************/
-// void Task_A4(XCTCB_t* phTCB)
-//{
-//    XC_Enter(phTCB);
-//    //===
-//    s_TickCount[4] = 0;
-//    while(1) {
-//        XC_Delay_ms(10);
-//        s_TickCount[4]++;
-//    }
-//    //===
-//    XC_Leave();
-//}
-
-///************************************************|
-// * 描述:    任务
-// * 函数名:  Task_A5
-// * 形参[I]: XCTCB_t* phTCB
-// * 返回:    void
-// * 说明:    中断测试信号量
-// ************************************************/
-// void Task_A5(XCTCB_t* phTCB)
-//{
-//    XC_Enter(phTCB);
-//    //===
-//    s_TickCount[5] = 0;
-//    while(1) {
-//        XC_Delay_ms(11);
-//        s_TickCount[5]++;
-//    }
-//    //===
-//    XC_Leave();
-//}
-
-///************************************************|
-// * 描述:    任务
-// * 函数名:  Task_A6
-// * 形参[I]: XCTCB_t* phTCB
-// * 返回:    void
-// * 说明:    挂起任务
-// ************************************************/
-// void Task_A6(XCTCB_t* phTCB)
-//{
-//    XC_Enter(phTCB);
-//    //===
-//    s_TickCount[6] = 0;
-//    while(1) {
-//        XC_Suspend(); // 挂起自身
-//        s_TickCount[6]++;
-//    }
-//    //===
-//    XC_Leave();
-//}
-
-///************************************************|
-// * 描述:    任务
-// * 函数名:  Task_A7
-// * 形参[I]: XCTCB_t* phTCB
-// * 返回:    void
-// * 说明:    挂起恢复
-// ************************************************/
-// void Task_A7(XCTCB_t* phTCB)
-//{
-//    XC_Enter(phTCB);
-//    //===
-//    s_TickCount[7] = 0;
-//    while(1) {
-//        XC_Delay_ms(13);
-//        XC_TaskResume(&s_hTCBn[6]); // 挂起恢复A6
-//        s_TickCount[7]++;
-//    }
-//    //===
-//    XC_Leave();
-//}
-
-///************************************************|
-// * 描述:    任务
-// * 函数名:  Task_A8
-// * 形参[I]: XCTCB_t* phTCB
-// * 返回:    void
-// * 说明:    无
-// ************************************************/
-// void Task_A8(XCTCB_t* phTCB)
-//{
-//    XC_Enter(phTCB);
-//    //===
-//    s_TickCount[8] = 0;
-//    while(1) {
-//        XC_Delay_ms(14);
-//        s_TickCount[8]++;
-//    }
-//    //===
-//    XC_Leave();
-//}
-
-///************************************************|
-// * 描述:    任务
-// * 函数名:  Task_A9
-// * 形参[I]: XCTCB_t* phTCB
-// * 返回:    void
-// * 说明:    无
-// ************************************************/
-// void Task_A9(XCTCB_t* phTCB)
-//{
-//    XC_Enter(phTCB);
-//    //===
-//    s_TickCount[9] = 0;
-//    while(1) {
-//        XC_Delay_ms(15);
-//        s_TickCount[9]++;
-//    }
-//    //===
-//    XC_Leave();
-//}
+/**
+ * @brief
+ * @param[in]   hXCOS       框架句柄
+ * @param[in]   NextTick    空闲的Tick
+ * @details     空闲处理
+ */
+void Idle(XCOS_t* hXCOS, XCuint_t NextTick)
+{
+    XCTime_BlockDelay(NextTick); // 阻塞循环,模拟休眠
+}
 
 /************************************************ 我是分割线 ************************************************/
 
-/************************************************|
- * 描述:    外部中断处理函数
- * 函数名:  EXTI0_IRQHandler
- * 形参[N]: void
- * 返回:    void
- * 说明:    无
- ************************************************/
+/**
+ * @brief       外部中断0处理函数
+ * @details     注意需要软中断 EXTI->SWIER0
+ */
 void EXTI0_IRQHandler(void)
 {
     // 调用HAL库提供的外部中断处理函数
     HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_0);
+    XC_SendNotify(&s_hTCBn[7], (void*)7); // 通知唤醒任务7
 }
 
-/************************************************|
- * 描述:    外部中断处理函数
- * 函数名:  EXTI1_IRQHandler
- * 形参[N]: void
- * 返回:    void
- * 说明:    无
- ************************************************/
+/**
+ * @brief       外部中断1处理函数
+ * @details     注意需要软中断 EXTI->SWIER1
+ */
 void EXTI1_IRQHandler(void)
 {
     // 调用HAL库提供的外部中断处理函数
     HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_1);
+    XC_TaskResume(&s_hTCBn[8]); // 挂起恢复任务8
 }
 
-/************************************************|
- * 描述:    系统时钟配置
- * 函数名:  SystemClock_Config
- * 形参[N]: void
- * 返回:    void
- * 说明:    无
- ************************************************/
+/**
+ * @brief       系统时钟配置
+ */
 static void SystemClock_Config(void)
 {
     RCC_ClkInitTypeDef clkinitstruct = { 0 };
@@ -392,52 +357,51 @@ static void SystemClock_Config(void)
 
 /************************************************ 我是分割线 ************************************************/
 
-/************************************************|
- * 描述:    主函数
- * 函数名:  main
- * 形参[N]: void
- * 返回:    void
- * 说明:    无
- ************************************************/
+/**
+ * @brief   主函数
+ * @return  int 无
+ * @details 主函数
+ */
 int main(void)
 {
     HAL_Init();
     SystemClock_Config();
-    /* 外部中断配置
+    /**
+     * 外部中断配置
      *  在MDK软件仿真中使用,可以设置"EXTI->SWIER"寄存器0-1位触发中断;
      */
-    {
-        GPIO_InitTypeDef GPIO_InitStruct;
-        GPIO_InitStruct.Pin  = GPIO_PIN_0;
-        GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING; // 下降沿触发
-        GPIO_InitStruct.Pull = GPIO_PULLUP;          // 上拉
-        HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-        HAL_NVIC_EnableIRQ(EXTI0_IRQn);
+    GPIO_InitTypeDef GPIO_InitStruct;
+    GPIO_InitStruct.Pin  = GPIO_PIN_0;
+    GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING; // 下降沿触发
+    GPIO_InitStruct.Pull = GPIO_PULLUP;          // 上拉
+    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+    HAL_NVIC_EnableIRQ(EXTI0_IRQn);
 
-        GPIO_InitStruct.Pin  = GPIO_PIN_1;
-        GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING; // 下降沿触发
-        GPIO_InitStruct.Pull = GPIO_PULLUP;          // 上拉
-        HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-        HAL_NVIC_EnableIRQ(EXTI1_IRQn);
-    }
+    GPIO_InitStruct.Pin  = GPIO_PIN_1;
+    GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING; // 下降沿触发
+    GPIO_InitStruct.Pull = GPIO_PULLUP;          // 上拉
+    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+    HAL_NVIC_EnableIRQ(EXTI1_IRQn);
 
-    XCSch_Init(&s_hXCOS1); // 初始化XCOS
+    /** XCOS框架 */
 
-    XC_TaskReg(&s_hXCOS1, &s_hTCB0, Task_TO, NULL);
+    XCSch_Init(&s_hXCOS0);                  // 初始化XCOS
+    XCSch_SetIdleCallback(&s_hXCOS0, Idle); // 空闲处理回调
 
-    //    // 初始化10个任务
-    //    XC_TaskReg(&s_hXCOS1, &s_hTCBn[0], Task_A0, (void*)666);
-    //    XC_TaskReg(&s_hXCOS1, &s_hTCBn[1], Task_A1, NULL);
-    //    XC_TaskReg(&s_hXCOS1, &s_hTCBn[2], Task_A2, NULL);
-    //    XC_TaskReg(&s_hXCOS1, &s_hTCBn[3], Task_A3, NULL);
-    //    XC_TaskReg(&s_hXCOS1, &s_hTCBn[4], Task_A4, NULL);
-    //    XC_TaskReg(&s_hXCOS1, &s_hTCBn[5], Task_A5, NULL);
-    //    XC_TaskReg(&s_hXCOS1, &s_hTCBn[6], Task_A6, NULL);
-    //    XC_TaskReg(&s_hXCOS1, &s_hTCBn[7], Task_A7, NULL);
-    //    XC_TaskReg(&s_hXCOS1, &s_hTCBn[8], Task_A8, NULL);
-    //    XC_TaskReg(&s_hXCOS1, &s_hTCBn[9], Task_A9, NULL);
+    // 初始化任务
+    XC_TaskReg(&s_hXCOS0, &s_hTCBDelay, Task_Delay, NULL);
+    XC_TaskReg(&s_hXCOS0, &s_hTCBn[0], Task_A0, NULL);
+    XC_TaskReg(&s_hXCOS0, &s_hTCBn[1], Task_A1, NULL);
+    XC_TaskReg(&s_hXCOS0, &s_hTCBn[2], Task_A2, NULL);
+    XC_TaskReg(&s_hXCOS0, &s_hTCBn[3], Task_A3, NULL);
+    XC_TaskReg(&s_hXCOS0, &s_hTCBn[4], Task_A4, NULL);
+    XC_TaskReg(&s_hXCOS0, &s_hTCBn[5], Task_A5, NULL);
+    XC_TaskReg(&s_hXCOS0, &s_hTCBn[6], Task_A6, NULL);
+    XC_TaskReg(&s_hXCOS0, &s_hTCBn[7], Task_A7, NULL);
+    XC_TaskReg(&s_hXCOS0, &s_hTCBn[8], Task_A8, NULL);
+    XC_TaskReg(&s_hXCOS0, &s_hTCBn[9], Task_A9, NULL);
 
-    XCSch_Run(&s_hXCOS1); // 调度器运行
+    XCSch_Run(&s_hXCOS0); // 调度器阻塞运行
 }
 
 /*

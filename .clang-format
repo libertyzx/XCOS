@@ -61,7 +61,7 @@ AlignTrailingComments:
 
 SpacesInLineCommentPrefix:
   Minimum:                 1        # 行注释前缀前最少1个空格
-  Maximum:                 -1       # 行注释前缀前最多空格数（无限制）
+  Maximum:                 -1       # 行注释前缀前最多空格数
 
 SpacesBeforeTrailingComments: 1     # 行尾注释前有1个空格
 
@@ -106,13 +106,13 @@ BreakFunctionDefinitionParameters: false
 
 # 括号设置
 SpaceInParens:            Never    # 括号内不加空格
-SpacesInParentheses:      false    # 括号内不加空格（旧版选项）
+SpacesInParentheses:      false    # 括号内不加空格
 
 # 注释设置
 ReflowComments:           true     # 重新格式化注释
 
 # 缩进设置
-IndentCaseLabels:         true      # case标签缩进（关键修改）
+IndentCaseLabels:         true      # case标签缩进
 IndentCaseBlocks:         false     # 不缩进整个case块
 
 # 空行设置
