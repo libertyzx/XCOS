@@ -29,7 +29,6 @@
 // XCOS变量
 _XC_CreateSysTickCount;      // 创建系统Tick
 XCOS_t  s_hXCOS0;            // XCOS句柄
-XCTCB_t s_hTCBDelay;         // 纯延时任务控制块
 XCTCB_t s_hTCBn[10] = { 0 }; // 任务控制块
 
 // 其他变量
@@ -40,23 +39,6 @@ uint32_t s_TickCount[10] = { 0 }; // 保存计数
  ************************************************ 我是分割线 ************************************************|
  ************************************************************************************************************|
  */
-
-/**
- * @brief       任务
- * @param[in]   phTCB   任务控制块
- * @details
- *  基础框架,演示延时
- */
-void Task_Delay(XCTCB_t* phTCB)
-{
-    XC_Enter(phTCB); // 协程任务块开始标志
-    /** --- */
-    while(1) {
-        XC_Delay_ms(10); // 延时
-    }
-    /** --- */
-    XC_Leave(); // 协程任务块结束标志
-}
 
 /**
  * @brief       任务0
@@ -384,12 +366,11 @@ int main(void)
     HAL_NVIC_EnableIRQ(EXTI1_IRQn);
 
     /** XCOS框架 */
-
+    _XC_SysTickCount = 0xFFFFFF00;
     XCSch_Init(&s_hXCOS0);                  // 初始化XCOS
     XCSch_SetIdleCallback(&s_hXCOS0, Idle); // 空闲处理回调
 
     // 初始化任务
-    XC_TaskReg(&s_hXCOS0, &s_hTCBDelay, Task_Delay, NULL);
     XC_TaskReg(&s_hXCOS0, &s_hTCBn[0], Task_A0, NULL);
     XC_TaskReg(&s_hXCOS0, &s_hTCBn[1], Task_A1, NULL);
     XC_TaskReg(&s_hXCOS0, &s_hTCBn[2], Task_A2, NULL);

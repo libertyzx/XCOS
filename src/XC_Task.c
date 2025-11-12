@@ -3,7 +3,7 @@
  * @brief       任务的实现
  * @author      libertyzx (libertyzx@163.com)
  * @version     2.00
- * @date        2025/10/30
+ * @date        2025/11/12
  * **********************************************
  * @copyright   Copyright (c) 2024 libertyzx. All rights reserved.
  * @license     This project is released under the MIT License.
@@ -57,62 +57,81 @@ void XC_TaskBasicInit(XCTCB_t* phTCB)
 /** 任务链表节点处理 */
 
 /**
- * @brief       [内部]链表节点移除
- * @param[in]   phTCB   协程控制块
- * @return      void
+ * @brief       [内部]将任务移动到就绪表
+ * @param[in]   phTCB   [XCTCB_t*]协程控制块
  * @details
- *  从XCOS中删除TCB节点;
- *  > 注意:若是删除的节点是当前就绪节点,则就绪节点将切换成上个节点;
+ *  将任务移动到当前就绪节点前,确保最后调用;
  */
-void XC_ListNodeRemove(XCTCB_t* phTCB)
+void XC_MoveTaskToReadyList(XCTCB_t* phTCB)
 {
-    // 若移除的是索引指向的节点,则将索引指向上个节点
-    if(phTCB->phXCOS->pReadyListNodeIndex == &phTCB->ListNode) {
-        phTCB->phXCOS->pReadyListNodeIndex = phTCB->ListNode.pPrevious;
+    // 若移动的是就绪节点,则将就绪节点指向上个节点
+    if(phTCB->phXCOS->pReadyNode == &phTCB->ListNode) {
+        phTCB->phXCOS->pReadyNode = phTCB->ListNode.pPrev;
     }
-    XCList_Remove(&phTCB->ListNode); // 移除节点
+    // 将节点移动到就绪节点之前
+    XCList_MoveNodeBefore(phTCB->phXCOS->pReadyNode, &phTCB->ListNode);
 }
 
 /**
- * @brief       [内部]将节点插入索引前
- * @param[in]   phTCB   协程控制块
+ * @brief       [内部]将任务移动到阻塞表
+ * @param[in]   phTCB   [XCTCB_t*]协程控制块
  * @details
- *  将节点插入当前就绪节点前,节点在就绪表;
- *  > 注意:索引指向的是就绪表,所以节点是插入就绪表的;
+ *  将任务移动到阻塞表尾部;
  */
-void XC_ListNodeInsertIndexPrevious(XCTCB_t* phTCB)
+void XC_MoveTaskToBlockedList(XCTCB_t* phTCB)
 {
-    XCList_InsertNodePrevious(phTCB->phXCOS->pReadyListNodeIndex, &phTCB->ListNode); // 插入索引节点前
-    phTCB->ListNode.pRootList = &phTCB->phXCOS->ReadyList;                           // 插在就绪表
+    // 若移动的是就绪节点,则将就绪节点指向上个节点
+    if(phTCB->phXCOS->pReadyNode == &phTCB->ListNode) {
+        phTCB->phXCOS->pReadyNode = phTCB->ListNode.pPrev;
+    }
+    // 将节点移动到阻塞表尾部(即根节点的上个节点)
+    XCList_MoveNodeBefore(&phTCB->phXCOS->BlockedList, &phTCB->ListNode);
 }
 
 /**
- * @brief       [内部]升序排列的插入节点
- * @param[in]   pList   需插入的链表
+ * @brief       [内部]将任务插入到时间表
+ * @param[in]   pList   需插入的链表(TimeList | TimeOverflowList)
  * @param[in]   phTCB   协程控制块
  * @details
+ *  插入的节点需确保纯净,此函数不会处理插入节点的上下的连接; \n
+ *  插入时间表按升序排列; \n
  *  从根节点向下(Next)查询"任务下个唤醒的时间"(TaskWakeTick),根据查询值从小到大排列;
  *  > 注意:若查询值相同,新节点插入在旧节点的前面;
  */
-void XC_ListNodeInsertAsc(XCListRoot_t* pList, XCTCB_t* phTCB)
+void XC_InsertTaskToTimeList(XCListNode_t* pList, XCTCB_t* phTCB)
 {
     XCListNode_t* pIterator;
     XCuint_t      MaxTick = ~0; // Tick最大的值
 
     if(MaxTick == phTCB->TaskWakeTick) {
         // 若是唤醒值等于最大值,则迭代器设置为根节点
-        pIterator = (XCListNode_t*)&pList->RootNode;
+        pIterator = pList;
     }
     else {
         // 查找(小->大)
-        pIterator = pList->RootNode.pNext; // 获取根节点的下个节点地址
-        while((pIterator != (XCListNode_t*)&pList->RootNode) && (((XCTCB_t*)pIterator)->TaskWakeTick <= phTCB->TaskWakeTick)) {
+        pIterator = pList->pNext; // 获取根节点的下个节点地址
+        while((pIterator != pList) && (((XCTCB_t*)pIterator)->TaskWakeTick <= phTCB->TaskWakeTick)) {
             // 指向节点不是根节点 && 指向节点的值小于新节点的值;
             pIterator = pIterator->pNext; // 指向下个节点
         }
     }
-    XCList_InsertNodePrevious(pIterator, (XCListNode_t*)phTCB); // 插入节点,在"pIterator"之前
-    phTCB->ListNode.pRootList = pList;                          // 保存根节点
+    XCList_InsertNodeBefore(pIterator, &phTCB->ListNode); // 插入节点,在"pIterator"之前
+}
+
+/**
+ * @brief       [内部]移除任务节点
+ * @param[in]   phTCB   协程控制块
+ * @return      void
+ * @details
+ *  从XCOS中删除TCB节点;
+ */
+void XC_RemoveTaskNode(XCTCB_t* phTCB)
+{
+    // 若移动的是就绪节点,则将就绪节点指向上个节点
+    if(phTCB->phXCOS->pReadyNode == &phTCB->ListNode) {
+        phTCB->phXCOS->pReadyNode = phTCB->ListNode.pPrev;
+    }
+    XCList_Remove(&phTCB->ListNode); // 移除节点
 }
 
 /*
@@ -151,9 +170,9 @@ int32_t XC_TaskReg(XCOS_t* phXCOS, XCTCB_t* phTCB, void (*fTask)(XCTCB_t*), void
     phTCB->TaskState = _XC_S_Ready; // 任务更新状态为就绪
     phXCOS->TaskNum++;              // 任务数+1
 
-    XCSch_ListOperationStart(phXCOS);      // 链表操作开始
-    XC_ListNodeInsertIndexPrevious(phTCB); // 插入就续表
-    XCSch_ListOperationEnd(phXCOS);        // 链表操作结束
+    XCSch_ListOperationStart(phXCOS); // 链表操作开始
+    XC_InsertTaskToReadyList(phTCB);  // 插入就续表
+    XCSch_ListOperationEnd(phXCOS);   // 链表操作结束
     return (_XC_R_OK);
 }
 
@@ -171,7 +190,7 @@ void XC_TaskRemove(XCTCB_t* phTCB)
 
         // 从表中删除任务
         XCSch_ListOperationStart(phTCB->phXCOS); // 链表操作开始
-        XC_ListNodeRemove(phTCB);
+        XC_RemoveTaskNode(phTCB);
         phTCB->phXCOS->TaskNum--;              // 任务数-1
         XCSch_ListOperationEnd(phTCB->phXCOS); // 链表操作结束
 
@@ -200,8 +219,7 @@ void XC_TaskReset(XCTCB_t* phTCB)
 
     // 重置到就绪表
     XCSch_ListOperationStart(phTCB->phXCOS); // 链表操作开始
-    XC_ListNodeRemove(phTCB);                // 原链表移除节点
-    XC_ListNodeInsertIndexPrevious(phTCB);   // 重新插入就绪表
+    XC_MoveTaskToReadyList(phTCB);           // 任务移动到就绪表
     XCSch_ListOperationEnd(phTCB->phXCOS);   // 链表操作结束
 }
 
@@ -255,9 +273,9 @@ int32_t XC_AddTask(XCOS_t* phXCOS, XCTCB_t* phTCB)
     phTCB->phXCOS = phXCOS; // 保存任务的所属框架句柄
     phXCOS->TaskNum++;      // 任务数+1
 
-    XCSch_ListOperationStart(phXCOS);      // 链表操作开始
-    XC_ListNodeInsertIndexPrevious(phTCB); // 插入就续表
-    XCSch_ListOperationEnd(phXCOS);        // 链表操作结束
+    XCSch_ListOperationStart(phXCOS); // 链表操作开始
+    XC_InsertTaskToReadyList(phTCB);  // 插入就续表
+    XCSch_ListOperationEnd(phXCOS);   // 链表操作结束
     return (_XC_R_OK);
 }
 
@@ -309,8 +327,7 @@ int32_t XC_SendNotify(XCTCB_t* phTCB, void* pNotifyData)
     /** 同步操作,没有运行中且没有操作链表,直接处理 */
 
     XCSch_ListOperationStart(phTCB->phXCOS); // 链表操作开始
-    XC_ListNodeRemove(phTCB);                // 删除任务节点
-    XC_ListNodeInsertIndexPrevious(phTCB);   // 插入就续表
+    XC_MoveTaskToReadyList(phTCB);           // 移动到就绪表
     phTCB->pNotifyData = pNotifyData;        // 传递的通知数据
     phTCB->WakeType    = _XC_Wake_Notify;    // 被通知唤醒
     phTCB->TaskState   = _XC_S_Ready;        // 任务状态:就绪
@@ -364,11 +381,10 @@ int32_t XC_TaskSuspend(XCTCB_t* phTCB)
 
     /** 同步操作,没有运行中且没有操作链表,直接处理 */
 
-    XCSch_ListOperationStart(phTCB->phXCOS);                         // 链表操作开始
-    phTCB->TaskState = _XC_S_Suspend;                                // 任务状态:挂起
-    XC_ListNodeRemove(phTCB);                                        // 删除任务节点
-    XCList_InsertEnd(&phTCB->phXCOS->BlockedList, &phTCB->ListNode); // 插入阻塞表
-    XCSch_ListOperationEnd(phTCB->phXCOS);                           // 链表操作结束
+    XCSch_ListOperationStart(phTCB->phXCOS); // 链表操作开始
+    phTCB->TaskState = _XC_S_Suspend;        // 任务状态:挂起
+    XC_MoveTaskToBlockedList(phTCB);         // 将任务移动到阻塞表
+    XCSch_ListOperationEnd(phTCB->phXCOS);   // 链表操作结束
 
     return (_XC_R_OK);
 }
@@ -406,8 +422,7 @@ int32_t XC_TaskResume(XCTCB_t* phTCB)
     /** 同步操作,没有运行中且没有操作链表,直接处理 */
 
     XCSch_ListOperationStart(phTCB->phXCOS); // 链表操作开始
-    XC_ListNodeRemove(phTCB);                // 删除任务节点
-    XC_ListNodeInsertIndexPrevious(phTCB);   // 插入就续表
+    XC_MoveTaskToReadyList(phTCB);           // 将任务移动到就绪表
     phTCB->WakeType  = _XC_Wake_TaskResume;  // 被任务恢复唤醒
     phTCB->TaskState = _XC_S_Ready;          // 任务状态:就绪
     XCSch_ListOperationEnd(phTCB->phXCOS);   // 链表操作结束

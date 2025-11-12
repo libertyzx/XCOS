@@ -3,7 +3,7 @@
  * @brief       调度器实现
  * @author      libertyzx (libertyzx@163.com)
  * @version     2.00
- * @date        2025/10/30
+ * @date        2025/11/12
  * **********************************************
  * @copyright   Copyright (c) 2024 libertyzx. All rights reserved.
  * @license     This project is released under the MIT License.
@@ -33,17 +33,17 @@
  *  用于记录XCOS实例的数据,一个工程中开源有多个XCOS实例,用此句柄区分; \n
  *  字节数说明(32bit): 8*4+4*3+4+4 = 52Byte
  */
-typedef struct _XCOS_t {
+typedef struct XCOS_t {
     // 链表
-    XCListRoot_t ReadyList;        // 就绪链表
-    XCListRoot_t TimeList;         // 延时/超时/等待的链表
-    XCListRoot_t TimeOverflowList; // 时间溢出的链表
-    XCListRoot_t BlockedList;      // 阻塞链表
+    XCListNode_t ReadyList;        // 就绪链表
+    XCListNode_t TimeList;         // 延时/超时/等待的链表
+    XCListNode_t TimeOverflowList; // 时间溢出的链表
+    XCListNode_t BlockedList;      // 阻塞链表
 
     // 数据
-    XCListNode_t* pReadyListNodeIndex; // 就绪表节点索引,指向运行的节点
-    XCuint_t      NextTaskWakeTick;    // 下个任务唤醒的Tick
-    XCuint_t      PreviousTick;        // 上个Tick
+    XCListNode_t* pReadyNode;       // 当前就绪节点,位于就绪表
+    XCuint_t      NextTaskWakeTick; // 下个任务唤醒的Tick
+    XCuint_t      PrevTick;         // 上个Tick
 
     uint8_t TaskNum;           // 任务数量
     uint8_t ListOperationFlag; // 表操作标记(1操作中;0没有操作)
@@ -65,7 +65,7 @@ typedef struct _XCOS_t {
      *  - 系统Tick是定时器中断计数运行的,可以使用"XCSch_UpdateTickAfterWakeup"更新;
      *  - 系统Tick是一个计数器,则计数器需要更新为"phXCOS->NextTaskWakeTick";
      */
-    void (*fIdle)(struct _XCOS_t*, XCuint_t);
+    void (*fIdle)(struct XCOS_t*, XCuint_t);
 #endif
 
 } XCOS_t;

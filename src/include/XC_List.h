@@ -2,14 +2,14 @@
  * @file        XC_List.h
  * @brief       Á´±í²Ù×÷µÄÉùÃ÷
  * @author      libertyzx (libertyzx@163.com)
- * @version     1.0
- * @date        2024/03/18
+ * @version     2.0
+ * @date        2025/11/12
  * **********************************************
  * @copyright   Copyright (c) 2024 libertyzx. All rights reserved.
  * @license     This project is released under the MIT License.
  * **********************************************
  * @details     Á´±í²Ù×÷µÄº¯ÊýÉùÃ÷¼°ÀàÐÍ¶¨Òå;
- *  ±¾ÎÄ¼þÖÐËùÓÐÀàÐÍ¶¼ÊÇÄÚ²¿Ê¹ÓÃ;²»½¨ÒéÓÃ»§Ê¹ÓÃ;
+ *  ±¾ÎÄ¼þÖÐËùÓÐÀàÐÍ¶¼ÊÇÄÚ²¿Ê¹ÓÃ;ÓÃ»§²»ÒªÊ¹ÓÃ;
  * **********************************************
  *  ÐÞ¸ÄÈÕÖ¾
  *  - ¼û"XC_UpdateInfo.md"µÄ¸üÐÂËµÃ÷;
@@ -26,91 +26,41 @@
 /**Êý¾ÝÀàÐÍ */
 
 /**
- * @brief       [ÄÚ²¿]Ë«ÏòÁ´±í½ÚµãÀàÐÍ
- * @details     32Î»ÏÂÕ¼12×Ö½Ú;
+ * @brief   [ÄÚ²¿]Ë«ÏòÁ´±í½ÚµãÀàÐÍ
+ * @details
+ *  ÆÕÍ¨½ÚµãºÍ¸ù½Úµã¶¼Ê¹ÓÃ´ËÀàÐÍ; \n
+ *  ¸ù½ÚµãÖ»ÊÇ±ê¼ÇµÄÆÕÍ¨½Úµã; \n
+ *  32Î»ÏÂÕ¼8×Ö½Ú;
  */
-typedef struct _XCListNode_t {
-    struct _XCListNode_t* pNext;     // Ö¸ÏòÏÂ¸ö½Úµã
-    struct _XCListNode_t* pPrevious; // Ö¸ÏòÉÏ¸ö½Úµã
-    struct _XCListRoot_t* pRootList; // Ö¸Ïò½ÚµãËùÊôµÄµØÖ·
+typedef struct XCListNode_t {
+    struct XCListNode_t* pNext; // Ö¸ÏòÏÂ¸ö½Úµã
+    struct XCListNode_t* pPrev; // Ö¸ÏòÉÏ¸ö½Úµã
 } XCListNode_t;
 
-/**
- * @brief       [ÄÚ²¿]»ù´¡Ë«ÏòÁ´±í½ÚµãÀàÐÍ
- * @details     Ö»ÓÐÁ´±í½ÚµãºÍ¸¨ÖúÖµ;32Î»ÏÂÕ¼8×Ö½Ú;
- */
-typedef struct {
-    XCListNode_t* pNext;     // Ö¸ÏòÏÂ¸ö½Úµã
-    XCListNode_t* pPrevious; // Ö¸ÏòÉÏ¸ö½Úµã
-} XCListBasic_t;
-
-/**
- * @brief       [ÄÚ²¿]Ë«ÏòÁ´±í¸ù½ÚµãÀàÐÍ
- * @details     32Î»ÏÂÕ¼8×Ö½Ú;
- */
-typedef struct _XCListRoot_t {
-    XCListBasic_t RootNode; // ¸ù½Úµã,×îºó/×î³õµÄ½Úµã
-} XCListRoot_t;
-
 /*
  ************************************************************************************************************|
  ************************************************ ÎÒÊÇ·Ö¸îÏß ************************************************|
  ************************************************************************************************************|
  */
-/**º¯Êýºê */
-
-/**
- * @brief       [ÄÚ²¿]Á´±íÊÇ·ñÓÐÐ§
- * @param[in]   _pList [XCListRoot_t*]Á´±íÖ¸Õë
- * @return      boot
- * @retval      0 : Ã»ÓÐ½Úµã
- * @retval      1 : ÓÐ½Úµã
- * @details     ÅÐ¶ÏÒ»¸öÁ´±íµÄÊÇ·ñÓÐÐ§(ÊÇ·ñÓÐ½Úµã)
- */
-#define XCList_ListValid(_pList)            (((XCListNode_t*)&((_pList)->RootNode)) != ((_pList)->RootNode.pNext))
-
-/**
- * @brief       [ÄÚ²¿]½ÚµãÊÇ·ñµ½´ï½áÎ²½Úµã
- * @param[in]   _pList  [XCListRoot_t*]Á´±íÖ¸Õë
- * @param[in]   _pNode  [XCListNode_t*]½ÚµãÖ¸Õë
- * @return      boot
- * @retval      0 : Ã»ÓÐµ½´ï½áÎ²½Úµã
- * @retval      1 : µ½´ï½áÎ²½Úµã(½ÚµãºÍÁ´±í¸ùµØÖ·ÏàÍ¬)
- * @details     ÓÃÓÚ±éÀúÁ´±íÊ±,ÅÐ¶Ï±éÀúµÄ½ÚµãÊÇ·ñµ½´ï¸ù½Úµã(¼ÈÊÇ·ñ½áÊø±éÀú)
- */
-#define XCList_ReachEndNode(_pList, _pNode) (((XCListNode_t*)&((_pList)->RootNode)) == (_pNode))
-
-/**
- * @brief       [ÄÚ²¿]»ñÈ¡Á´±íµÄ¿ªÊ¼½Úµã
- * @param[in]   _pList          [XCListRoot_t*]Á´±íµØÖ·(»áÇ¿ÖÆ×ªÎªÁ´±íÖ¸ÕëÀàÐÍ)
- * @return      XCListNode_t*   ·µ»Ø½ÚµãµØÖ·
- * @details     µÃµ½µ±Ç°Á´±íµÄ¿ªÊ¼µØÖ·
- */
-#define XCList_GetListStartNode(_pList)     (((XCListRoot_t*)(_pList))->RootNode.pNext)
-
-/*
- ************************************************************************************************************|
- ************************************************ ÎÒÊÇ·Ö¸îÏß ************************************************|
- ************************************************************************************************************|
- */
-/**º¯ÊýÉùÃ÷ */
-
-/************************************************ ÎÒÊÇ·Ö¸îÏß ************************************************/
 /**³õÊ¼»¯²Ù×÷ */
+
+/**
+ * @brief       [ÄÚ²¿]³õÊ¼»¯½Úµã
+ * @param[in]   pNode   ÐèÒª³õÊ¼»¯µÄ½Úµã
+ * @details     ³õÊ¼»¯½ÚµãÊ±Ê¹ÓÃ,Ö¸Ïò×Ô¼º,ÓÅ»¯Îªºê;
+ */
+#define XCList_InitNode(_pNode)     \
+    {                               \
+        (_pNode)->pNext = (_pNode); \
+        (_pNode)->pPrev = (_pNode); \
+    }
 
 /**
  * @brief       [ÄÚ²¿]³õÊ¼»¯Á´±í
  * @param[in]   pList   ÐèÒª³õÊ¼»¯µÄÁ´±í
  * @details     ³õÊ¼»¯Á´±íÊ±Ê¹ÓÃ
  */
-void XCList_Init(XCListRoot_t* pList);
-
-/**
- * @brief       [ÄÚ²¿]³õÊ¼»¯½Úµã
- * @param[in]   pNode   ÐèÒª³õÊ¼»¯µÄ½Úµã
- * @details     ³õÊ¼»¯½ÚµãÊ±Ê¹ÓÃ
- */
-void XCList_InitNode(XCListNode_t* pNode);
+#define XCList_Init(_pList) XCList_InitNode(_pList)
 
 /************************************************ ÎÒÊÇ·Ö¸îÏß ************************************************/
 /**Á´±í½Úµã²Ù×÷ */
@@ -121,56 +71,65 @@ void XCList_InitNode(XCListNode_t* pNode);
  * @param[in]   pNewNode    ÐÂ½Úµã
  * @details     Ö»²åÈë½Úµã;
  */
-void XCList_InsertNodePrevious(XCListNode_t* pListNode, XCListNode_t* pNewNode);
+void XCList_InsertNodeBefore(XCListNode_t* pListNode, XCListNode_t* pNewNode);
 
 /**
- * @brief       [ÄÚ²¿]½«ÐÂ½Úµã²åÈëÄ³½ÚµãÖ®ºó
- * @param[in]   pListNode   Òª²åÈëÎ»ÖÃµÄ½Úµã
- * @param[in]   pNewNode    ÐÂ½Úµã
- * @details     Ö»²åÈë½Úµã;
+ * @brief       [ÄÚ²¿]½«½ÚµãÒÆ¶¯µ½Ä³¸ö½ÚµãÖ®Ç°
+ * @param[in]   pDestNode   Ä¿±ê½Úµã
+ * @param[in]   pSrcNode    ÐèÒªÒÆ¶¯µÄ½Úµã
+ * @details
+ *  ½«½Úµã´ÓÔ­ÏÈÁ´±íÖÐÒÆ³ý,²¢ÒÆ¶¯µ½Ä¿±ê½ÚµãÖ®Ç°;
  */
-void XCList_InsertNodeNext(XCListNode_t* pListNode, XCListNode_t* pNewNode);
-
-/**
- * @brief       [ÄÚ²¿]Á¬½Ó2¸ö½Úµã
- * @param[in]   pPreviousNode   ÉÏ¸ö½Úµã
- * @param[in]   pNextNode       ÏÂ¸ö½Úµã
- * @details     µ÷ÓÃ´Ëº¯Êýºó»áÉ¾³ý²ÎÊýÖÐÁ½¸ö½Úµã¼äµÄËùÓÐ½Úµã
- */
-void XCList_LinkNode(XCListNode_t* pPreviousNode, XCListNode_t* pNextNode);
-
-/**
- * @brief       [ÄÚ²¿]ÒÆ³ý»ù´¡½Úµã
- * @param[in]   pNode   ÐèÒªÉ¾³ýµÄ½Úµã
- * @details     Ö»´¦ÀíÁ´±í½Úµã²¿·Ö,²»Ó°Ïì½Úµã¹ÒÔØµÄÆäËûÊý¾Ý;
- */
-void XCList_RemoveBasicNode(XCListBasic_t* pNode); // ÒÆ³ýÒ»¸ö»ù´¡½Úµã
-
-/************************************************ ÎÒÊÇ·Ö¸îÏß ************************************************/
-/**Á´±í²Ù×÷ */
+void XCList_MoveNodeBefore(XCListNode_t* pDestNode, XCListNode_t* pSrcNode);
 
 /**
  * @brief       [ÄÚ²¿]´ÓÁ´±íÖÐÒÆ³ýÒ»¸ö½Úµã
  * @param[in]   pNode   ÐèÒªÉ¾³ýµÄ½Úµã
  * @details     Ö»´¦ÀíÁ´±í½Úµã²¿·Ö,²»Ó°Ïì½Úµã¹ÒÔØµÄÆäËûÊý¾Ý;
  */
-void XCList_Remove(XCListNode_t* pNode); // ´ÓÁ´±íÖÐÒÆ³ýÒ»¸ö½Úµã
+#define XCList_Remove(_pNode)                     \
+    {                                             \
+        /* Á´½ÓÇ°ºóÁ½¸ö½ÚµãÀ´É¾³ý½Úµã*/           \
+        (_pNode)->pNext->pPrev = (_pNode)->pPrev; \
+        (_pNode)->pPrev->pNext = (_pNode)->pNext; \
+        /* ³õÊ¼»¯É¾³ýµÄ½Úµã*/                     \
+        XCList_InitNode((_pNode));                \
+    }
+
+/************************************************ ÎÒÊÇ·Ö¸îÏß ************************************************/
+/**»ù´¡ÅÐ¶Ï */
 
 /**
- * @brief       [ÄÚ²¿]½«½Úµã²åÈëÁ´±íµÄ¿ªÊ¼
- * @param[in]   pList       Ðè²åÈëµÄÁ´±í
- * @param[in]   pNewNode    ÐÂ½Úµã
- * @details     ²åÈëRootNodeÍ·;
+ * @brief       [ÄÚ²¿]Á´±íÊÇ·ñÓÐÐ§
+ * @param[in]   _pList [XCListNode_t*]Á´±íÖ¸Õë
+ * @return      boot
+ * @retval      0 : Ã»ÓÐ½Úµã
+ * @retval      1 : ÓÐ½Úµã
+ * @details     ÅÐ¶ÏÒ»¸öÁ´±íµÄÊÇ·ñÓÐÐ§(ÊÇ·ñÓÐ½Úµã)
  */
-void XCList_InsertStart(XCListRoot_t* pList, XCListNode_t* pNewNode); // ½Úµã²åÈëÁ´±í¿ªÊ¼
+#define XCList_ListValid(_pList)            ((_pList) != ((_pList)->pNext))
 
 /**
- * @brief       [ÄÚ²¿]½«½Úµã²åÈëÁ´±íµÄ½áÎ²
- * @param[in]   pList       Ðè²åÈëµÄÁ´±í
- * @param[in]   pNewNode    ÐÂ½Úµã
- * @details     ²åÈëRootNodeÎ²;
+ * @brief       [ÄÚ²¿]½ÚµãÊÇ·ñµ½´ï½áÎ²½Úµã
+ * @param[in]   _pList  [XCListNode_t*]Á´±íÖ¸Õë
+ * @param[in]   _pNode  [XCListNode_t*]½ÚµãÖ¸Õë
+ * @return      boot
+ * @retval      0 : Ã»ÓÐµ½´ï½áÎ²½Úµã
+ * @retval      1 : µ½´ï½áÎ²½Úµã(½ÚµãºÍÁ´±í¸ùµØÖ·ÏàÍ¬)
+ * @details     ÓÃÓÚ±éÀúÁ´±íÊ±,ÅÐ¶Ï±éÀúµÄ½ÚµãÊÇ·ñµ½´ï¸ù½Úµã(¼ÈÊÇ·ñ½áÊø±éÀú)
  */
-void XCList_InsertEnd(XCListRoot_t* pList, XCListNode_t* pNewNode); // ½Úµã²åÈëÁ´±í½áÎ²
+#define XCList_ReachEndNode(_pList, _pNode) ((_pList) == (_pNode))
+
+/**
+ * @brief       [ÄÚ²¿]»ñÈ¡Á´±íµÄ¿ªÊ¼½Úµã
+ * @param[in]   _pList  [XCListNode_t*]Á´±íµØÖ·
+ * @return      XCListNode_t*   ·µ»Ø½ÚµãµØÖ·
+ * @details     µÃµ½µ±Ç°Á´±íµÄ¿ªÊ¼µØÖ·
+ */
+#define XCList_GetListStartNode(_pList)     ((_pList)->pNext)
+
+/************************************************ ÎÒÊÇ·Ö¸îÏß ************************************************/
+/**Á´±í²Ù×÷ */
 
 /**
  * @brief       [ÄÚ²¿]½»»»Á´±í
@@ -178,7 +137,7 @@ void XCList_InsertEnd(XCListRoot_t* pList, XCListNode_t* pNewNode); // ½Úµã²åÈëÁ
  * @param[in]   pList2  Á´±í2
  * @details     Ö±½Ó½»»»Á½¸öÁ´±í¸ù½ÚµãµÄÁ´½Ó;½»»»ºóÁ´±íÎª¿Õ,Ôò³õÊ¼»¯;
  */
-void XCList_SwapList(XCListRoot_t* pList1, XCListRoot_t* pList2); // ½»»»2¸öÁ´±í
+void XCList_SwapList(XCListNode_t* pList1, XCListNode_t* pList2);
 
 /**
  * @brief       [ÄÚ²¿]½«Ò»¸öÁ´±íÈ«²¿ÒÆ¶¯µ½Áí¸öÁ´±íµÄÒ»¸ö½ÚµãÇ°
@@ -187,7 +146,7 @@ void XCList_SwapList(XCListRoot_t* pList1, XCListRoot_t* pList2); // ½»»»2¸öÁ´±í
  * @details  ×ªÒÆÍê½ÚµãºóµÄÁ´±í»á±»Çå³ý;
  *  - ×¢Òâ:²»ÒªÒÆ¶¯×Ô¼º;
  */
-void XCList_SwapListToNodePrevious(XCListNode_t* pDestNode, XCListRoot_t* pSrcList); // ½«Ò»¸öÁ´±íÈ«²¿ÒÆ¶¯µ½Ò»¸ö½ÚµãÇ°
+void XCList_SwapListToNodeBefore(XCListNode_t* pDestNode, XCListNode_t* pSrcList);
 
 /************************************************ ÎÒÊÇ·Ö¸îÏß ************************************************/
 /*
