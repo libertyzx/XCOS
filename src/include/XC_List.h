@@ -46,7 +46,7 @@ typedef struct XCListNode_t {
 
 /**
  * @brief       [内部]初始化节点
- * @param[in]   pNode   需要初始化的节点
+ * @param[in]   pNode   [XCListNode_t*]需要初始化的节点
  * @details     初始化节点时使用,指向自己,优化为宏;
  */
 #define XCList_InitNode(_pNode)     \
@@ -67,16 +67,16 @@ typedef struct XCListNode_t {
 
 /**
  * @brief       [内部]将新节点插入某节点之前
- * @param[in]   pListNode   要插入位置的节点
- * @param[in]   pNewNode    新节点
+ * @param[in]   pListNode   [XCListNode_t*]要插入位置的节点
+ * @param[in]   pNewNode    [XCListNode_t*]新节点
  * @details     只插入节点;
  */
 void XCList_InsertNodeBefore(XCListNode_t* pListNode, XCListNode_t* pNewNode);
 
 /**
  * @brief       [内部]将节点移动到某个节点之前
- * @param[in]   pDestNode   目标节点
- * @param[in]   pSrcNode    需要移动的节点
+ * @param[in]   pDestNode   [XCListNode_t*]目标节点
+ * @param[in]   pSrcNode    [XCListNode_t*]需要移动的节点
  * @details
  *  将节点从原先链表中移除,并移动到目标节点之前;
  */
@@ -84,7 +84,7 @@ void XCList_MoveNodeBefore(XCListNode_t* pDestNode, XCListNode_t* pSrcNode);
 
 /**
  * @brief       [内部]从链表中移除一个节点
- * @param[in]   pNode   需要删除的节点
+ * @param[in]   pNode   [XCListNode_t*]需要删除的节点
  * @details     只处理链表节点部分,不影响节点挂载的其他数据;
  */
 #define XCList_Remove(_pNode)                     \
@@ -95,6 +95,7 @@ void XCList_MoveNodeBefore(XCListNode_t* pDestNode, XCListNode_t* pSrcNode);
         /* 初始化删除的节点*/                     \
         XCList_InitNode((_pNode));                \
     }
+// void XCList_Remove(XCListNode_t* pNode);
 
 /************************************************ 我是分割线 ************************************************/
 /**基础判断 */
@@ -137,7 +138,7 @@ void XCList_MoveNodeBefore(XCListNode_t* pDestNode, XCListNode_t* pSrcNode);
  * @param[in]   pList2  链表2
  * @details     直接交换两个链表根节点的链接;交换后链表为空,则初始化;
  */
-void XCList_SwapList(XCListNode_t* pList1, XCListNode_t* pList2);
+// void XCList_SwapList(XCListNode_t* pList1, XCListNode_t* pList2);
 
 /**
  * @brief       [内部]将一个链表全部移动到另个链表的一个节点前
@@ -146,7 +147,7 @@ void XCList_SwapList(XCListNode_t* pList1, XCListNode_t* pList2);
  * @details  转移完节点后的链表会被清除;
  *  - 注意:不要移动自己;
  */
-void XCList_SwapListToNodeBefore(XCListNode_t* pDestNode, XCListNode_t* pSrcList);
+void XCList_MoveListToNodeBefore(XCListNode_t* pDestNode, XCListNode_t* pSrcList);
 
 /************************************************ 我是分割线 ************************************************/
 /*

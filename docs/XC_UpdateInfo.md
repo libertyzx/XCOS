@@ -12,8 +12,6 @@
     - 任务唤醒;
     - 任务挂起;
     - 任务挂起恢复;
-- 增加配置(文件"XC_Cnf.h"):
-    - "_XC_Cnf_IdleSupport"配置框架休眠支持;
 - 信号量(XC_Sem)
     - 删除全部,任务通知可实现类似信号量的处理;
 - 时间计数处理(XC_TimeCount)
@@ -84,7 +82,7 @@
     | XCList_Init                   | [内部]初始化链表                                  | 修改  | 改为宏                                            |
     | XCList_InsertNodeBefore       | [内部]将新节点插入某节点之前                      | 修改  | 修改名称,原"XCList_InsertNodePrevious"            |
     | XCList_Remove                 | [内部]从链表中移除一个节点                        | 修改  | 改为宏                                            |
-    | XCList_SwapListToNodeBefore   | [内部]将一个链表全部移动到另个链表的一个节点前    | 修改  | 修改名称,原"XCList_SwapListToNodeBefore"          |
+    | XCList_MoveListToNodeBefore   | [内部]将一个链表全部移动到另个链表的一个节点前    | 修改  | 修改名称,原"XCList_MoveListToNodeBefore"          |
 - 调度处理(XC_Sch)
     - "XCOS_t"类型字段"pReadyListNodeIndex"改名为"pReadyNode";
     - "XCOS_t"类型字段"PreviousTick"改名为"PrevTick";
@@ -107,30 +105,32 @@
 - 任务操作(XC_Task)
     - 删除任务控制块类型中"通知数据"和"传递的参数"的32位整型共用体,只留下指针;
     - 删除或者修改函数:
-    | 函数                              | 功能                                          | 操作  | 操作说明                                              |
-    | ---                               | ---                                           | ---   | ---                                                   |
-    | XC_GetParamUint                   | 协程块内获取任务注册时传递的参数(uint32_t)    | 删除  | 基础为指针传递的,没有必要在做一层整型数据传递         |
-    | XC_GetNotifyDataUint              | 获取通知的数据(uint32_t)                      | 删除  | 基础为指针传递的,没有必要在做一层整型数据传递         |
-    | XC_GetTaskParamUint               | 获取任务注册时传递的参数(uint32_t)            | 删除  | 基础为指针传递的,没有必要在做一层整型数据传递         |
-    | XC_UpdateNotifyDataUint           | 更新通知数据(uint32_t)                        | 删除  | 基础为指针传递的,没有必要在做一层整型数据传递         |
-    | XC_ReadNotifyDataUint             | 读取通知数据(uint32_t)                        | 删除  | 基础为指针传递的,没有必要在做一层整型数据传递         |
-    | XC_SendNotifyUint                 | 发送通知(uint32_t)                            | 删除  | 基础为指针传递的,没有必要在做一层整型数据传递         |
-    | XC_TaskReset                      | 复位当前任务                                  | 删除  | 已有"XC_Reset",不在做兼容                             |
-    | XC_Delay_min                      | 按min延时                                     | 删除  | 延时最高到s,后面自行转换                              |
-    | XC_Delay_h                        | 按小时延时                                    | 删除  | 延时最高到s,后面自行转换                              |
-    | XC_Delay_day                      | 按天延时                                      | 删除  | 延时最高到s,后面自行转换                              |
-    | XC_MoveTaskToReadyList            | [内部]将任务移动到就绪表                      | 新增  | 优化代码
-    | XC_MoveTaskToBlockedList          | [内部]将任务移动到阻塞表                      | 新增  | 优化代码
-    | XC_InsertTaskToReadyList          | [内部]将任务插入到就绪表                      | 新增  | 原"XC_Sch"的"XCSch_ListNodeInsertIndexPrevious"移入,改名,改宏   |
-    | XC_InsertTaskToTimeList           | [内部]将任务插入到时间表                      | 新增  | 原"XC_Sch"的"XCSch_ListNodeInsertAsc"移入,并改名       |
-    | XC_RemoveTaskNode                 | [内部]移除任务节点                            | 新增  | 原"XC_Sch"的"XCSch_ListNodeRemove"移入                |
-    | XC_TaskReg                        | [用户]任务注册                                | 新增  | 原"XC_Sch"的"XCSch_TaskReg"移入                       |
-    | XC_TaskRemove                     | [用户]任务移除                                | 新增  | 原"XC_Sch"的"XCSch_TaskRemove"移入                    |
-    | XC_SetTaskEntryPoint              | [用户]设置任务入口                            | 新增  | 原"XC_Sch"的"XCSch_SetTaskEntryPoint"移入             |
-    | XC_AddTask                        | [用户]添加任务                                | 新增  | 原"XC_Sch"的"XCSch_AddTask"移入,并改名                        |
-    | XC_SendNotify                     | [用户]发送通知                                | 修改  | 增加中断支持                                          |
-    | XC_TaskSuspend                    | [用户]任务挂起                                | 修改  | 增加中断支持                                          |
-    | XC_TaskResume                     | [用户]任务挂起恢复                            | 修改  | 增加中断支持                                          |
+    | 函数                              | 功能                                          | 操作  | 操作说明                                                          |
+    | ---                               | ---                                           | ---   | ---                                                               |
+    | XC_GetParamUint                   | 协程块内获取任务注册时传递的参数(uint32_t)    | 删除  | 基础为指针传递的,没有必要在做一层整型数据传递                     |
+    | XC_GetNotifyDataUint              | 获取通知的数据(uint32_t)                      | 删除  | 基础为指针传递的,没有必要在做一层整型数据传递                     |
+    | XC_GetTaskParamUint               | 获取任务注册时传递的参数(uint32_t)            | 删除  | 基础为指针传递的,没有必要在做一层整型数据传递                     |
+    | XC_UpdateNotifyDataUint           | 更新通知数据(uint32_t)                        | 删除  | 基础为指针传递的,没有必要在做一层整型数据传递                     |
+    | XC_ReadNotifyDataUint             | 读取通知数据(uint32_t)                        | 删除  | 基础为指针传递的,没有必要在做一层整型数据传递                     |
+    | XC_SendNotifyUint                 | 发送通知(uint32_t)                            | 删除  | 基础为指针传递的,没有必要在做一层整型数据传递                     |
+    | XC_TaskReset                      | 复位当前任务                                  | 删除  | 已有"XC_Reset",不在做兼容                                         |
+    | XC_Delay_min                      | 按min延时                                     | 删除  | 延时最高到s,后面自行转换                                          |
+    | XC_Delay_h                        | 按小时延时                                    | 删除  | 延时最高到s,后面自行转换                                          |
+    | XC_Delay_day                      | 按天延时                                      | 删除  | 延时最高到s,后面自行转换                                          |
+    | XC_MoveTaskToReadyList            | [内部]将任务移动到就绪表                      | 新增  | 优化代码                                                          |
+    | XC_MoveTaskToBlockedList          | [内部]将任务移动到阻塞表                      | 新增  | 优化代码                                                          |
+    | XC_InsertTaskToReadyList          | [内部]将任务插入到就绪表                      | 新增  | 原"XC_Sch"的"XCSch_ListNodeInsertIndexPrevious"移入,改名,改宏     |
+    | XC_InsertTaskToTimeList           | [内部]将任务插入到时间表                      | 新增  | 原"XC_Sch"的"XCSch_ListNodeInsertAsc"移入,并改名                  |
+    | XC_RemoveTaskNode                 | [内部]移除任务节点                            | 新增  | 原"XC_Sch"的"XCSch_ListNodeRemove"移入                            |
+    | XC_TaskReg                        | [用户]任务注册                                | 新增  | 原"XC_Sch"的"XCSch_TaskReg"移入                                   |
+    | XC_TaskRemove                     | [用户]任务移除                                | 新增  | 原"XC_Sch"的"XCSch_TaskRemove"移入,并优化                         |
+    | XC_SetTaskEntryPoint              | [用户]设置任务入口                            | 新增  | 原"XC_Sch"的"XCSch_SetTaskEntryPoint"移入                         |
+    | XC_AddTask                        | [用户]添加任务                                | 新增  | 原"XC_Sch"的"XCSch_AddTask"移入,并改名                            |
+    | XC_SendNotify                     | [用户]发送通知                                | 修改  | 增加中断支持                                                      |
+    | XC_TaskSuspend                    | [用户]任务挂起                                | 修改  | 增加中断支持                                                      |
+    | XC_TaskResume                     | [用户]任务挂起恢复                            | 修改  | 增加中断支持                                                      |
+    | XC_GetNotifyWakeState             | [用户][协程]获取通知唤醒状态                  | 修改  | 改名,改通知专用;原函数为"XC_GetWakeTimeout"                       |
+    | XC_GetWakeType                    | [用户][协程]获取唤醒类型                      | 新增  | 完善功能                                                          |
 - 删除文件统计
     | 文件名                    | 功能              | 删除原因                                      |
     | ---                       | ---               | ---                                           |

@@ -58,7 +58,7 @@ void XC_TaskBasicInit(XCTCB_t* phTCB)
 
 /**
  * @brief       [内部]将任务移动到就绪表
- * @param[in]   phTCB   [XCTCB_t*]协程控制块
+ * @param[in]   phTCB   协程控制块
  * @details
  *  将任务移动到当前就绪节点前,确保最后调用;
  */
@@ -74,7 +74,7 @@ void XC_MoveTaskToReadyList(XCTCB_t* phTCB)
 
 /**
  * @brief       [内部]将任务移动到阻塞表
- * @param[in]   phTCB   [XCTCB_t*]协程控制块
+ * @param[in]   phTCB   协程控制块
  * @details
  *  将任务移动到阻塞表尾部;
  */
@@ -104,15 +104,13 @@ void XC_InsertTaskToTimeList(XCListNode_t* pList, XCTCB_t* phTCB)
     XCuint_t      MaxTick = ~0; // Tick最大的值
 
     if(MaxTick == phTCB->TaskWakeTick) {
-        // 若是唤醒值等于最大值,则迭代器设置为根节点
-        pIterator = pList;
+        pIterator = pList; // 若是唤醒值等于最大值,则迭代器设置为根节点
     }
-    else {
-        // 查找(小->大)
-        pIterator = pList->pNext; // 获取根节点的下个节点地址
-        while((pIterator != pList) && (((XCTCB_t*)pIterator)->TaskWakeTick <= phTCB->TaskWakeTick)) {
-            // 指向节点不是根节点 && 指向节点的值小于新节点的值;
-            pIterator = pIterator->pNext; // 指向下个节点
+    else {                                                                    // 查找(小->大)
+        pIterator = pList->pNext;                                             // 获取根节点的下个节点地址
+        while((pIterator != pList) &&                                         // 指向节点不是根节点
+              (((XCTCB_t*)pIterator)->TaskWakeTick <= phTCB->TaskWakeTick)) { // 指向节点的值小于新节点的值
+            pIterator = pIterator->pNext;                                     // 指向下个节点
         }
     }
     XCList_InsertNodeBefore(pIterator, &phTCB->ListNode); // 插入节点,在"pIterator"之前
@@ -170,9 +168,9 @@ int32_t XC_TaskReg(XCOS_t* phXCOS, XCTCB_t* phTCB, void (*fTask)(XCTCB_t*), void
     phTCB->TaskState = _XC_S_Ready; // 任务更新状态为就绪
     phXCOS->TaskNum++;              // 任务数+1
 
-    XCSch_ListOperationStart(phXCOS); // 链表操作开始
-    XC_InsertTaskToReadyList(phTCB);  // 插入就续表
-    XCSch_ListOperationEnd(phXCOS);   // 链表操作结束
+    XCSch_ListLock(phXCOS);          // 链表锁
+    XC_InsertTaskToReadyList(phTCB); // 插入就续表
+    XCSch_ListUnlock(phXCOS);        // 链表解锁
     return (_XC_R_OK);
 }
 
@@ -189,16 +187,15 @@ void XC_TaskRemove(XCTCB_t* phTCB)
         XC_TaskBasicInit(phTCB); // 基本数据初始化
 
         // 从表中删除任务
-        XCSch_ListOperationStart(phTCB->phXCOS); // 链表操作开始
-        XC_RemoveTaskNode(phTCB);
-        phTCB->phXCOS->TaskNum--;              // 任务数-1
-        XCSch_ListOperationEnd(phTCB->phXCOS); // 链表操作结束
+        XCSch_ListLock(phTCB->phXCOS);   // 链表锁
+        XC_RemoveTaskNode(phTCB);        // 移除任务节点(节点将被初始化)
+        phTCB->phXCOS->TaskNum--;        // 任务数-1
+        XCSch_ListUnlock(phTCB->phXCOS); // 链表解锁
 
-        XCList_InitNode(&phTCB->ListNode); // 初始化链表
-        phTCB->phXCOS    = NULL;           // 清除任务的所属框架句柄
-        phTCB->fTask     = NULL;           // 清除任务入口
-        phTCB->pParam    = NULL;           // 清除任务参数
-        phTCB->TaskState = _XC_S_Void;     // 任务状态改为空
+        phTCB->phXCOS    = NULL;       // 清除任务的所属框架句柄
+        phTCB->fTask     = NULL;       // 清除任务入口
+        phTCB->pParam    = NULL;       // 清除任务参数
+        phTCB->TaskState = _XC_S_Void; // 任务状态改为空
     }
 }
 
@@ -218,9 +215,9 @@ void XC_TaskReset(XCTCB_t* phTCB)
     phTCB->TaskState = _XC_S_Ready; // 任务更新状态为就绪
 
     // 重置到就绪表
-    XCSch_ListOperationStart(phTCB->phXCOS); // 链表操作开始
-    XC_MoveTaskToReadyList(phTCB);           // 任务移动到就绪表
-    XCSch_ListOperationEnd(phTCB->phXCOS);   // 链表操作结束
+    XCSch_ListLock(phTCB->phXCOS);   // 链表锁
+    XC_MoveTaskToReadyList(phTCB);   // 任务移动到就绪表
+    XCSch_ListUnlock(phTCB->phXCOS); // 链表解锁
 }
 
 /************************************************ 我是分割线 ************************************************/
@@ -273,9 +270,9 @@ int32_t XC_AddTask(XCOS_t* phXCOS, XCTCB_t* phTCB)
     phTCB->phXCOS = phXCOS; // 保存任务的所属框架句柄
     phXCOS->TaskNum++;      // 任务数+1
 
-    XCSch_ListOperationStart(phXCOS); // 链表操作开始
-    XC_InsertTaskToReadyList(phTCB);  // 插入就续表
-    XCSch_ListOperationEnd(phXCOS);   // 链表操作结束
+    XCSch_ListLock(phXCOS);          // 链表锁
+    XC_InsertTaskToReadyList(phTCB); // 插入就续表
+    XCSch_ListUnlock(phXCOS);        // 链表解锁
     return (_XC_R_OK);
 }
 
@@ -315,9 +312,10 @@ int32_t XC_SendNotify(XCTCB_t* phTCB, void* pNotifyData)
      *  若是此处是"有链表操作",必定是中断调用了;
      *  这里是异步操作
      */
-    if((phTCB->TaskState == _XC_S_Run) ||                   // 判断任务是否在运行中
-       (XCSch_GetListOperationState(phTCB->phXCOS) == 1)) { // 判断是否有链表操作
-        phTCB->pNotifyData = pNotifyData;                   // 提前保存传递的通知数据
+    // if((phTCB == ((XCTCB_t*)(phTCB->phXCOS->pReadyNode))) || // 判断任务是否是就绪节点
+    //    (XCSch_GetListLockState(phTCB->phXCOS) == 1)) {       // 判断是否有链表操作
+    if(XCSch_GetListLockState(phTCB->phXCOS) == 1) { // 判断是否有链表操作
+        phTCB->pNotifyData = pNotifyData;            // 提前保存传递的通知数据
         // 触发异步操作
         phTCB->NotifyTrigger++;            // 通知触发
         phTCB->phXCOS->TaskSchedTrigger++; // 异步调度触发
@@ -326,12 +324,12 @@ int32_t XC_SendNotify(XCTCB_t* phTCB, void* pNotifyData)
 
     /** 同步操作,没有运行中且没有操作链表,直接处理 */
 
-    XCSch_ListOperationStart(phTCB->phXCOS); // 链表操作开始
-    XC_MoveTaskToReadyList(phTCB);           // 移动到就绪表
-    phTCB->pNotifyData = pNotifyData;        // 传递的通知数据
-    phTCB->WakeType    = _XC_Wake_Notify;    // 被通知唤醒
-    phTCB->TaskState   = _XC_S_Ready;        // 任务状态:就绪
-    XCSch_ListOperationEnd(phTCB->phXCOS);   // 链表操作结束
+    XCSch_ListLock(phTCB->phXCOS);        // 链表锁
+    XC_MoveTaskToReadyList(phTCB);        // 移动到就绪表
+    phTCB->pNotifyData = pNotifyData;     // 传递的通知数据
+    phTCB->WakeType    = _XC_Wake_Notify; // 被通知唤醒
+    phTCB->TaskState   = _XC_S_Ready;     // 任务状态:就绪
+    XCSch_ListUnlock(phTCB->phXCOS);      // 链表解锁
 
     return (_XC_R_OK);
 }
@@ -370,8 +368,9 @@ int32_t XC_TaskSuspend(XCTCB_t* phTCB)
      *  若是任务运行中或者有链表操作,则异步操作
      *  若是此处是"有链表操作",必定是中断调用了
      */
-    if((phTCB->TaskState == _XC_S_Run) ||                   // 判断任务是否在运行中
-       (XCSch_GetListOperationState(phTCB->phXCOS) == 1)) { // 判断是否有链表操作
+    // if((phTCB == ((XCTCB_t*)(phTCB->phXCOS->pReadyNode))) || // 判断任务是否在运行中
+    //    (XCSch_GetListLockState(phTCB->phXCOS) == 1)) {       // 判断是否有链表操作
+    if(XCSch_GetListLockState(phTCB->phXCOS) == 1) { // 判断是否有链表操作
         // 触发异步操作
         phTCB->StateChangeTrigger++;            // 状态改变触发
         phTCB->StateChangeType = _XC_S_Suspend; // 状态改变类型:挂起
@@ -381,10 +380,10 @@ int32_t XC_TaskSuspend(XCTCB_t* phTCB)
 
     /** 同步操作,没有运行中且没有操作链表,直接处理 */
 
-    XCSch_ListOperationStart(phTCB->phXCOS); // 链表操作开始
-    phTCB->TaskState = _XC_S_Suspend;        // 任务状态:挂起
-    XC_MoveTaskToBlockedList(phTCB);         // 将任务移动到阻塞表
-    XCSch_ListOperationEnd(phTCB->phXCOS);   // 链表操作结束
+    XCSch_ListLock(phTCB->phXCOS);    // 链表锁
+    phTCB->TaskState = _XC_S_Suspend; // 任务状态:挂起
+    XC_MoveTaskToBlockedList(phTCB);  // 将任务移动到阻塞表
+    XCSch_ListUnlock(phTCB->phXCOS);  // 链表解锁
 
     return (_XC_R_OK);
 }
@@ -410,8 +409,9 @@ int32_t XC_TaskResume(XCTCB_t* phTCB)
      *  若是任务运行中或者有链表操作,则异步操作
      *  若是此处是"有链表操作",必定是中断调用了
      */
-    if((phTCB->TaskState == _XC_S_Run) ||                   // 判断任务是否在运行中
-       (XCSch_GetListOperationState(phTCB->phXCOS) == 1)) { // 判断是否有链表操作
+    // if((phTCB == ((XCTCB_t*)(phTCB->phXCOS->pReadyNode))) || // 判断任务是否在运行中
+    //    (XCSch_GetListLockState(phTCB->phXCOS) == 1)) {       // 判断是否有链表操作
+    if(XCSch_GetListLockState(phTCB->phXCOS) == 1) { // 判断是否有链表操作
         // 触发异步操作
         phTCB->StateChangeTrigger++;         // 状态改变触发
         phTCB->StateChangeType = _XC_S_Void; // 状态改变类型:未挂起(恢复)
@@ -421,11 +421,11 @@ int32_t XC_TaskResume(XCTCB_t* phTCB)
 
     /** 同步操作,没有运行中且没有操作链表,直接处理 */
 
-    XCSch_ListOperationStart(phTCB->phXCOS); // 链表操作开始
-    XC_MoveTaskToReadyList(phTCB);           // 将任务移动到就绪表
-    phTCB->WakeType  = _XC_Wake_TaskResume;  // 被任务恢复唤醒
-    phTCB->TaskState = _XC_S_Ready;          // 任务状态:就绪
-    XCSch_ListOperationEnd(phTCB->phXCOS);   // 链表操作结束
+    XCSch_ListLock(phTCB->phXCOS);          // 链表锁
+    XC_MoveTaskToReadyList(phTCB);          // 将任务移动到就绪表
+    phTCB->WakeType  = _XC_Wake_TaskResume; // 被任务恢复唤醒
+    phTCB->TaskState = _XC_S_Ready;         // 任务状态:就绪
+    XCSch_ListUnlock(phTCB->phXCOS);        // 链表解锁
 
     return (_XC_R_OK);
 }

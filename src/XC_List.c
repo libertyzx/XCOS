@@ -62,6 +62,20 @@ void XCList_MoveNodeBefore(XCListNode_t* pDestNode, XCListNode_t* pSrcNode)
     pDestNode->pPrev        = pSrcNode;
 }
 
+/**
+ * @brief       [内部]从链表中移除一个节点
+ * @param[in]   pNode   需要删除的节点
+ * @details     只处理链表节点部分,不影响节点挂载的其他数据;
+ */
+// void XCList_Remove(XCListNode_t* pNode)
+// {
+//     /* 链接前后两个节点来删除节点*/
+//     pNode->pNext->pPrev = pNode->pPrev;
+//     pNode->pPrev->pNext = pNode->pNext;
+//     /* 初始化删除的节点*/
+//     XCList_InitNode(pNode);
+// }
+
 /************************************************ 我是分割线 ************************************************/
 /**链表操作 */
 
@@ -71,43 +85,43 @@ void XCList_MoveNodeBefore(XCListNode_t* pDestNode, XCListNode_t* pSrcNode)
  * @param[in]   pList2  链表2
  * @details     直接交换两个链表根节点的链接;交换后链表为空,则初始化;
  */
-void XCList_SwapList(XCListNode_t* pList1, XCListNode_t* pList2)
-{
-    XCListNode_t* pNext;
-    XCListNode_t* pPrev;
-    uint8_t       List1NodeExistence;
+// void XCList_SwapList(XCListNode_t* pList1, XCListNode_t* pList2)
+// {
+//     XCListNode_t* pNext;
+//     XCListNode_t* pPrev;
+//     uint8_t       List1NodeExistence;
 
-    // 保存链表1的上下节点,给于链表2
-    pNext              = pList1->pNext;
-    pPrev              = pList1->pPrev;
-    List1NodeExistence = XCList_ListValid(pList1);
+//     // 保存链表1的上下节点,给于链表2
+//     pNext              = pList1->pNext;
+//     pPrev              = pList1->pPrev;
+//     List1NodeExistence = XCList_ListValid(pList1);
 
-    // 链表2有节点
-    if(XCList_ListValid(pList2)) {
-        // 将链表2的上下节点给链表1
-        pList1->pNext = pList2->pNext;
-        pList1->pPrev = pList2->pPrev;
-        // 将链表1的上下节点链接到链表1
-        pList1->pNext->pPrev = pList1;
-        pList1->pPrev->pNext = pList1;
-    }
-    else {
-        XCList_Init(pList1);
-    }
+//     // 链表2有节点
+//     if(XCList_ListValid(pList2)) {
+//         // 将链表2的上下节点给链表1
+//         pList1->pNext = pList2->pNext;
+//         pList1->pPrev = pList2->pPrev;
+//         // 将链表1的上下节点链接到链表1
+//         pList1->pNext->pPrev = pList1;
+//         pList1->pPrev->pNext = pList1;
+//     }
+//     else {
+//         XCList_Init(pList1);
+//     }
 
-    // 链表1有节点
-    if(List1NodeExistence) {
-        // 将保存的链表1给于链表2
-        pList2->pNext = pNext;
-        pList2->pPrev = pPrev;
-        // 将链表2的上下节点链接到链表2
-        pList2->pNext->pPrev = pList2;
-        pList2->pPrev->pNext = pList2;
-    }
-    else {
-        XCList_Init(pList2);
-    }
-}
+//     // 链表1有节点
+//     if(List1NodeExistence) {
+//         // 将保存的链表1给于链表2
+//         pList2->pNext = pNext;
+//         pList2->pPrev = pPrev;
+//         // 将链表2的上下节点链接到链表2
+//         pList2->pNext->pPrev = pList2;
+//         pList2->pPrev->pNext = pList2;
+//     }
+//     else {
+//         XCList_Init(pList2);
+//     }
+// }
 
 /**
  * @brief       [内部]将一个链表全部移动到另个链表的一个节点前
@@ -120,11 +134,11 @@ void XCList_SwapList(XCListNode_t* pList1, XCListNode_t* pList2)
  *  >   链表X:Root,X1,X2,X3,Root \n
  *  >   链表Y:Root,Y1,Y2,Y3,Root \n
  *  >   在链表1节点X2的上面插入链表2; \n
- *  >   函数为:XCList_SwapListToNodeBefore(&X2,&Y); \n
+ *  >   函数为:XCList_MoveListToNodeBefore(&X2,&Y); \n
  *  >   运行后得到: \n
  *  >   链表X: Root,X1,Y1,Y2,Y3,X2,X3,Root; \n
  *  >   链表Y: 被清除;
- *  - 运行表(运行:XCList_SwapListToNodeBefore(&X2,&Y);)
+ *  - 运行表(运行:XCList_MoveListToNodeBefore(&X2,&Y);)
  *  > XR,YR:为根节点; X*,Y*:为节点; P:指向上个节点; N:指向下个节点
  *  > 运行顺序对应代码操作;
  *  | 链表\运行顺序 | 1    | 2    | 3    | 4    | 5         | 最终得到     |
@@ -149,7 +163,7 @@ void XCList_SwapList(XCListNode_t* pList1, XCListNode_t* pList2)
  *  | X3,P=X2,N=XR |              |
  *
  */
-void XCList_SwapListToNodeBefore(XCListNode_t* pDestNode, XCListNode_t* pSrcList)
+void XCList_MoveListToNodeBefore(XCListNode_t* pDestNode, XCListNode_t* pSrcList)
 {
     pDestNode->pPrev->pNext = pSrcList->pNext;  //[1]节点上的下,链接到,链表下
     pSrcList->pNext->pPrev  = pDestNode->pPrev; //[2]链表下的上,链接到,节点上

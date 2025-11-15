@@ -65,6 +65,20 @@ typedef enum {
 } XCState_t;
 
 /**
+ * @brief   [用户]唤醒状态
+ * @details
+ *  注意,这里"_XC_Wake_Notify"做了特殊化,固定0;
+ *  因为在调用通知唤醒状态时会判断"_XC_Wake_Notify",
+ *  此配置为0时,编译器编译"Cortex-M*"编译优化小于"-O3"时可减少存储占用;
+ */
+typedef enum {
+    _XC_Wake_Non        = 1, // 无唤醒
+    _XC_Wake_Time       = 2, // 时间到达唤醒
+    _XC_Wake_Notify     = 0, // 通知到达唤醒
+    _XC_Wake_TaskResume = 3, // 任务挂起后恢复
+} XCWake_t;
+
+/**
  * @brief   [内部]阻塞类型
  */
 typedef enum {
@@ -72,16 +86,6 @@ typedef enum {
     _XC_B_Blocked    = _B0000_0001, // 阻塞
     _XC_B_WaitTime   = _B0000_0010, // 等待时间
 } XCBlocked_t;
-
-/**
- * @brief   [内部]唤醒状态
- */
-typedef enum {
-    _XC_Wake_Non = 0,    // 无唤醒
-    _XC_Wake_Time,       // 时间到达唤醒
-    _XC_Wake_Notify,     // 通知到达唤醒
-    _XC_Wake_TaskResume, // 任务挂起后恢复
-} XCWake_t;
 
 /************************************************ 我是分割线 ************************************************/
 /** 类型 */
@@ -138,10 +142,35 @@ void XC_TaskBasicInit(XCTCB_t* phTCB); //[内部]任务基本初始化
 
 /** 函数声明-[内部]任务链表节点处理 */
 
-void XC_MoveTaskToReadyList(XCTCB_t* phTCB);                       // [内部]将任务移动到就绪表
-void XC_MoveTaskToBlockedList(XCTCB_t* phTCB);                     // [内部]将任务移动到阻塞表
+/**
+ * @brief       [内部]将任务移动到就绪表
+ * @param[in]   phTCB   [XCTCB_t*]协程控制块
+ * @details
+ *  将任务移动到当前就绪节点前,确保最后调用;
+ */
+// #define XC_MoveTaskToReadyList(_phTCB)   XCList_MoveNodeBefore((_phTCB)->phXCOS->pReadyNode, &(_phTCB)->ListNode);
+void XC_MoveTaskToReadyList(XCTCB_t* phTCB); // [内部]将任务移动到就绪表
+
+/**
+ * @brief       [内部]将任务移动到阻塞表
+ * @param[in]   phTCB   [XCTCB_t*]协程控制块
+ * @details
+ *  将任务移动到阻塞表尾部;
+ */
+// #define XC_MoveTaskToBlockedList(_phTCB) XCList_MoveNodeBefore(&(_phTCB)->phXCOS->BlockedList, &(_phTCB)->ListNode);
+void XC_MoveTaskToBlockedList(XCTCB_t* phTCB); // [内部]将任务移动到阻塞表
+
 void XC_InsertTaskToTimeList(XCListNode_t* pList, XCTCB_t* phTCB); // [内部]将任务插入到时间表
-void XC_RemoveTaskNode(XCTCB_t* phTCB);                            // [内部]移除任务节点
+
+/**
+ * @brief       [内部]移除任务节点
+ * @param[in]   phTCB   [XCTCB_t*]协程控制块
+ * @return      void
+ * @details
+ *  从XCOS中删除TCB节点;
+ */
+// #define XC_RemoveTaskNode(_phTCB)        XCList_Remove(&(_phTCB)->ListNode);
+void XC_RemoveTaskNode(XCTCB_t* phTCB); // [内部]移除任务节点
 
 /**
  * @brief       [内部]将任务插入到就绪表
@@ -340,6 +369,16 @@ int32_t XC_TaskResume(XCTCB_t* phTCB);
         _COR_SetBPBreak(*_pXCPB_); /*设置断点并跳出*/ \
     }
 
+/**
+ * @brief   [用户][协程]获取唤醒类型
+ * @return  uint8_t   唤醒的类型,返回"XCWake_t"类型数据;
+ * @details
+ *  必须在协程块中使用; \n
+ *  在任务等待通知,延时,挂起等操作唤醒后确定唤醒源是什么; \n
+ *  注意,唤醒源不会被清除,直到下次唤醒;
+ */
+#define XC_GetWakeType() (_phXCTCB_->WakeType)
+
 /************************************************ 我是分割线 ************************************************/
 /** 协程块:延时处理,必须在协程块中调用 */
 
@@ -396,7 +435,7 @@ int32_t XC_TaskResume(XCTCB_t* phTCB);
  * @details
  *  **必须在协程块中使用;** \n
  *  任务等待通知; \n
- *  唤醒后用"XC_GetWakeTimeout"判断是否超时;
+ *  唤醒后用"XC_GetNotifyWakeState"判断是否超时;
  *  注意:"TaskState"任务状态参数需要最先改变,防止出现临界段;
  */
 #define XC_WaitNotify(_TickTimeout)                                                          \
@@ -414,12 +453,12 @@ int32_t XC_TaskResume(XCTCB_t* phTCB);
  * @details
  *  **必须在协程块中使用;** \n
  *  任务等待通知; \n
- *  唤醒后用"XC_GetWakeTimeout"判断是否超时;
+ *  唤醒后用"XC_GetNotifyWakeState"判断是否超时;
  */
 #define XC_WaitNotify_ms(_msTimeout) XC_WaitNotify(_Time_ms2Tick(_msTimeout))
 
 /**
- * @brief       [用户][协程]获取唤醒超时
+ * @brief       [用户][协程]获取通知唤醒状态
  * @return      boot
  * @retval      0 : 没有超时
  * @retval      1 : 超时
@@ -428,7 +467,7 @@ int32_t XC_TaskResume(XCTCB_t* phTCB);
  *  用于判断任务通知阻塞唤醒后是否超时;
  *  > 通知函数:XC_WaitNotify
  */
-#define XC_GetWakeTimeout()          (_phXCTCB_->WakeType == _XC_Wake_Time)
+#define XC_GetNotifyWakeState()      (_phXCTCB_->WakeType != _XC_Wake_Notify)
 
 /**
  * @brief       [用户][协程]获取通知的数据(void*)

@@ -26,25 +26,29 @@
  ************************************************************************************************************|
  */
 
-// XCOS变量
-_XC_CreateSysTickCount;      // 创建系统Tick
-XCOS_t  s_hXCOS0;            // XCOS句柄
-XCTCB_t s_hTCBn[10] = { 0 }; // 任务控制块
+// 宏
+#define _Cnf_RunTask (1) // 开关所以任务代码的开关(1开;0关)
 
-// 其他变量
+// XCOS变量
+_XC_CreateSysTickCount; // 创建系统Tick
+XCOS_t s_hXCOS0;        // XCOS句柄
+
+#if (_Cnf_RunTask == 1)
+XCTCB_t  s_hTCBn[10]     = { 0 }; // 任务控制块
 uint32_t s_TickCount[10] = { 0 }; // 保存计数
+#endif
 
 /*
  ************************************************************************************************************|
  ************************************************ 我是分割线 ************************************************|
  ************************************************************************************************************|
  */
-
+#if (_Cnf_RunTask == 1)
 /**
  * @brief       任务0
  * @param[in]   phTCB   任务控制块
  * @details
- *  基础框架,演示延时和让出控制,后被删除
+ *  基础框架,演示延时和让出控制,后被A6删除
  */
 void Task_A0(XCTCB_t* phTCB)
 {
@@ -64,7 +68,7 @@ void Task_A0(XCTCB_t* phTCB)
  * @brief       任务1
  * @param[in]   phTCB   任务控制块
  * @details
- *  通知处理演示,等待通知唤醒任务;
+ *  通知处理演示,等待A2通知唤醒任务;
  */
 void Task_A1(XCTCB_t* phTCB)
 {
@@ -75,7 +79,7 @@ void Task_A1(XCTCB_t* phTCB)
     s_TickCount[1] = 0;
     while(1) {
         XC_WaitNotify_ms(555);                    // 等待通知,超时555ms
-        if(XC_GetWakeTimeout() == 0) {            // 未超时,通知到达
+        if(XC_GetNotifyWakeState() == 0) {        // 未超时,通知到达
             Cache = (uint32_t)XC_GetNotifyData(); // 获取传递的参数
             if(Cache == 2) {                      // 传递参数是2时
                 s_TickCount[1]++;                 // 计数+1
@@ -90,7 +94,7 @@ void Task_A1(XCTCB_t* phTCB)
  * @brief       任务2
  * @param[in]   phTCB   任务控制块
  * @details
- *  通知处理演示,唤醒任务1(Task_A1)
+ *  通知处理演示,唤醒A1
  */
 void Task_A2(XCTCB_t* phTCB)
 {
@@ -112,7 +116,7 @@ void Task_A2(XCTCB_t* phTCB)
  * @brief       任务3
  * @param[in]   phTCB   任务控制块
  * @details
- *  挂起恢复演示,挂起自身
+ *  挂起恢复演示,挂起自身,等待被A4恢复
  */
 void Task_A3(XCTCB_t* phTCB)
 {
@@ -181,7 +185,7 @@ void Task_A5(XCTCB_t* phTCB)
  * @brief       任务6
  * @param[in]   phTCB   任务控制块
  * @details
- *  演示移除任务;计数到达指定值,移除任务0
+ *  演示移除任务;计数到达指定值,移除A0
  */
 void Task_A6(XCTCB_t* phTCB)
 {
@@ -203,7 +207,7 @@ void Task_A6(XCTCB_t* phTCB)
  * @brief       任务7
  * @param[in]   phTCB   任务控制块
  * @details
- *  演示中断通知唤醒任务;
+ *  演示中断通知唤醒任务,需要手动中断;
  */
 void Task_A7(XCTCB_t* phTCB)
 {
@@ -214,7 +218,7 @@ void Task_A7(XCTCB_t* phTCB)
     s_TickCount[7] = 0;
     while(1) {
         XC_WaitNotify_ms(1001);                   // 等待通知
-        if(XC_GetWakeTimeout() == 0) {            // 未超时,通知到达
+        if(XC_GetNotifyWakeState() == 0) {        // 未超时,通知到达
             Cache = (uint32_t)XC_GetNotifyData(); // 获取传递的参数
             if(Cache == 7) {                      // 传递参数是7时
                 s_TickCount[7]++;                 // 计数+1
@@ -229,7 +233,7 @@ void Task_A7(XCTCB_t* phTCB)
  * @brief       任务8
  * @param[in]   phTCB   任务控制块
  * @details
- *  演示中断挂起恢复任务;
+ *  演示中断挂起恢复任务,需要手动中断;
  */
 void Task_A8(XCTCB_t* phTCB)
 {
@@ -266,13 +270,15 @@ void Task_A9(XCTCB_t* phTCB)
 /**
  * @brief
  * @param[in]   hXCOS       框架句柄
- * @param[in]   NextTick    空闲的Tick
+ * @param[in]   IdleTick    空闲的Tick
  * @details     空闲处理
  */
-void Idle(XCOS_t* hXCOS, XCuint_t NextTick)
+void Idle(XCOS_t* hXCOS, XCuint_t IdleTick)
 {
-    XCTime_BlockDelay(NextTick); // 阻塞循环,模拟休眠
+    XCTime_BlockDelay(IdleTick); // 阻塞循环,模拟休眠
 }
+
+#endif
 
 /************************************************ 我是分割线 ************************************************/
 
@@ -284,7 +290,9 @@ void EXTI0_IRQHandler(void)
 {
     // 调用HAL库提供的外部中断处理函数
     HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_0);
+#if (_Cnf_RunTask == 1)
     XC_SendNotify(&s_hTCBn[7], (void*)7); // 通知唤醒任务7
+#endif
 }
 
 /**
@@ -295,7 +303,9 @@ void EXTI1_IRQHandler(void)
 {
     // 调用HAL库提供的外部中断处理函数
     HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_1);
+#if (_Cnf_RunTask == 1)
     XC_TaskResume(&s_hTCBn[8]); // 挂起恢复任务8
+#endif
 }
 
 /**
@@ -366,10 +376,10 @@ int main(void)
     HAL_NVIC_EnableIRQ(EXTI1_IRQn);
 
     /** XCOS框架 */
+    XCSch_Init(&s_hXCOS0); // 初始化XCOS
+#if (_Cnf_RunTask == 1)
     _XC_SysTickCount = 0xFFFFFF00;
-    XCSch_Init(&s_hXCOS0);                  // 初始化XCOS
     XCSch_SetIdleCallback(&s_hXCOS0, Idle); // 空闲处理回调
-
     // 初始化任务
     XC_TaskReg(&s_hXCOS0, &s_hTCBn[0], Task_A0, NULL);
     XC_TaskReg(&s_hXCOS0, &s_hTCBn[1], Task_A1, NULL);
@@ -381,7 +391,7 @@ int main(void)
     XC_TaskReg(&s_hXCOS0, &s_hTCBn[7], Task_A7, NULL);
     XC_TaskReg(&s_hXCOS0, &s_hTCBn[8], Task_A8, NULL);
     XC_TaskReg(&s_hXCOS0, &s_hTCBn[9], Task_A9, NULL);
-
+#endif
     XCSch_Run(&s_hXCOS0); // 调度器阻塞运行
 }
 
