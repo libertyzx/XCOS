@@ -148,8 +148,8 @@ void XC_TaskBasicInit(XCTCB_t* phTCB); //[内部]任务基本初始化
  * @details
  *  将任务移动到当前就绪节点前,确保最后调用;
  */
-// #define XC_MoveTaskToReadyList(_phTCB)   XCList_MoveNodeBefore((_phTCB)->phXCOS->pReadyNode, &(_phTCB)->ListNode);
-void XC_MoveTaskToReadyList(XCTCB_t* phTCB); // [内部]将任务移动到就绪表
+#define XC_MoveTaskToReadyList(_phTCB)   XCList_MoveNodeBefore((_phTCB)->phXCOS->pReadyNode, &(_phTCB)->ListNode);
+// void XC_MoveTaskToReadyList(XCTCB_t* phTCB); // [内部]将任务移动到就绪表
 
 /**
  * @brief       [内部]将任务移动到阻塞表
@@ -157,8 +157,8 @@ void XC_MoveTaskToReadyList(XCTCB_t* phTCB); // [内部]将任务移动到就绪表
  * @details
  *  将任务移动到阻塞表尾部;
  */
-// #define XC_MoveTaskToBlockedList(_phTCB) XCList_MoveNodeBefore(&(_phTCB)->phXCOS->BlockedList, &(_phTCB)->ListNode);
-void XC_MoveTaskToBlockedList(XCTCB_t* phTCB); // [内部]将任务移动到阻塞表
+#define XC_MoveTaskToBlockedList(_phTCB) XCList_MoveNodeBefore(&(_phTCB)->phXCOS->BlockedList, &(_phTCB)->ListNode);
+// void XC_MoveTaskToBlockedList(XCTCB_t* phTCB); // [内部]将任务移动到阻塞表
 
 void XC_InsertTaskToTimeList(XCListNode_t* pList, XCTCB_t* phTCB); // [内部]将任务插入到时间表
 
@@ -169,8 +169,8 @@ void XC_InsertTaskToTimeList(XCListNode_t* pList, XCTCB_t* phTCB); // [内部]将任
  * @details
  *  从XCOS中删除TCB节点;
  */
-// #define XC_RemoveTaskNode(_phTCB)        XCList_Remove(&(_phTCB)->ListNode);
-void XC_RemoveTaskNode(XCTCB_t* phTCB); // [内部]移除任务节点
+#define XC_RemoveTaskNode(_phTCB)        XCList_Remove(&(_phTCB)->ListNode);
+// void XC_RemoveTaskNode(XCTCB_t* phTCB); // [内部]移除任务节点
 
 /**
  * @brief       [内部]将任务插入到就绪表

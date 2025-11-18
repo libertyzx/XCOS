@@ -80,6 +80,8 @@ Program Size: Code=6024 RO-data=380 RW-data=20 ZI-data=1516
 Program Size: Code=6008 RO-data=380 RW-data=20 ZI-data=1516
 Program Size: Code=6004 RO-data=380 RW-data=20 ZI-data=1516
 Program Size: Code=5976 RO-data=380 RW-data=20 ZI-data=1516
+Program Size: Code=6000 RO-data=380 RW-data=20 ZI-data=1516
+Program Size: Code=5992 RO-data=380 RW-data=20 ZI-data=1516
 
 -O2
 Program Size: Code=4752 RO-data=372 RW-data=20 ZI-data=1516

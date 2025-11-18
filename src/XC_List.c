@@ -67,14 +67,14 @@ void XCList_MoveNodeBefore(XCListNode_t* pDestNode, XCListNode_t* pSrcNode)
  * @param[in]   pNode   需要删除的节点
  * @details     只处理链表节点部分,不影响节点挂载的其他数据;
  */
-// void XCList_Remove(XCListNode_t* pNode)
-// {
-//     /* 链接前后两个节点来删除节点*/
-//     pNode->pNext->pPrev = pNode->pPrev;
-//     pNode->pPrev->pNext = pNode->pNext;
-//     /* 初始化删除的节点*/
-//     XCList_InitNode(pNode);
-// }
+void XCList_Remove(XCListNode_t* pNode)
+{
+    /* 链接前后两个节点来删除节点*/
+    pNode->pNext->pPrev = pNode->pPrev;
+    pNode->pPrev->pNext = pNode->pNext;
+    /* 初始化删除的节点*/
+    XCList_InitNode(pNode);
+}
 
 /************************************************ 我是分割线 ************************************************/
 /**链表操作 */

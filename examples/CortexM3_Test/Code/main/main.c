@@ -26,8 +26,7 @@
  ************************************************************************************************************|
  */
 
-// 宏
-#define _Cnf_RunTask (1) // 开关所以任务代码的开关(1开;0关)
+
 
 // XCOS变量
 _XC_CreateSysTickCount; // 创建系统Tick
@@ -378,7 +377,7 @@ int main(void)
     /** XCOS框架 */
     XCSch_Init(&s_hXCOS0); // 初始化XCOS
 #if (_Cnf_RunTask == 1)
-    _XC_SysTickCount = 0xFFFFFF00;
+    _XC_SysTickCount = 0xFFFFFF00-1;
     XCSch_SetIdleCallback(&s_hXCOS0, Idle); // 空闲处理回调
     // 初始化任务
     XC_TaskReg(&s_hXCOS0, &s_hTCBn[0], Task_A0, NULL);

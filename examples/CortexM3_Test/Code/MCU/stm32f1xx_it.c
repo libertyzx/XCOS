@@ -133,7 +133,10 @@ void PendSV_Handler(void)
  */
 void SysTick_Handler(void)
 {
+#if (_Cnf_RunTask == 1)
     XC_AccSysTickCount();
+    // _XC_SysTickCount = _XC_SysTickCount & 0xFFFF;
+#endif
     HAL_IncTick();
 }
 

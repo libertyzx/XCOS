@@ -62,15 +62,15 @@ void XC_TaskBasicInit(XCTCB_t* phTCB)
  * @details
  *  将任务移动到当前就绪节点前,确保最后调用;
  */
-void XC_MoveTaskToReadyList(XCTCB_t* phTCB)
-{
-    // 若移动的是就绪节点,则将就绪节点指向上个节点
-    if(phTCB->phXCOS->pReadyNode == &phTCB->ListNode) {
-        phTCB->phXCOS->pReadyNode = phTCB->ListNode.pPrev;
-    }
-    // 将节点移动到就绪节点之前
-    XCList_MoveNodeBefore(phTCB->phXCOS->pReadyNode, &phTCB->ListNode);
-}
+// void XC_MoveTaskToReadyList(XCTCB_t* phTCB)
+// {
+//     // 若移动的是就绪节点,则将就绪节点指向上个节点
+//     if(phTCB->phXCOS->pReadyNode == &phTCB->ListNode) {
+//         phTCB->phXCOS->pReadyNode = phTCB->ListNode.pPrev;
+//     }
+//     // 将节点移动到就绪节点之前
+//     XCList_MoveNodeBefore(phTCB->phXCOS->pReadyNode, &phTCB->ListNode);
+// }
 
 /**
  * @brief       [内部]将任务移动到阻塞表
@@ -78,15 +78,15 @@ void XC_MoveTaskToReadyList(XCTCB_t* phTCB)
  * @details
  *  将任务移动到阻塞表尾部;
  */
-void XC_MoveTaskToBlockedList(XCTCB_t* phTCB)
-{
-    // 若移动的是就绪节点,则将就绪节点指向上个节点
-    if(phTCB->phXCOS->pReadyNode == &phTCB->ListNode) {
-        phTCB->phXCOS->pReadyNode = phTCB->ListNode.pPrev;
-    }
-    // 将节点移动到阻塞表尾部(即根节点的上个节点)
-    XCList_MoveNodeBefore(&phTCB->phXCOS->BlockedList, &phTCB->ListNode);
-}
+// void XC_MoveTaskToBlockedList(XCTCB_t* phTCB)
+// {
+//     // 若移动的是就绪节点,则将就绪节点指向上个节点
+//     if(phTCB->phXCOS->pReadyNode == &phTCB->ListNode) {
+//         phTCB->phXCOS->pReadyNode = phTCB->ListNode.pPrev;
+//     }
+//     // 将节点移动到阻塞表尾部(即根节点的上个节点)
+//     XCList_MoveNodeBefore(&phTCB->phXCOS->BlockedList, &phTCB->ListNode);
+// }
 
 /**
  * @brief       [内部]将任务插入到时间表
@@ -123,14 +123,14 @@ void XC_InsertTaskToTimeList(XCListNode_t* pList, XCTCB_t* phTCB)
  * @details
  *  从XCOS中删除TCB节点;
  */
-void XC_RemoveTaskNode(XCTCB_t* phTCB)
-{
-    // 若移动的是就绪节点,则将就绪节点指向上个节点
-    if(phTCB->phXCOS->pReadyNode == &phTCB->ListNode) {
-        phTCB->phXCOS->pReadyNode = phTCB->ListNode.pPrev;
-    }
-    XCList_Remove(&phTCB->ListNode); // 移除节点
-}
+// void XC_RemoveTaskNode(XCTCB_t* phTCB)
+// {
+//     // 若移动的是就绪节点,则将就绪节点指向上个节点
+//     if(phTCB->phXCOS->pReadyNode == &phTCB->ListNode) {
+//         phTCB->phXCOS->pReadyNode = phTCB->ListNode.pPrev;
+//     }
+//     XCList_Remove(&phTCB->ListNode); // 移除节点
+// }
 
 /*
  ************************************************************************************************************|

@@ -52,7 +52,6 @@ static void XCSch_TimeSched(XCOS_t* phXCOS)
      *  - 从时间表得到最新的下个唤醒时间("NextTaskWakeTick");
      */
     if(phXCOS->PrevTick > Tick) { // 保存的Tick大于当前Tick,时间溢出,需要处理
-
         // 时间表处理
         if(XCList_ListValid(&phXCOS->TimeList)) { // 时间表有节点
             // 所有节点移动到就绪表;
@@ -64,12 +63,13 @@ static void XCSch_TimeSched(XCOS_t* phXCOS)
             } while(!XCList_ReachEndNode(&phXCOS->TimeList, pIterator));
             XCList_MoveListToNodeBefore(phXCOS->pReadyNode, &phXCOS->TimeList); // 时间表所有节点移动到就绪表
         }
-        // 时间溢出表处理
-        if(XCList_ListValid(&phXCOS->TimeList)) {                                                              // 时间溢出表有节点
+        // 时间溢出表处理(时间溢出表->时间表)
+        if(XCList_ListValid(&phXCOS->TimeOverflowList)) {                                                      // 时间溢出表有节点
             XCList_MoveListToNodeBefore(&phXCOS->TimeList, &phXCOS->TimeOverflowList);                         // 时间溢出表所有节点移动到时间表
             phXCOS->NextTaskWakeTick = ((XCTCB_t*)(XCList_GetListStartNode(&phXCOS->TimeList)))->TaskWakeTick; // 首节点的下次唤醒的Tick
         }
         else {
+            /** 时间溢出表没有节点,时间表在之前已经全部移动到就绪表,所以时间表也没有节点 */
             phXCOS->NextTaskWakeTick = ~0; // 更新下个唤醒时间,若是没有节点,将唤醒时间调整为最大
         }
         phXCOS->PrevTick = Tick; // 更新保存Tick
@@ -307,12 +307,44 @@ void XCSch_Run(XCOS_t* phXCOS)
         }
 
         // 判断就绪表是否有任务(空闲处理)
-        if((phXCOS->fIdle != NULL) &&                                   // 有空闲处理函数
-           (XCList_ListValid(&phXCOS->ReadyList) == 0)) {               // 就绪表没有节点
-            Tick = XCTime_GetTick();                                    // 得到当前Tick
-            if(Tick < phXCOS->NextTaskWakeTick) {                       // 当前Tick必须小于下次唤醒的Tick值
-                phXCOS->fIdle(phXCOS, phXCOS->NextTaskWakeTick - Tick); // 框架空闲处理
+        if((phXCOS->fIdle != NULL) &&                     // 有空闲处理函数
+           (XCList_ListValid(&phXCOS->ReadyList) == 0)) { // 就绪表没有节点
+            /**
+             *  主要判断时间表和溢出表是否有效(1有效,0无效):
+             *  - 时间表1,溢出表0: 取字段"NextTaskWakeTick"(时间表首节点);
+             *  - 时间表1,溢出表1: 取字段"NextTaskWakeTick"(时间表首节点);
+             *  - 时间表0,溢出表1: 取溢出表首节点唤醒时间;
+             *  - 时间表0,溢出表0: 系统休眠;
+             */
+            Tick = XCTime_GetTick();                  // 得到当前Tick
+            if(XCList_ListValid(&phXCOS->TimeList)) { // 时间表有节点
+                // Tick = phXCOS->NextTaskWakeTick - Tick;
+                Tick = ((XCTCB_t*)(XCList_GetListStartNode(&phXCOS->TimeList)))->TaskWakeTick - Tick;
             }
+            else if(XCList_ListValid(&phXCOS->TimeOverflowList)) { // 溢出表有节点
+                Tick = ((XCTCB_t*)(XCList_GetListStartNode(&phXCOS->TimeOverflowList)))->TaskWakeTick - Tick;
+            }
+            else { // 时间表,溢出表都没有节点;
+                Tick = ~0;
+            }
+            phXCOS->fIdle(phXCOS, Tick); // 框架空闲处理
+
+            // Tick = XCTime_GetTick();                            // 得到当前Tick
+            // if((!XCList_ListValid(&phXCOS->TimeList)) &&        // 时间表没有有节点
+            //    (XCList_ListValid(&phXCOS->TimeOverflowList))) { // 时间溢出表有节点
+            //     /**
+            //      *  在Tick溢出前可能会出现以下情况:
+            //      *  "就绪表无节点 && 时间表无节点 && 时间溢出表有时间"
+            //      *  此情况下需要取"时间溢出表"首节点的唤醒时间作为下次唤醒时间;
+            //      *  注意:
+            //      *      此处不能用"phXCOS->NextTaskWakeTick"为(~0)判断,因为下个溢出时间也可能为(~0);
+            //      */
+            //     Tick = ((XCTCB_t*)(XCList_GetListStartNode(&phXCOS->TimeOverflowList)))->TaskWakeTick - Tick;
+            // }
+            // else {
+            //     Tick = phXCOS->NextTaskWakeTick - Tick;
+            // }
+            // phXCOS->fIdle(phXCOS, Tick); // 框架空闲处理
         }
     }
 }
