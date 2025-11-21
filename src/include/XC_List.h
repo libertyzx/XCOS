@@ -3,7 +3,7 @@
  * @brief       链表操作的声明
  * @author      libertyzx (libertyzx@163.com)
  * @version     2.0
- * @date        2025/11/12
+ * @date        2025/11/20
  * **********************************************
  * @copyright   Copyright (c) 2024 libertyzx. All rights reserved.
  * @license     This project is released under the MIT License.
@@ -87,14 +87,6 @@ void XCList_MoveNodeBefore(XCListNode_t* pDestNode, XCListNode_t* pSrcNode);
  * @param[in]   pNode   [XCListNode_t*]需要删除的节点
  * @details     只处理链表节点部分,不影响节点挂载的其他数据;
  */
-// #define XCList_Remove(_pNode)                     \
-//     {                                             \
-//         /* 链接前后两个节点来删除节点*/           \
-//         (_pNode)->pNext->pPrev = (_pNode)->pPrev; \
-//         (_pNode)->pPrev->pNext = (_pNode)->pNext; \
-//         /* 初始化删除的节点*/                     \
-//         XCList_InitNode((_pNode));                \
-//     }
 void XCList_Remove(XCListNode_t* pNode);
 
 /************************************************ 我是分割线 ************************************************/
@@ -131,14 +123,6 @@ void XCList_Remove(XCListNode_t* pNode);
 
 /************************************************ 我是分割线 ************************************************/
 /**链表操作 */
-
-/**
- * @brief       [内部]交换链表
- * @param[in]   pList1  链表1
- * @param[in]   pList2  链表2
- * @details     直接交换两个链表根节点的链接;交换后链表为空,则初始化;
- */
-// void XCList_SwapList(XCListNode_t* pList1, XCListNode_t* pList2);
 
 /**
  * @brief       [内部]将一个链表全部移动到另个链表的一个节点前

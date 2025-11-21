@@ -3,7 +3,7 @@
  * @brief       链表操作
  * @author      libertyzx (libertyzx@163.com)
  * @version     2.0
- * @date        2025/11/12
+ * @date        2025/11/20
  * **********************************************
  * @copyright   Copyright (c) 2024 libertyzx. All rights reserved.
  * @license     This project is released under the MIT License.
@@ -80,50 +80,6 @@ void XCList_Remove(XCListNode_t* pNode)
 /**链表操作 */
 
 /**
- * @brief       [内部]交换链表
- * @param[in]   pList1  链表1
- * @param[in]   pList2  链表2
- * @details     直接交换两个链表根节点的链接;交换后链表为空,则初始化;
- */
-// void XCList_SwapList(XCListNode_t* pList1, XCListNode_t* pList2)
-// {
-//     XCListNode_t* pNext;
-//     XCListNode_t* pPrev;
-//     uint8_t       List1NodeExistence;
-
-//     // 保存链表1的上下节点,给于链表2
-//     pNext              = pList1->pNext;
-//     pPrev              = pList1->pPrev;
-//     List1NodeExistence = XCList_ListValid(pList1);
-
-//     // 链表2有节点
-//     if(XCList_ListValid(pList2)) {
-//         // 将链表2的上下节点给链表1
-//         pList1->pNext = pList2->pNext;
-//         pList1->pPrev = pList2->pPrev;
-//         // 将链表1的上下节点链接到链表1
-//         pList1->pNext->pPrev = pList1;
-//         pList1->pPrev->pNext = pList1;
-//     }
-//     else {
-//         XCList_Init(pList1);
-//     }
-
-//     // 链表1有节点
-//     if(List1NodeExistence) {
-//         // 将保存的链表1给于链表2
-//         pList2->pNext = pNext;
-//         pList2->pPrev = pPrev;
-//         // 将链表2的上下节点链接到链表2
-//         pList2->pNext->pPrev = pList2;
-//         pList2->pPrev->pNext = pList2;
-//     }
-//     else {
-//         XCList_Init(pList2);
-//     }
-// }
-
-/**
  * @brief       [内部]将一个链表全部移动到另个链表的一个节点前
  * @param[in]   pDestNode   需要移入链表的节点(链表将移动到此节点前)
  * @param[in]   pSrcList    需要移动的链表
@@ -161,7 +117,6 @@ void XCList_Remove(XCListNode_t* pNode)
  *  | Y3,P=X2,N=X2 |              |
  *  | X2,P=Y3,N=X3 |              |
  *  | X3,P=X2,N=XR |              |
- *
  */
 void XCList_MoveListToNodeBefore(XCListNode_t* pDestNode, XCListNode_t* pSrcList)
 {

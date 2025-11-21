@@ -70,44 +70,30 @@
  * @brief   [内部]系统滴答计数实现
  * @details
  *  滴答计数是一个累加值,累加时间必须和"_XC_SysTickPerScond"时间一致; \n
- *  此值会在操作中被读取(只读),作为时间计算的依据; \n
+ *  此值会在操作中被读取,作为时间计算的依据; \n
  *  系统滴答计数可用2种方式使用: \n
  *--- 方式1:中断累加形式(默认); \n
  *  用一个变量在定时器中累加,每一个滴答时间则+1; \n
- *  宏"_XC_SysTickCount"指向此变量即可; \n
- *  用户需要处理: \n
- *      1.在".c"文件中定义"volatile XCuint_t"类型的全局变量"g_SysTickCount"; \n
- *          可使用宏"_XC_CreateSysTickCount"; \n
- *      2.创建定时器,按"_XC_SysTickPerScond"计数; \n
- *      3.在定时器中累加系统滴答计数:"g_SysTickCount++"; \n
- *          可使用宏"XC_AccSysTickCount()"; \n
+ *  在此模式下,系统已经定义了一个全局变量"g_SysTickCount"(位于"XC_Sch.c"文件), \n
+ *  并同时在本文件中做了"外部声明全局滴答时间计数";
+ *  用户只需要做以下处理即可:
+ *      1.创建定时器,按"_XC_SysTickPerScond"计数; \n
+ *      2.在定时器中累加系统滴答计数,即调用"XC_AccSysTickCount()"函数; \n
  *--- 方式2:计数器形式; \n
  *  因为协程并不需要中断来切换上下文,所以为了使效率最高可以用一个计数器来做系统滴答计数; \n
  *  宏"_XC_SysTickCount"作为一个计数器的函数的返回值(或其本身寄存器值); \n
  *  用户需要处理: \n
  *      1.创建定时器,按"_XC_SysTickPerScond"计数; \n
  *      2.将计数值作为"_XC_SysTickCount"的指向; \n
+ *  注意:
+ *      计数器必须是32位计数器;
+ *      宏"_XC_SysTickCount"会频繁只读调用,注意寄存器读取效率;
  */
 #ifndef _XC_SysTickCount
 
-#define __XC_SysTickIntAccMode__                // 特殊设置,表示是"中断累加形式"处理系统Tick
-#define _XC_SysTickCount         g_SysTickCount // 调用滴答时间计数
-extern volatile XCuint_t g_SysTickCount;        // 外部声明全局滴答时间计数
-
-/**
- * @brief   [用户]定义一个Tick计数值
- * @details 注意,需要以全局变量形式定义,在多个框架副本的情况下也只能有一个;
- */
-#define _XC_CreateSysTickCount volatile XCuint_t g_SysTickCount = 0
-
-/**
- * @brief   [用户]累加滴答时间计数
- * @details 在中断中调用,按照设置Tick计数用;
- */
-#define XC_AccSysTickCount() \
-    {                        \
-        g_SysTickCount++;    \
-    }
+#define __XC_SysTickIntAccMode__         // [默认]以中断累加的模式形式
+extern volatile XCuint_t g_SysTickCount; // 外部声明全局滴答时间计数
+#define _XC_SysTickCount g_SysTickCount  // 调用滴答时间计数
 
 #endif
 

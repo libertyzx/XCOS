@@ -130,5 +130,6 @@
     "editor.detectIndentation": false,
     "[c]": {
         "editor.defaultFormatter": "ms-vscode.cpptools"
-    }
+    },
+    //"C_Cpp.errorSquiggles": "disabled"
 }

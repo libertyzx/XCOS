@@ -453,6 +453,21 @@
               <FileType>1</FileType>
               <FilePath>.\Code\lib\STM32Cube_FW_F1\Drivers\STM32F1xx_HAL_Driver\Src\stm32f1xx_hal_exti.c</FilePath>
             </File>
+            <File>
+              <FileName>stm32f1xx_hal_tim.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\Code\lib\STM32Cube_FW_F1\Drivers\STM32F1xx_HAL_Driver\Src\stm32f1xx_hal_tim.c</FilePath>
+            </File>
+            <File>
+              <FileName>stm32f1xx_hal_dma.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\Code\lib\STM32Cube_FW_F1\Drivers\STM32F1xx_HAL_Driver\Src\stm32f1xx_hal_dma.c</FilePath>
+            </File>
+            <File>
+              <FileName>stm32f1xx_hal_tim_ex.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\Code\lib\STM32Cube_FW_F1\Drivers\STM32F1xx_HAL_Driver\Src\stm32f1xx_hal_tim_ex.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>

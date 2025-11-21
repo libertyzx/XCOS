@@ -3,7 +3,7 @@
  * @brief       时间计数的实现
  * @author      libertyzx (libertyzx@163.com)
  * @version     2.00
- * @date        2025/10/30
+ * @date        2025/11/21
  * **********************************************
  * @copyright   Copyright (c) 2024 libertyzx. All rights reserved.
  * @license     This project is released under the MIT License.
@@ -82,14 +82,45 @@
  * @return      int32_t     返回当前系统嘀嗒计数(Tick)最小时间(单位:us);
  * @details     即是一次计数过去了多少时间;
  */
-#define XCTime_GetTickUnit()           (_XC_SysTickTime_us)
+#define XCTime_GetTickUnit() (_XC_SysTickTime_us)
 
 /**
  * @brief       [用户]获取系统Tick
  * @return      XCuint_t    返回当前系统嘀嗒计数(Tick)值;
  * @details     获取的是一个全局变量
  */
-#define XCTime_GetTick()               (_XC_SysTickCount)
+#define XCTime_GetTick()     (_XC_SysTickCount)
+
+/************************************************ 我是分割线 ************************************************/
+
+/**
+ *  系统嘀嗒计数处理;
+ *  在"_XC_SysTickCount"配置为默认状态下有效;
+ */
+
+#ifdef __XC_SysTickIntAccMode__
+
+/**
+ * @brief   [用户]累加系统Tick
+ * @details 在中断中调用,按照"_XC_SysTickPerScond"频率计数;
+ */
+#define XCTime_AccTick()  \
+    {                     \
+        g_SysTickCount++; \
+    }
+
+/**
+ * @brief   [用户]更新系统Tick
+ * @param[in]   _Tick   更新的Tick
+ * @details
+ *  特殊情况下使用,如休眠唤醒后更新系统滴答时间计数;
+ */
+#define XCTime_UpdateTick(_Tick)  \
+    {                             \
+        g_SysTickCount = (_Tick); \
+    }
+
+#endif
 
 /*
  ************************************************************************************************************|

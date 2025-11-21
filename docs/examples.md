@@ -19,74 +19,41 @@ MDK配置如下图: \n
 ![](./图/MDK-调试配置.jpg)
 
 ## 代码和内存占用说明(-O0)
+此处Flash和RAM大小只做参考;
 
+示例代码中可以修改在例程的"main.h"文件中的"_Cnf_Examples"宏的值来切换配置:
+- 0:关闭所有框架代码;
+- 1:只开启框架,无空闲回调,无任务;
+- 2:一个延时任务,无空闲回调;
+- 3:10个测试任务,有中断处理,空闲回调为"__WFI()"休眠;
+
+### 配置0
 在无任何框架函数及变量的情况下,MDK代码内存占用如下:
-- Program Size: Code=3404 RO-data=380 RW-data=16 ZI-data=1024
+> Program Size: Code=4504 RO-data=380 RW-data=16 ZI-data=1096
 
+### 配置1
 添加以下框架代码:
-- 系统Tick,主文件添加全局变量"_XC_CreateSysTickCount",嘀嗒定时器运行"XC_AccSysTickCount()";
 - 1个"XCOS_t"类型框架句柄;
+- 嘀嗒中断中运行"XC_AccSysTickCount()";
 - 框架初始化"XCSch_Init",框架运行"XCSch_Run"
 
 得到代码内存占用为:
-- Program Size: Code=4420 RO-data=380 RW-data=20 ZI-data=1076
-
-所以得到:
-- Flash占用:1020Byte
-- RAM占用: 56Byte (4Byte系统Tick; 52Byte框架句柄)
-
-### 演示代码
-创建代码如下:
-- 10个任务
-- 每个任务带4字节计数;
-- 10个任务涵盖框架基本控制函数(任务块控制,延时,通知,挂起,挂起恢复,中断处理,空闲处理)
-
-代码占用为:
-- Program Size: Code=6104 RO-data=380 RW-data=20 ZI-data=1516
+> Program Size: Code=5352 RO-data=380 RW-data=20 ZI-data=1148
 
 得到:
-- 代码占用: 2704Byte
-- 内存占用: 496Byte (4Byte系统Tick + 52Byte框架句柄 + 40Byte任务控制块x10 + 10x4Byte = 496Byte)
+- Flash占用: (5352-4504) + (20-16) = 852Byte
+- RAM占用: (1148-1096) + (20-16) = 56Byte
 
+### 配置2
+只开启一个纯延时任务
+> Program Size: Code=5544 RO-data=380 RW-data=20 ZI-data=1188
 
+得到:
+- Flash占用: (5544-4504) + (20-16) = 1044Byte
+- RAM占用: (1188-1096) + (20-16) = 96Byte
 
--O0
-Program Size: Code=6104 RO-data=380 RW-data=20 ZI-data=1516
-Program Size: Code=6100 RO-data=380 RW-data=20 ZI-data=1516
-Program Size: Code=6108 RO-data=380 RW-data=20 ZI-data=1516
-Program Size: Code=6100 RO-data=380 RW-data=20 ZI-data=1516
-
-//无任务
-Program Size: Code=4420 RO-data=380 RW-data=20 ZI-data=1076
-Program Size: Code=4316 RO-data=380 RW-data=20 ZI-data=1076 //4316-3404 = 912+4=916
-
-
-//修改总调度运行
-Program Size: Code=6148 RO-data=380 RW-data=20 ZI-data=1516
-Program Size: Code=6076 RO-data=380 RW-data=20 ZI-data=1516
-Program Size: Code=6072 RO-data=380 RW-data=20 ZI-data=1516
-Program Size: Code=6068 RO-data=380 RW-data=20 ZI-data=1516
-Program Size: Code=6044 RO-data=380 RW-data=20 ZI-data=1516
-Program Size: Code=6044 RO-data=380 RW-data=20 ZI-data=1516
-Program Size: Code=5976 RO-data=380 RW-data=20 ZI-data=1516
-Program Size: Code=5976 RO-data=380 RW-data=20 ZI-data=1516
-Program Size: Code=5984 RO-data=380 RW-data=20 ZI-data=1516
-Program Size: Code=5984 RO-data=380 RW-data=20 ZI-data=1516
-Program Size: Code=5988 RO-data=380 RW-data=20 ZI-data=1516
-Program Size: Code=5980 RO-data=380 RW-data=20 ZI-data=1516 //5980-3404=2576
-Program Size: Code=6020 RO-data=380 RW-data=20 ZI-data=1516
-Program Size: Code=6028 RO-data=380 RW-data=20 ZI-data=1516
-Program Size: Code=6024 RO-data=380 RW-data=20 ZI-data=1516
-Program Size: Code=6008 RO-data=380 RW-data=20 ZI-data=1516
-Program Size: Code=6004 RO-data=380 RW-data=20 ZI-data=1516
-Program Size: Code=5976 RO-data=380 RW-data=20 ZI-data=1516
-Program Size: Code=6000 RO-data=380 RW-data=20 ZI-data=1516
-Program Size: Code=5992 RO-data=380 RW-data=20 ZI-data=1516
-
--O2
-Program Size: Code=4752 RO-data=372 RW-data=20 ZI-data=1516
-Program Size: Code=4744 RO-data=372 RW-data=20 ZI-data=1516
-Program Size: Code=4624 RO-data=372 RW-data=20 ZI-data=1516
-
--O3
-Program Size: Code=4736 RO-data=372 RW-data=20 ZI-data=1516
+### 配置3
+代码如下:
+- 10个任务
+- 每个任务独立计数;
+- 10个任务涵盖框架基本控制函数(任务块控制,延时,通知,挂起,挂起恢复,中断处理,空闲处理)
