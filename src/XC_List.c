@@ -3,7 +3,7 @@
  * @brief       链表操作
  * @author      libertyzx (libertyzx@163.com)
  * @version     2.0
- * @date        2025/11/20
+ * @date        2025/11/26
  * **********************************************
  * @copyright   Copyright (c) 2024 libertyzx. All rights reserved.
  * @license     This project is released under the MIT License.
@@ -18,8 +18,7 @@
  *  - 见"XC_UpdateInfo.md"的更新说明;
  */
 //=== 头文件
-#include "XC_List.h"
-#include "XC_Cnf.h"
+#include "internal/XC_List.h"
 
 /*
  ************************************************************************************************************|

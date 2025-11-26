@@ -1,5 +1,5 @@
 /**
- * @file        COR_GNU.h
+ * @file        XC_CorGNU.h
  * @brief       协程库(GNU-C实现)
  * @author      libertyzx (libertyzx@163.com)
  * @version     0.4
@@ -30,8 +30,8 @@
  *      - 删除宏中的"do{}while(0)"操作;
  */
 //=== 防重复定义
-#ifndef _COR_GNU_h_
-#define _COR_GNU_h_
+#ifndef _XC_CorGNU_h_
+#define _XC_CorGNU_h_
 
 /*
  ************************************************************************************************************|

@@ -1,5 +1,5 @@
 /**
- * @file        BinData.h
+ * @file        XC_BitPatterns.h
  * @brief       定义二进制数据
  * @author      libertyzx (libertyzx@163.com)
  * @version     0.01
@@ -15,8 +15,8 @@
  *      - 初始编写
  */
 //=== 防重复定义
-#ifndef _BinData_H_
-#define _BinData_H_
+#ifndef _XC_BitPatterns_h_
+#define _XC_BitPatterns_h_
 
 /*
  ************************************************************************************************************|

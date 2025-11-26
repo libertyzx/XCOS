@@ -1,209 +1,247 @@
-# 函数,宏,类型说明
+# XCOS API 参考手册
 
-## 基础宏
+<div align="center">
 
-| 宏名      | 值    | 所在文件  | 说明                              |
-| ---       | ---   | ---       | ---                               |
-| \_\_XCOS__  | 200   | XCOS.h    | 用于标记XCOS框架,同时表明版本   |
+![API](https://img.shields.io/badge/API-参考手册-blue.svg)
+![版本](https://img.shields.io/badge/版本-2.0-green.svg)
+![函数数](https://img.shields.io/badge/函数-52个-orange.svg)
 
-## 类型
+**XCOS框架完整API函数、类型和宏定义参考**
 
-| 类型名        | 32位下占用字节    | 所在文件  | 说明                              |
-| ---           | ---               | ---       | ---                               |
-| XCuint_t      | 4                 | XC_Cnf.h  | 基本数据类型,时间计数用此类型定义 |
-| XCOS_t        | 48                | XC_Sch.h  | 定义一个XCOS框架的句柄            |
-| XCTCB_t       | 40                | XC_Task.h | 定义一个协程任务控制块            |
-| XCTimeCount_t | 8                 | XC_Time.h | 时间计数数据类型                  |
+[基础定义](#基础定义) • [类型系统](#类型系统) • [常量枚举](#常量枚举) • [函数参考](#函数参考) • [调用等级](#函数调用等级)
 
-## 常量
+</div>
 
-### 函数返回值
+## 🏗️ 架构概览
 
-- 每个函数返回值意义不同,详细见每个函数的说明;
-- 所在文件"XC_Task.h";
-- 类型"XCRetuen_t";
+![](./架构概览/XCOS.PNG)
+*XCOS框架架构图*
+
+## 📋 基础定义
+
+### 框架标识宏
+
+| 宏名      | 值    | 所在文件  | 说明              |
+| ---       | ---   | ---       | ---               |
+| `_XCOS_`  | 200   | XCOS.h    | 框架版本标识符    |
+
+## 🏗️ 类型系统
+
+### 核心数据类型
+
+| 类型名            | 大小(32位)    | 所在文件  | 说明                  |
+| ---               | ---           | ---       | ---                   |
+| `XC_Tick_t`       | 4 Bytes       | XC_Cnf.h  | 系统Tick计数类型      |
+| `XC_TimerTick_t`  | 8 Bytes       | XC_Type.h | 软件定时器计数类型    |
+| `XCOS_t`          | 48 Bytes      | XC_Type.h | XCOS框架实例结构体    |
+| `XC_OSHandle_t`   | 4 Bytes       | XC_Type.h | 框架操作句柄          |
+| `XC_TaskCB_t`     | 40 Bytes      | XC_Type.h | 任务控制块实例        |
+| `XC_TaskHandle_t` | 4 Bytes       | XC_Type.h | 任务操作句柄          |
+
+## 🎯 常量枚举
+
+### 函数返回值类型 (`XC_Return_t`)
+
+| 名称          | 说明              |
+| ---           | ---               |
+| `XC_OK`       | 成功              |
+| `XC_FAIL`     | 失败或无效        |
+| `XC_CONTINUE` | 操作继续或未完成  |
+
+### 任务状态类型 (`XC_TaskState_t`)
+
+- 由函数"XCTask_GetState"返回;
+
+| 名称                  | 说明                      |
+| ---                   | ---                       |
+| `XC_TASK_VOID`        | 空(任务已移除)            |
+| `XC_TASK_RUN`         | 运行状态                  |
+| `XC_TASK_READY`       | 就绪状态(注册后默认状态)  |
+| `XC_TASK_SUSPEND`     | 挂起状态(阻塞)            |
+| `XC_TASK_DELAY`       | 延时状态(阻塞)            |
+| `XC_TASK_WAIT_NOTIFY` | 等待通知状态(阻塞)        |
+
+### 任务唤醒类型 (`XC_WakeType_t`)
+
+- 由函数"XC_GetWakeType"返回;
 
 | 名称              | 说明          |
 | ---               | ---           |
-| _XC_R_OK          | 成功          |
-| _XC_R_Fail        | 失败或无效    |
-| _XC_R_Continue    | 继续或未完成  |
+| `XC_WAKE_NONE`    | 无唤醒事件    |
+| `XC_WAKE_TIME`    | 时间到达唤醒  |
+| `XC_WAKE_NOTIFY`  | 通知到达唤醒  |
+| `XC_WAKE_RESUME`  | 任务恢复唤醒  |
 
-### 任务运行状态
+## 🔢 二进制模式
 
-- 所在文件"XC_Task.h";
-- 类型"XCState_t";
-- 由函数"XC_GetTaskState"返回;
+### 二进制常量定义 (`XC_BitPatterns.h`)
 
-| 名称              | 说明                  |
-| ---               | ---                   |
-| _XC_S_Void        | 空,被移除后的状态     |
-| _XC_S_Run         | 运行                  |
-| _XC_S_Ready       | 就绪(注册后的状态)    |
-| _XC_S_Suspend     | [阻塞]挂起            |
-| _XC_S_Delay       | [阻塞]延时            |
-| _XC_S_WaitNotify  | [阻塞]等待通知        |
+提供可视化的二进制模式定义, 便于位操作, 部分示例如下:
 
-### 任务唤醒状态
+| 常量名        | 值    | 说明              |
+| ---           | ---   | ---               |
+| `_B0`         | 0x00  | 二进制 0          |
+| `_B0000_0001` | 0x01  | 二进制 00000001   |
+| `_B10100011`  | 0xA3  | 二进制 10100011   |
+| `_B1111001`   | 0x79  | 二进制 1111001    |
 
-- 所在文件"XC_Task.h";
-- 类型"XCWake_t";
-- 由函数"XC_GetWakeType"返回;
+**特点**:
+- 支持1-8位任意二进制常量
+- 可使用下划线提高可读性(只支持"4位_4位")
+- 直接映射为十六进制值
 
-| 名称                  | 说明              |
-| ---                   | ---               |
-| _XC_Wake_Non          | 无唤醒            |
-| _XC_Wake_Time         | 时间到达唤醒      |
-| _XC_Wake_Notify       | 通知到达唤醒      |
-| _XC_Wake_TaskResume   | 任务挂起后恢复    |
+## 🛠️ 函数参考
 
-### 二进制值
+📚 共 **52** 个API函数，涵盖嵌入式协程调度所有核心功能
 
-8bit数据可以用二进制表示("_B"开头,可以为1-8任意位)如下示例:
- - _B0000_0001
- - _B0
- - _B10100011
- - _B1111001
+### 调度器模块 (4个函数)
 
-## 函数表
+| 函数                      | 类型  | 功能描述              | 文件      |
+| ---                       | ---   | ---                   | ---       |
+| `XCSch_Init`              | 函数  | 调度器初始化          | XC_Sch.h  |
+| `XCSch_Start`             | 函数  | 调度器启动(阻塞运行)  | XC_Sch.h  |
+| `XCSch_GetTaskNum`        | 函数  | 获取当前任务数量      | XC_Sch.h  |
+| `XCSch_SetIdleCallback`   | 函数  | 设置空闲处理回调函数  | XC_Sch.h  |
 
-### 调度器(4个)
+### 任务管理模块 (12个函数)
 
-| 函数名                | 类型  | 功能                          | 所属文件  |
-| ---                   | ---   | ---                           | ---       |
-| XCSch_Init            | 函数  | [用户]调度器初始化            | XC_Sch.c  |
-| XCSch_Run             | 函数  | [用户]调度器运行(阻塞)        | XC_Sch.c  |
-| XCSch_GetTaskNum      | 函数  | [用户]获取任务数              | XC_Sch.c  |
-| XCSch_SetIdleCallback | 函数  | [用户]设置空闲处理回调        | XC_Sch.c  |
+| 函数                      | 类型  | 功能描述              | 文件      |
+| ---                       | ---   | ---                   | ---       |
+| `XCTask_Reg`              | 函数  | 任务注册              | XC_Task.c |
+| `XCTask_Remove`           | 函数  | 任务移除              | XC_Task.c |
+| `XCTask_Reset`            | 函数  | 任务复位              | XC_Task.c |
+| `XCTask_SetEntry`         | 函数  | 设置任务入口          | XC_Task.c |
+| `XCTask_Add`              | 函数  | 添加任务到调度器      | XC_Task.c |
+| `XCTask_NotifySend`       | 函数  | 发送任务通知          | XC_Task.c |
+| `XCTask_Suspend`          | 函数  | 挂起指定任务          | XC_Task.c |
+| `XCTask_Resume`           | 函数  | 恢复挂起的任务        | XC_Task.c |
+| `XCTask_GetParam`         | 宏    | 获取任务参数指针      | XC_Task.h |
+| `XCTask_GetState`         | 宏    | 获取任务运行状态      | XC_Task.h |
+| `XCTask_UpdateNotifyData` | 宏    | 更新通知数据(void*)   | XC_Task.h |
+| `XCTask_ReadNotifyData`   | 宏    | 读取通知数据(void*)   | XC_Task.h |
 
-### 任务处理(12个)
+### 协程块操作 (16个函数)
 
-| 函数名                | 类型  | 功能                                  | 所属文件  |
-| ---                   | ---   | ---                                   | ---       |
-| XC_TaskReg            | 函数  | [用户]任务注册                        | XC_Task.c |
-| XC_TaskRemove         | 函数  | [用户]任务移除                        | XC_Task.c |
-| XC_TaskReset          | 函数  | [用户]任务复位                        | XC_Task.c |
-| XC_SetTaskEntryPoint  | 函数  | [用户]设置任务入口                    | XC_Task.c |
-| XC_AddTask            | 函数  | [用户]添加任务                        | XC_Task.c |
-| XC_SendNotify         | 函数  | [用户]发送通知                        | XC_Task.c |
-| XC_TaskSuspend        | 函数  | [用户]任务挂起                        | XC_Task.c |
-| XC_TaskResume         | 函数  | [用户]任务挂起恢复                    | XC_Task.c |
-| XC_GetTaskParam       | 宏    | [用户]获取任务注册时传递的参数(void*) | XC_Task.h |
-| XC_GetTaskState       | 宏    | [用户]获取任务运行状态                | XC_Task.h |
-| XC_UpdateNotifyData   | 宏    | [用户]更新通知数据(void*)             | XC_Task.h |
-| XC_ReadNotifyData     | 宏    | [用户]读取通知数据(void*)             | XC_Task.h |
+| 函数                      | 类型  | 功能描述              | 文件      |
+| ---                       | ---   | ---                   | ---       |
+| `XC_Enter`                | 宏    | 进入协程块            | XC_Task.h |
+| `XC_Leave`                | 宏    | 离开协程块            | XC_Task.h |
+| `XC_Yield`                | 宏    | 让出CPU控制权         | XC_Task.h |
+| `XC_Reset`                | 宏    | 复位当前任务          | XC_Task.h |
+| `XC_GetParam`             | 宏    | 获取任务参数指针      | XC_Task.h |
+| `XC_Suspend`              | 宏    | 挂起当前任务          | XC_Task.h |
+| `XC_GetWakeType`          | 宏    | 获取唤醒类型          | XC_Task.h |
+| `XC_Remove`               | 宏    | 移除当前任务          | XC_Task.h |
+| `XC_DelayTick`            | 宏    | 延时(Tick)            | XC_Task.h |
+| `XC_DelayUs`              | 宏    | 延时(us)              | XC_Task.h |
+| `XC_DelayMs`              | 宏    | 延时(ms)              | XC_Task.h |
+| `XC_DelaySec`             | 宏    | 延时(s)               | XC_Task.h |
+| `XC_WaitNotify`           | 宏    | 等待通知(Tick)        | XC_Task.h |
+| `XC_WaitNotifyMs`         | 宏    | 等待通知(ms)          | XC_Task.h |
+| `XC_GetNotifyWakeState`   | 宏    | 获取通知唤醒状态      | XC_Task.h |
+| `XC_GetNotifyData`        | 宏    | 获取通知数据(void*)   | XC_Task.h |
 
-### 任务处理-协程块(16个)
+### 时间处理模块 (20个函数)
 
-| 函数名                | 类型  | 功能                                                  | 所属文件  |
-| ---                   | ---   | ---                                                   | ---       |
-| XC_Enter              | 宏    |  [用户][协程]进入                                     | XC_Task.h |
-| XC_Leave              | 宏    |  [用户][协程]离开                                     | XC_Task.h |
-| XC_Yield              | 宏    |  [用户][协程]让出控制                                 | XC_Task.h |
-| XC_Reset              | 宏    |  [用户][协程]任务复位                                 | XC_Task.h |
-| XC_GetParam           | 宏    |  [用户][协程]协程块内获取任务注册时传递的参数(void*)  | XC_Task.h |
-| XC_Suspend            | 宏    |  [用户][协程]将自身挂起                               | XC_Task.h |
-| XC_GetWakeType        | 宏    |  [用户][协程]获取唤醒类型                             | XC_Task.h |
-| XC_Remove             | 宏    |  [用户][协程]移除自身                                 | XC_Task.h |
-| XC_DelayTick          | 宏    |  [用户][协程]延时n个Tick                              | XC_Task.h |
-| XC_Delay_us           | 宏    |  [用户][协程]延时us                                   | XC_Task.h |
-| XC_Delay_ms           | 宏    |  [用户][协程]延时ms                                   | XC_Task.h |
-| XC_Delay_s            | 宏    |  [用户][协程]延时s                                    | XC_Task.h |
-| XC_WaitNotify         | 宏    |  [用户][协程]等待通知(单位:系统Tick)                  | XC_Task.h |
-| XC_WaitNotify_ms      | 宏    |  [用户][协程]等待通知(单位:ms)                        | XC_Task.h |
-| XC_GetNotifyWakeState | 宏    |  [用户][协程]获取通知唤醒状态                         | XC_Task.h |
-| XC_GetNotifyData      | 宏    |  [用户][协程]获取通知的数据(void*)                    | XC_Task.h |
+| 函数                          | 类型  | 功能描述                  | 文件      |
+| ---                           | ---   | ---                       | ---       |
+| `XCTime_GetTickUnit`          | 宏    | 获取Tick最小时间单位(us)  | XC_Time.h |
+| `XCTime_GetTick`              | 宏    | 获取系统当前Tick值        | XC_Time.h |
+| `XCTime_TickInc`              | 宏    | 递增系统Tick计数          | XC_Time.c |
+| `XCTime_TickSet`              | 宏    | 设置系统Tick值            | XC_Time.c |
+| `XCTime_CheckTimeout`         | 宏    | 检查超时(Tick)            | XC_Time.h |
+| `XCTime_CheckTimeoutMs`       | 宏    | 检查超时(ms)              | XC_Time.h |
+| `XCTime_CheckTimeoutSec`      | 宏    | 检查超时(s)               | XC_Time.h |
+| `XCTime_GetRemain`            | 函数  | 获取剩余Tick数            | XC_Time.c |
+| `XCTime_GetElapsed`           | 函数  | 获取已运行Tick数          | XC_Time.c |
+| `XCTime_TimerSet`             | 宏    | 设置定时器目标Tick        | XC_Time.h |
+| `XCTime_TimerSetMs`           | 宏    | 设置定时器目标时间(ms)    | XC_Time.h |
+| `XCTime_TimerSetSec`          | 宏    | 设置定时器目标时间(s)     | XC_Time.h |
+| `XCTime_TimerRepeat`          | 宏    | 重复定时器上次设置        | XC_Time.h |
+| `XCTime_TimerCheck`           | 宏    | 检查定时器超时            | XC_Time.h |
+| `XCTime_TimerClr`             | 宏    | 清除定时器计数            | XC_Time.h |
+| `XCTime_TimerGetRemain`       | 函数  | 获取定时器剩余Tick        | XC_Time.c |
+| `XCTime_TimerGetElapsed`      | 函数  | 获取定时器已运行Tick      | XC_Time.c |
+| `XCTime_TimerGetElapsedMs`    | 宏    | 获取定时器已运行时间(ms)  | XC_Time.h |
+| `XCTime_BlockDelay`           | 函数  | 阻塞延时(Tick)            | XC_Time.c |
+| `XCTime_BlockDelayMs`         | 函数  | 阻塞延时(ms)              | XC_Time.c |
 
-### 时间处理(20个)
+## 🎚️ 函数调用等级
 
-| 函数名                    | 类型  | 功能                                      | 所属文件  |
-| ---                       | ---   | ---                                       | ---       |
-| XCTime_GetTickUnit        | 宏    | [用户]获取系统Tick最小时间(单位:us)       | XC_Time.h |
-| XCTime_GetTick            | 宏    | [用户]获取系统Tick                        | XC_Time.h |
-| XCTime_AccTick            | 宏    | [用户]累加系统Tick                        | XC_Time.c |
-| XCTime_UpdateTick         | 宏    | [用户]更新系统Tick                        | XC_Time.c |
-| XCTime_CompareTick        | 宏    | [用户]比较Tick是否到达设定值              | XC_Time.h |
-| XCTime_CompareTick_ms     | 宏    | [用户]比较时间是否到达设定值(单位:ms)     | XC_Time.h |
-| XCTime_CompareTick_s      | 宏    | [用户]比较时间是否到达设定值(单位:s)      | XC_Time.h |
-| XCTime_GetRemainTick      | 函数  | [用户]获取剩下多少Tick                    | XC_Time.c |
-| XCTime_GetRunTick         | 函数  | [用户]获取运行了多少Tick                  | XC_Time.c |
-| XCTime_tUpdateTick        | 宏    | [用户]更新需要延时比较的Tick              | XC_Time.h |
-| XCTime_tUpdateTick_ms     | 宏    | [用户]更新需要延时比较的时间(ms)          | XC_Time.h |
-| XCTime_tUpdateTick_s      | 宏    | [用户]更新需要延时比较的时间(s)           | XC_Time.h |
-| XCTime_tRepeatLastTick    | 宏    | [用户]重复更新上次需要延时比较的时间      | XC_Time.h |
-| XCTime_tCompareTick       | 宏    | [用户]判断需要比较或延时的时间是否到达    | XC_Time.h |
-| XCTime_tClrAllCount       | 宏    | [用户]清除类型中所有计数                  | XC_Time.h |
-| XCTime_tGetRemainTick     | 函数  | [用户]获取剩下多少Tick                    | XC_Time.c |
-| XCTime_tGetRunTick        | 函数  | [用户]获取运行了多少Tick                  | XC_Time.c |
-| XCTime_tGetRunTime_ms     | 宏    | [用户]获取运行了多少ms                    | XC_Time.h |
-| XCTime_BlockDelay         | 函数  | [用户]死循环延时Tick个计数                | XC_Time.c |
-| XCTime_BlockDelay_ms      | 函数  | [用户]死循环延时ms                        | XC_Time.c |
+### 调用等级说明
 
-## 函数运行等级表
+XCOS框架将函数调用分为5个安全等级，确保系统的稳定性和可靠性:
 
-- 总共52个函数(函数宏);
-- 这个表说明了所有函数被中断(或RTOS上下文切换)的等级
-    - [4]协程层:   最低等级; 只能在函数协程("XC_Enter"和"XC_Leave"之间)被调用;
-    - [3]用户:     正常用户"大循环"中调用;
-    - [2]中断:     能在任意位置打断"[4]协程层"和"[3]用户"的函数(中断或RTOS上下文切换);
-    - [1]任意:     任何位置可调用;
-    - [0]嘀嗒计数: 最高等级; 除了休眠,嘀嗒计数不能停;
-    - 备注:
-        - [3]用户,也可是一个中断或者一个rtos的任务;
-        - 小数字层能在大数字层中调用;
+| 等级  | 名称      | 说明                                              |
+| ---   | ---       | ---                                               |
+| **4** | 协程层    | 只能在协程块内调用(`XC_Enter` 和 `XC_Leave`)之间  |
+| **3** | 用户层    | 用户主循环或任务中调用                            |
+| **2** | 中断层    | 可在中断上下文调用                                |
+| **1** | 任意层    | 任何上下文均可调用                                |
+| **0** | 嘀嗒计数  | 最高优先级, 系统时间基准                          |
 
-| [4]协程层             | [3]用户                       | [2]中断           | [1]任意                   | [0]嘀嗒计数           | 函数功能                                              |
-| ---                   | ---                           | ---               | ---                       | ---                   | ---                                                   |
-| XC_Enter              |                               |                   |                           |                       | [用户][协程]进入                                      |
-| XC_Leave              |                               |                   |                           |                       | [用户][协程]离开                                      |
-| XC_Yield              |                               |                   |                           |                       | [用户][协程]让出控制                                  |
-| XC_Reset              |                               |                   |                           |                       | [用户][协程]任务复位                                  |
-| XC_GetParam           |                               |                   |                           |                       | [用户][协程]协程块内获取任务注册时传递的参数(void*)   |
-| XC_Suspend            |                               |                   |                           |                       | [用户][协程]将自身挂起                                |
-| XC_GetWakeType        |                               |                   |                           |                       | [用户][协程]获取唤醒类型                              |
-| XC_Remove             |                               |                   |                           |                       | [用户][协程]移除自身                                  |
-| XC_DelayTick          |                               |                   |                           |                       | [用户][协程]延时n个Tick                               |
-| XC_Delay_us           |                               |                   |                           |                       | [用户][协程]延时us                                    |
-| XC_Delay_ms           |                               |                   |                           |                       | [用户][协程]延时ms                                    |
-| XC_Delay_s            |                               |                   |                           |                       | [用户][协程]延时s                                     |
-| XC_WaitNotify         |                               |                   |                           |                       | [用户][协程]等待通知(单位:系统Tick)                   |
-| XC_WaitNotify_ms      |                               |                   |                           |                       | [用户][协程]等待通知(单位:ms)                         |
-| XC_GetNotifyWakeState |                               |                   |                           |                       | [用户][协程]获取唤醒超时                              |
-| XC_GetNotifyData      |                               |                   |                           |                       | [用户][协程]获取通知的数据(void*)                     |
-|                       | XCSch_Init                    |                   |                           |                       | [用户]调度器初始化                                    |
-|                       | XCSch_Run                     |                   |                           |                       | [用户]调度器运行(阻塞)                                |
-|                       |                               |                   | XCSch_GetTaskNum          |                       | [用户]获取任务数                                      |
-|                       | XCSch_SetIdleCallback         |                   |                           |                       | [用户]设置空闲处理回调                                |
-|                       | XC_TaskReg                    |                   |                           |                       | [用户]任务注册                                        |
-|                       | XC_TaskRemove                 |                   |                           |                       | [用户]任务移除                                        |
-|                       | XC_TaskReset                  |                   |                           |                       | [用户]任务复位                                        |
-|                       | XC_SetTaskEntryPoint          |                   |                           |                       | [用户]设置任务入口                                    |
-|                       | XC_AddTask                    |                   |                           |                       | [用户]添加任务                                        |
-|                       |                               | XC_SendNotify     |                           |                       | [用户]发送通知                                        |
-|                       |                               | XC_TaskSuspend    |                           |                       | [用户]任务挂起                                        |
-|                       |                               | XC_TaskResume     |                           |                       | [用户]任务挂起恢复                                    |
-|                       | XC_GetTaskParam               |                   |                           |                       | [用户]获取任务注册时传递的参数(void*)                 |
-|                       |                               |                   | XC_GetTaskState           |                       | [用户]获取任务运行状态                                |
-|                       | XC_UpdateNotifyData           |                   |                           |                       | [用户]更新通知数据(void*)                             |
-|                       | XC_ReadNotifyData             |                   |                           |                       | [用户]读取通知数据(void*)                             |
-|                       |                               |                   |                           | XCTime_AccTick        | [用户]累加系统Tick                                    |
-|                       |                               |                   | XCTime_GetTickUnit        |                       | [用户]获取系统Tick最小时间(单位:us)                   |
-|                       |                               |                   | XCTime_GetTick            |                       | [用户]获取系统Tick                                    |
-|                       |                               |                   | XCTime_UpdateTick         |                       | [用户]更新系统Tick                                    |
-|                       |                               |                   | XCTime_CompareTick        |                       | [用户]比较Tick是否到达设定值                          |
-|                       |                               |                   | XCTime_CompareTick_ms     |                       | [用户]比较时间是否到达设定值(单位:ms)                 |
-|                       |                               |                   | XCTime_CompareTick_s      |                       | [用户]比较时间是否到达设定值(单位:s)                  |
-|                       |                               |                   | XCTime_GetRemainTick      |                       | [用户]获取剩下多少Tick                                |
-|                       |                               |                   | XCTime_GetRunTick         |                       | [用户]获取运行了多少Tick                              |
-|                       |                               |                   | XCTime_tUpdateTick        |                       | [用户]更新需要延时比较的Tick                          |
-|                       |                               |                   | XCTime_tUpdateTick_ms     |                       | [用户]更新需要延时比较的时间(ms)                      |
-|                       |                               |                   | XCTime_tUpdateTick_s      |                       | [用户]更新需要延时比较的时间(s)                       |
-|                       |                               |                   | XCTime_tRepeatLastTick    |                       | [用户]重复更新上次需要延时比较的时间                  |
-|                       |                               |                   | XCTime_tCompareTick       |                       | [用户]判断需要比较或延时的时间是否到达                |
-|                       |                               |                   | XCTime_tClrAllCount       |                       | [用户]清除类型中所有计数                              |
-|                       |                               |                   | XCTime_tGetRemainTick     |                       | [用户]获取剩下多少Tick                                |
-|                       |                               |                   | XCTime_tGetRunTick        |                       | [用户]获取运行了多少Tick                              |
-|                       |                               |                   | XCTime_tGetRunTime_ms     |                       | [用户]获取运行了多少ms                                |
-|                       | XCTime_BlockDelay             |                   |                           |                       | [用户]死循环延时Tick个计数                            |
-|                       | XCTime_BlockDelay_ms          |                   |                           |                       | [用户]死循环延时ms                                    |
+**调用规则**: 低等级函数可在高等级上下文中调用，反之则禁止。
 
+### 等级分布表
+
+| 协程层(4)                 | 用户层(3)                 | 中断层(2)             | 任意层(1)                     | 嘀嗒计数(0)       | 函数描述                  |
+| ---                       | ---                       | ---                   | ---                           | ---               | ---                       |
+| `XC_Enter`                |                           |                       |                               |                   | 进入协程块                |
+| `XC_Leave`                |                           |                       |                               |                   | 离开协程块                |
+| `XC_Yield`                |                           |                       |                               |                   | 让出CPU控制权             |
+| `XC_Reset`                |                           |                       |                               |                   | 复位当前任务              |
+| `XC_GetParam`             |                           |                       |                               |                   | 获取任务参数指针          |
+| `XC_Suspend`              |                           |                       |                               |                   | 挂起当前任务              |
+| `XC_GetWakeType`          |                           |                       |                               |                   | 获取唤醒类型              |
+| `XC_Remove`               |                           |                       |                               |                   | 移除当前任务              |
+| `XC_DelayTick`            |                           |                       |                               |                   | 延时(Tick)                |
+| `XC_DelayUs`              |                           |                       |                               |                   | 延时(us)                  |
+| `XC_DelayMs`              |                           |                       |                               |                   | 延时(ms)                  |
+| `XC_DelaySec`             |                           |                       |                               |                   | 延时(s)                   |
+| `XC_WaitNotify`           |                           |                       |                               |                   | 等待通知(Tick)            |
+| `XC_WaitNotifyMs`         |                           |                       |                               |                   | 等待通知(ms)              |
+| `XC_GetNotifyWakeState`   |                           |                       |                               |                   | 获取通知唤醒状态          |
+| `XC_GetNotifyData`        |                           |                       |                               |                   | 获取通知数据(void*)       |
+|                           | `XCSch_Init`              |                       |                               |                   | 调度器初始化              |
+|                           | `XCSch_Start`             |                       |                               |                   | 调度器启动(阻塞运行)      |
+|                           |                           |                       | `XCSch_GetTaskNum`            |                   | 获取当前任务数量          |
+|                           | `XCSch_SetIdleCallback`   |                       |                               |                   | 设置空闲处理回调函数      |
+|                           | `XCTask_Reg`              |                       |                               |                   | 任务注册                  |
+|                           | `XCTask_Remove`           |                       |                               |                   | 任务移除                  |
+|                           | `XCTask_Reset`            |                       |                               |                   | 任务复位                  |
+|                           | `XCTask_SetEntry`         |                       |                               |                   | 设置任务入口              |
+|                           | `XCTask_Add`              |                       |                               |                   | 添加任务到调度器          |
+|                           |                           | `XCTask_NotifySend`   |                               |                   | 发送任务通知              |
+|                           |                           | `XCTask_Suspend`      |                               |                   | 挂起指定任务              |
+|                           |                           | `XCTask_Resume`       |                               |                   | 恢复挂起的任务            |
+|                           | `XCTask_GetParam`         |                       |                               |                   | 获取任务参数指针          |
+|                           |                           |                       | `XCTask_GetState`             |                   | 获取任务运行状态          |
+|                           | `XCTask_UpdateNotifyData` |                       |                               |                   | 更新通知数据(void*)       |
+|                           | `XCTask_ReadNotifyData`   |                       |                               |                   | 读取通知数据(void*)       |
+|                           |                           |                       |                               | `XCTime_TickInc`  | 递增系统Tick计数          |
+|                           |                           |                       | `XCTime_GetTickUnit`          |                   | 获取Tick最小时间单位      |
+|                           |                           |                       | `XCTime_GetTick`              |                   | 获取系统当前Tick值        |
+|                           |                           |                       | `XCTime_TickSet`              |                   | 设置系统Tick值            |
+|                           |                           |                       | `XCTime_CheckTimeout`         |                   | 检查超时(Tick)            |
+|                           |                           |                       | `XCTime_CheckTimeoutMs`       |                   | 检查超时(ms)              |
+|                           |                           |                       | `XCTime_CheckTimeoutSec`      |                   | 检查超时(s)               |
+|                           |                           |                       | `XCTime_GetRemain`            |                   | 获取剩余Tick数            |
+|                           |                           |                       | `XCTime_GetElapsed`           |                   | 获取已运行Tick数          |
+|                           |                           |                       | `XCTime_TimerSet`             |                   | 设置定时器目标Tick        |
+|                           |                           |                       | `XCTime_TimerSetMs`           |                   | 设置定时器目标时间(ms)    |
+|                           |                           |                       | `XCTime_TimerSetSec`          |                   | 设置定时器目标时间(s)     |
+|                           |                           |                       | `XCTime_TimerRepeat`          |                   | 重复定时器上次设置        |
+|                           |                           |                       | `XCTime_TimerCheck`           |                   | 检查定时器超时            |
+|                           |                           |                       | `XCTime_TimerClr`             |                   | 清除定时器计数            |
+|                           |                           |                       | `XCTime_TimerGetRemain`       |                   | 获取定时器剩余Tick        |
+|                           |                           |                       | `XCTime_TimerGetElapsed`      |                   | 获取定时器已运行Tick      |
+|                           |                           |                       | `XCTime_TimerGetElapsedMs`    |                   | 获取定时器已运行时间(ms)  |
+|                           |                           |                       | `XCTime_BlockDelay`           |                   | 阻塞延时(Tick)            |
+|                           |                           |                       | `XCTime_BlockDelayMs`         |                   | 阻塞延时(ms)              |
+
+---
+<div align="center">
+
+**💡 提示:** 详细使用示例请参考 [示例文档](./examples.md)
+
+</div>

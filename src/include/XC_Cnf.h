@@ -3,7 +3,7 @@
  * @brief       配置
  * @author      libertyzx (libertyzx@163.com)
  * @version     2.00
- * @date        2025/10/30
+ * @date        2025/11/26
  * **********************************************
  * @copyright   Copyright (c) 2024 libertyzx. All rights reserved.
  * @license     This project is released under the MIT License.
@@ -33,8 +33,8 @@
  *  默认32位,用于系统滴答计数的数据 \n
  *  一般不用改 \n
  */
-#ifndef XCuint_t
-#define XCuint_t uint32_t
+#ifndef XC_Tick_t
+#define XC_Tick_t uint32_t
 #endif
 
 /************************************************ 我是分割线 ************************************************/
@@ -47,8 +47,8 @@
  *  数值范围:10~255; \n
  *  默认:100
  */
-#ifndef _XC_Cnf_TaskMaxNum
-#define _XC_Cnf_TaskMaxNum (100)
+#ifndef XC_CFG_MAX_TASKS
+#define XC_CFG_MAX_TASKS (100)
 #endif
 
 /************************************************ 我是分割线 ************************************************/
@@ -60,8 +60,8 @@
  *  最大值是1000000Hz;对应时间是1us; \n
  *  一般设置1000,对应时间为1ms; \n
  */
-#ifndef _XC_SysTickPerScond
-#define _XC_SysTickPerScond (1000)
+#ifndef XC_CFG_TICKS_PER_SEC
+#define XC_CFG_TICKS_PER_SEC (1000)
 #endif
 
 /************************************************ 我是分割线 ************************************************/
@@ -69,7 +69,7 @@
 /**
  * @brief   [内部]系统滴答计数实现
  * @details
- *  滴答计数是一个累加值,累加时间必须和"_XC_SysTickPerScond"时间一致; \n
+ *  滴答计数是一个累加值,累加时间必须和"XC_CFG_TICKS_PER_SEC"时间一致; \n
  *  此值会在操作中被读取,作为时间计算的依据; \n
  *  系统滴答计数可用2种方式使用: \n
  *--- 方式1:中断累加形式(默认); \n
@@ -77,23 +77,23 @@
  *  在此模式下,系统已经定义了一个全局变量"g_SysTickCount"(位于"XC_Sch.c"文件), \n
  *  并同时在本文件中做了"外部声明全局滴答时间计数";
  *  用户只需要做以下处理即可:
- *      1.创建定时器,按"_XC_SysTickPerScond"计数; \n
+ *      1.创建定时器,按"XC_CFG_TICKS_PER_SEC"计数; \n
  *      2.在定时器中累加系统滴答计数,即调用"XC_AccSysTickCount()"函数; \n
  *--- 方式2:计数器形式; \n
  *  因为协程并不需要中断来切换上下文,所以为了使效率最高可以用一个计数器来做系统滴答计数; \n
- *  宏"_XC_SysTickCount"作为一个计数器的函数的返回值(或其本身寄存器值); \n
+ *  宏"XC_SYS_TICK_COUNT"作为一个计数器的函数的返回值(或其本身寄存器值); \n
  *  用户需要处理: \n
- *      1.创建定时器,按"_XC_SysTickPerScond"计数; \n
- *      2.将计数值作为"_XC_SysTickCount"的指向; \n
+ *      1.创建定时器,按"XC_CFG_TICKS_PER_SEC"计数; \n
+ *      2.将计数值作为"XC_SYS_TICK_COUNT"的指向; \n
  *  注意:
  *      计数器必须是32位计数器;
- *      宏"_XC_SysTickCount"会频繁只读调用,注意寄存器读取效率;
+ *      宏"XC_SYS_TICK_COUNT"会频繁只读调用,注意寄存器读取效率;
  */
-#ifndef _XC_SysTickCount
+#ifndef XC_SYS_TICK_COUNT
 
-#define __XC_SysTickIntAccMode__         // [默认]以中断累加的模式形式
-extern volatile XCuint_t g_SysTickCount; // 外部声明全局滴答时间计数
-#define _XC_SysTickCount g_SysTickCount  // 调用滴答时间计数
+#define _XC_SysTickIntIncMode_            // [默认]以中断递增的模式形式
+extern volatile XC_Tick_t g_SysTickCount; // 外部声明全局滴答时间计数
+#define XC_SYS_TICK_COUNT g_SysTickCount  // 调用滴答时间计数
 
 #endif
 

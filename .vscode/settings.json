@@ -3,9 +3,14 @@
         "xc_sch.h": "c",
         "xc_type.h": "c",
         "xc_timecount.h": "c",
-        "cor_gnu.h": "c",
-        "cor_ansi.h": "c",
-        "stdint.h": "c"
+        "XC_CorGNU.h": "c",
+        "XC_CorANSI.h": "c",
+        "stdint.h": "c",
+        "xc_internal.h": "c",
+        "xc_typeinternal.h": "c",
+        "xc_list.h": "c",
+        "xc_time.h": "c",
+        "xc_task.h": "c"
     },
     //忽略的文件
     "files.exclude": {

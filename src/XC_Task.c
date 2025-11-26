@@ -3,7 +3,7 @@
  * @brief       任务的实现
  * @author      libertyzx (libertyzx@163.com)
  * @version     2.00
- * @date        2025/11/20
+ * @date        2025/11/26
  * **********************************************
  * @copyright   Copyright (c) 2024 libertyzx. All rights reserved.
  * @license     This project is released under the MIT License.
@@ -16,6 +16,23 @@
 //=== 头文件
 #include "XC_Task.h"
 #include "XC_Sch.h"
+#include "internal/XC_Internal.h"
+#include "internal/XC_List.h"
+
+/*
+ ************************************************************************************************************|
+ ************************************************ 我是分割线 ************************************************|
+ ************************************************************************************************************|
+ */
+/** 基础函数宏 */
+
+/**
+ * @brief       [内部]将任务插入到就绪表
+ * @param[in]   phTCB   [XC_TaskHandle_t]协程控制块
+ * @details
+ *  将任务插入下个就绪任务前,任务节点在就绪表;
+ */
+#define XC_InsertTaskToReadyList(_phTCB) XCList_InsertNodeBefore((_phTCB)->phXCOS->pNextReadyNode, &(_phTCB)->ListNode)
 
 /*
  ************************************************************************************************************|
@@ -25,7 +42,7 @@
 /** 基本操作函数 */
 
 /**
- * @brief       [内部]任务基本初始化
+ * @brief       [私有]任务基本初始化
  * @param[in]   phTCB   任务控制块
  * @details
  *  用户不调用; \n
@@ -37,19 +54,19 @@
  *      - "TaskState" : 任务状态
  *  在任务注册,移除,复位,添加时调用
  */
-void XC_TaskBasicInit(XCTCB_t* phTCB)
+static void XC_TaskBasicInit(XC_TaskHandle_t phTCB)
 {
     phTCB->TaskWakeTick = ~0;          // 任务下个唤醒的时间
     _COR_Init(phTCB->BP);              // 初始化断点
     phTCB->pNotifyData = NULL;         // 通知数据清零
-    phTCB->WakeType    = _XC_Wake_Non; // 没有唤醒
+    phTCB->WakeType    = XC_WAKE_NONE; // 没有唤醒
 
     phTCB->NotifyTrigger   = 0; // 通知触发
     phTCB->NotifyProcessed = 0; // 通知触发处理
 
-    phTCB->StateChangeTrigger   = 0;          // 状态改变触发
-    phTCB->StateChangeProcessed = 0;          // 状态改变处理
-    phTCB->StateChangeType      = _XC_S_Void; // 最后一次改变的是什么状态(_XC_S_Suspend/_XC_S_Void)
+    phTCB->StateChangeTrigger   = 0;            // 状态改变触发
+    phTCB->StateChangeProcessed = 0;            // 状态改变处理
+    phTCB->StateChangeType      = XC_TASK_VOID; // 最后一次改变的是什么状态(XC_TASK_SUSPEND/XC_TASK_VOID)
 }
 
 /************************************************ 我是分割线 ************************************************/
@@ -65,19 +82,19 @@ void XC_TaskBasicInit(XCTCB_t* phTCB)
  *  从根节点向下(Next)查询"任务下个唤醒的时间"(TaskWakeTick),根据查询值从小到大排列;
  *  > 注意:若查询值相同,新节点插入在旧节点的前面;
  */
-void XC_InsertTaskToTimeList(XCListNode_t* pList, XCTCB_t* phTCB)
+void XCTask_InsertTaskToTimeList(XCListNode_t* pList, XC_TaskHandle_t phTCB)
 {
     XCListNode_t* pIterator;
-    XCuint_t      MaxTick = ~0; // Tick最大的值
+    XC_Tick_t     MaxTick = ~0; // Tick最大的值
 
     if(MaxTick == phTCB->TaskWakeTick) {
         pIterator = pList; // 若是唤醒值等于最大值,则迭代器设置为根节点
     }
-    else {                                                                    // 查找(小->大)
-        pIterator = pList->pNext;                                             // 获取根节点的下个节点地址
-        while((pIterator != pList) &&                                         // 指向节点不是根节点
-              (((XCTCB_t*)pIterator)->TaskWakeTick <= phTCB->TaskWakeTick)) { // 指向节点的值小于新节点的值
-            pIterator = pIterator->pNext;                                     // 指向下个节点
+    else {                                                                           // 查找(小->大)
+        pIterator = pList->pNext;                                                    // 获取根节点的下个节点地址
+        while((pIterator != pList) &&                                                // 指向节点不是根节点
+              (((XC_TaskHandle_t)pIterator)->TaskWakeTick <= phTCB->TaskWakeTick)) { // 指向节点的值小于新节点的值
+            pIterator = pIterator->pNext;                                            // 指向下个节点
         }
     }
     XCList_InsertNodeBefore(pIterator, &phTCB->ListNode); // 插入节点,在"pIterator"之前
@@ -96,18 +113,18 @@ void XC_InsertTaskToTimeList(XCListNode_t* pList, XCTCB_t* phTCB)
  * @param[in]   phTCB   协程任务控制块
  * @param[in]   fTask   任务的函数指针(任务入口)
  * @param[in]   pParam  传递给任务的参数
- * @return      int32_t
- * @retval      _XC_R_OK :      注册成功
- * @retval      _XC_R_Fail :    注册失败,任务太多
+ * @return      XC_Retuen_t
+ * @retval      XC_OK :      注册成功
+ * @retval      XC_FAIL :    注册失败,任务太多
  * @details
  *  **不可在中断中使用(有链表操作)** \n
  *  **不可多次注册同个任务(没有做重复判断,会发生未知错误)** \n
  *  任务注册完成后会挂载到就绪表;
  */
-int32_t XC_TaskReg(XCOS_t* phXCOS, XCTCB_t* phTCB, void (*fTask)(XCTCB_t*), void* pParam)
+XC_Retuen_t XCTask_Reg(XC_OSHandle_t phXCOS, XC_TaskHandle_t phTCB, void (*fTask)(XC_TaskHandle_t), void* pParam)
 {
-    if(phXCOS->TaskNum >= _XC_Cnf_TaskMaxNum) {
-        return (_XC_R_Fail);
+    if(phXCOS->TaskNum >= XC_CFG_MAX_TASKS) {
+        return (XC_FAIL);
     }
 
     XCSch_Lock(phXCOS); // 锁
@@ -117,13 +134,13 @@ int32_t XC_TaskReg(XCOS_t* phXCOS, XCTCB_t* phTCB, void (*fTask)(XCTCB_t*), void
         phTCB->phXCOS    = phXCOS;         // 保存任务的所属框架句柄
         phTCB->fTask     = fTask;          // 更新任务入口
         phTCB->pParam    = pParam;         // 传递给任务的参数
-        phTCB->TaskState = _XC_S_Ready;    // 任务更新状态为就绪
+        phTCB->TaskState = XC_TASK_READY;  // 任务更新状态为就绪
         XC_InsertTaskToReadyList(phTCB);   // 插入就续表
         phXCOS->TaskNum++;                 // 任务数+1
     }
     XCSch_Unlock(phXCOS); // 解锁
 
-    return (_XC_R_OK);
+    return (XC_OK);
 }
 
 /**
@@ -134,19 +151,19 @@ int32_t XC_TaskReg(XCOS_t* phXCOS, XCTCB_t* phTCB, void (*fTask)(XCTCB_t*), void
  *  会从链表中删除,并清空TCB数据;
  *  不可移除自身,移除自身使用"XC_Remove()"函数;
  */
-void XC_TaskRemove(XCTCB_t* phTCB)
+void XCTask_Remove(XC_TaskHandle_t phTCB)
 {
     if(phTCB->phXCOS != NULL) {
         // 从表中删除任务
         XCSch_Lock(phTCB->phXCOS); // 锁
         {
-            XC_RemoveTaskNode(phTCB);      // 移除任务节点
-            XC_TaskBasicInit(phTCB);       // 基本数据初始化
-            phTCB->phXCOS    = NULL;       // 清除任务的所属框架句柄
-            phTCB->fTask     = NULL;       // 清除任务入口
-            phTCB->pParam    = NULL;       // 清除任务参数
-            phTCB->TaskState = _XC_S_Void; // 任务状态改为空
-            phTCB->phXCOS->TaskNum--;      // 任务数-1
+            XCTask_RemoveTaskNode(phTCB);    // 移除任务节点
+            XC_TaskBasicInit(phTCB);         // 基本数据初始化
+            phTCB->phXCOS    = NULL;         // 清除任务的所属框架句柄
+            phTCB->fTask     = NULL;         // 清除任务入口
+            phTCB->pParam    = NULL;         // 清除任务参数
+            phTCB->TaskState = XC_TASK_VOID; // 任务状态改为空
+            phTCB->phXCOS->TaskNum--;        // 任务数-1
         }
         XCSch_Unlock(phTCB->phXCOS); // 解锁
     }
@@ -162,13 +179,13 @@ void XC_TaskRemove(XCTCB_t* phTCB)
  *  任务将重置到就绪表,然后从头运行; \n
  *  任务TCB中除了"phXCOS","fTask","Param"其他全部重置;
  */
-void XC_TaskReset(XCTCB_t* phTCB)
+void XCTask_Reset(XC_TaskHandle_t phTCB)
 {
     XCSch_Lock(phTCB->phXCOS); // 锁
     {
-        XC_TaskBasicInit(phTCB);        // 基本数据初始化
-        phTCB->TaskState = _XC_S_Ready; // 任务更新状态为就绪
-        XC_MoveTaskToReadyList(phTCB);  // 任务移动到就绪表
+        XC_TaskBasicInit(phTCB);           // 基本数据初始化
+        phTCB->TaskState = XC_TASK_READY;  // 任务更新状态为就绪
+        XCTask_MoveTaskToReadyList(phTCB); // 任务移动到就绪表
     }
     XCSch_Unlock(phTCB->phXCOS); // 解锁
 }
@@ -176,8 +193,8 @@ void XC_TaskReset(XCTCB_t* phTCB)
 /************************************************ 我是分割线 ************************************************/
 /**
  * 任务分步创建相关的用户函数
- *  "XC_SetTaskEntryPoint"和"XCS_AddTask"函数需要配合使用;
- *  在"XC_SetTaskEntryPoint"设置完成后在调研"XC_AddTask"添加任务;
+ *  "XCTask_SetEntry"和"XCS_AddTask"函数需要配合使用;
+ *  在"XCTask_SetEntry"设置完成后在XCTask_Addask"添加任务;
  *  注意:不要重复添加任务;
  */
 
@@ -189,9 +206,9 @@ void XC_TaskReset(XCTCB_t* phTCB)
  * @details
  *  **不可在中断中使用** \n
  *  只设置任务入口和传递给任务的参数; \n
- *  一般配合"XC_AddTask"使用;
+ *  一般配合"XCTask_Add"使用;
  */
-void XC_SetTaskEntryPoint(XCTCB_t* phTCB, void (*fTask)(XCTCB_t*), void* pParam)
+void XCTask_SetEntry(XC_TaskHandle_t phTCB, void (*fTask)(XC_TaskHandle_t), void* pParam)
 {
     phTCB->fTask  = fTask;  // 更新任务入口
     phTCB->pParam = pParam; // 传递给任务的参数
@@ -201,19 +218,19 @@ void XC_SetTaskEntryPoint(XCTCB_t* phTCB, void (*fTask)(XCTCB_t*), void* pParam)
  * @brief   [用户]添加任务
  * @param   phXCOS  框架句柄
  * @param   phTCB   协程任务控制块
- * @return  int32_t
- * @retval  _XC_R_OK :      注册成功
- * @retval  _XC_R_Fail :    注册失败,任务太多
+ * @return  XC_Retuen_t
+ * @retval  XC_OK :      注册成功
+ * @retval  XC_FAIL :    注册失败,任务太多
  * @details
  *  **不可在中断中使用(有链表操作)** \n
- *  添加的任务必须先调用"XC_SetTaskEntryPoint"; \n
+ *  添加的任务必须先调用"XCTask_SetEntry"; \n
  *  设置好任务入口和传递的参数才可添加; \n
  *  添加后挂载到就绪表;
  */
-int32_t XC_AddTask(XCOS_t* phXCOS, XCTCB_t* phTCB)
+XC_Retuen_t XCTask_Add(XC_OSHandle_t phXCOS, XC_TaskHandle_t phTCB)
 {
-    if((phXCOS->TaskNum >= _XC_Cnf_TaskMaxNum) || (phTCB->fTask == NULL)) {
-        return (_XC_R_Fail);
+    if((phXCOS->TaskNum >= XC_CFG_MAX_TASKS) || (phTCB->fTask == NULL)) {
+        return (XC_FAIL);
     }
 
     XCSch_Lock(phXCOS); // 锁
@@ -226,7 +243,7 @@ int32_t XC_AddTask(XCOS_t* phXCOS, XCTCB_t* phTCB)
     }
     XCSch_Unlock(phXCOS); // 解锁
 
-    return (_XC_R_OK);
+    return (XC_OK);
 }
 
 /*
@@ -240,10 +257,10 @@ int32_t XC_AddTask(XCOS_t* phXCOS, XCTCB_t* phTCB)
  * @brief       [用户]发送通知
  * @param[in]   phTCB           需要发送通知的任务TCB
  * @param[in]   pNotifyData     通知传递的参数
- * @return      int32_t
- * @retval      _XC_R_OK :          通知成功
- * @retval      _XC_R_Continue :    异步操作中
- * @retval      _XC_R_Fail :        任务不是在等待通知
+ * @return      XC_Retuen_t
+ * @retval      XC_OK :          通知成功
+ * @retval      XC_CONTINUE :    异步操作中
+ * @retval      XC_FAIL :        任务不是在等待通知
  * @details
  *  **可在中断中调用** \n
  *  发送通知,唤醒任务; \n
@@ -251,13 +268,13 @@ int32_t XC_AddTask(XCOS_t* phXCOS, XCTCB_t* phTCB)
  *      - 异步操作: 参数是最后一次操作的值; \n
  *      - 同步操作: 参数是成功操作的值; \n
  */
-int32_t XC_SendNotify(XCTCB_t* phTCB, void* pNotifyData)
+XC_Retuen_t XCTask_NotifySend(XC_TaskHandle_t phTCB, void* pNotifyData)
 {
     /**
      * 只有等待通知的任务才能被通知唤醒;
      */
-    if(phTCB->TaskState != _XC_S_WaitNotify) {
-        return (_XC_R_Fail);
+    if(phTCB->TaskState != XC_TASK_WAIT_NOTIFY) {
+        return (XC_FAIL);
     }
 
     /**
@@ -270,19 +287,19 @@ int32_t XC_SendNotify(XCTCB_t* phTCB, void* pNotifyData)
         // 触发异步操作
         phTCB->NotifyTrigger++;            // 通知触发
         phTCB->phXCOS->TaskSchedTrigger++; // 异步调度触发
-        return (_XC_R_Continue);
+        return (XC_CONTINUE);
     }
 
     /** 同步操作,没有操作链表,直接处理 */
 
-    XCSch_Lock(phTCB->phXCOS);            // 锁
-    XC_MoveTaskToReadyList(phTCB);        // 移动到就绪表
-    phTCB->pNotifyData = pNotifyData;     // 传递的通知数据
-    phTCB->WakeType    = _XC_Wake_Notify; // 被通知唤醒
-    phTCB->TaskState   = _XC_S_Ready;     // 任务状态:就绪
-    XCSch_Unlock(phTCB->phXCOS);          // 解锁
+    XCSch_Lock(phTCB->phXCOS);           // 锁
+    XCTask_MoveTaskToReadyList(phTCB);   // 移动到就绪表
+    phTCB->pNotifyData = pNotifyData;    // 传递的通知数据
+    phTCB->WakeType    = XC_WAKE_NOTIFY; // 被通知唤醒
+    phTCB->TaskState   = XC_TASK_READY;  // 任务状态:就绪
+    XCSch_Unlock(phTCB->phXCOS);         // 解锁
 
-    return (_XC_R_OK);
+    return (XC_OK);
 }
 
 /*
@@ -295,29 +312,29 @@ int32_t XC_SendNotify(XCTCB_t* phTCB, void* pNotifyData)
 /**
  * @brief       [用户]任务挂起
  * @param[in]   phTCB   任务控制块
- * @return      int32_t
- * @retval      _XC_R_OK :          挂起成功
- * @retval      _XC_R_Fail:         失败(任务不存在)
- * @retval      _XC_R_Continue :    异步操作中
+ * @return      XC_Retuen_t
+ * @retval      XC_OK :          挂起成功
+ * @retval      XC_FAIL:         失败(任务不存在)
+ * @retval      XC_CONTINUE :    异步操作中
  * @details
  *  **可在中断中调用** \n
  *  将任务挂起,**本次任务运行完成后暂停任务**; \n
  *  挂起可以覆盖任务的所有阻塞状态,优先级最高; \n
  *  挂起后只能被恢复任务唤醒; \n
- *  任务唤醒后原先的阻塞将失效,并以"_XC_Wake_TaskResume"作为唤醒类型继续运行;
+ *  任务唤醒后原先的阻塞将失效,并以"XC_WAKE_RESUME"作为唤醒类型继续运行;
  */
-int32_t XC_TaskSuspend(XCTCB_t* phTCB)
+XC_Retuen_t XCTask_Suspend(XC_TaskHandle_t phTCB)
 {
     /**
      *  挂起操作只有在任务存储的时候才能运行;
      *  挂起操作优先级大于通知处理,在通知处理时可以挂起;
      *  但是要注意,通知状态下挂起并恢复,会导致通知被唤醒,且"获取唤醒超时"为超时;
      */
-    if(phTCB->TaskState == _XC_S_Void) {
-        return (_XC_R_Fail);
+    if(phTCB->TaskState == XC_TASK_VOID) {
+        return (XC_FAIL);
     }
-    else if(phTCB->TaskState == _XC_S_Suspend) {
-        return (_XC_R_OK); // 已经被挂起
+    else if(phTCB->TaskState == XC_TASK_SUSPEND) {
+        return (XC_OK); // 已经被挂起
     }
 
     /**
@@ -326,37 +343,37 @@ int32_t XC_TaskSuspend(XCTCB_t* phTCB)
      */
     if(XCSch_GetLockState(phTCB->phXCOS) == 1) { // 判断是否有链表操作
         // 触发异步操作
-        phTCB->StateChangeTrigger++;            // 状态改变触发
-        phTCB->StateChangeType = _XC_S_Suspend; // 状态改变类型:挂起
-        phTCB->phXCOS->TaskSchedTrigger++;      // 异步调度触发
-        return (_XC_R_Continue);
+        phTCB->StateChangeTrigger++;              // 状态改变触发
+        phTCB->StateChangeType = XC_TASK_SUSPEND; // 状态改变类型:挂起
+        phTCB->phXCOS->TaskSchedTrigger++;        // 异步调度触发
+        return (XC_CONTINUE);
     }
 
     /** 同步操作,没有操作链表,直接处理 */
 
-    XCSch_Lock(phTCB->phXCOS);        // 锁
-    phTCB->TaskState = _XC_S_Suspend; // 任务状态:挂起
-    XC_MoveTaskToBlockedList(phTCB);  // 将任务移动到阻塞表
-    XCSch_Unlock(phTCB->phXCOS);      // 解锁
+    XCSch_Lock(phTCB->phXCOS);           // 锁
+    phTCB->TaskState = XC_TASK_SUSPEND;  // 任务状态:挂起
+    XCTask_MoveTaskToBlockedList(phTCB); // 将任务移动到阻塞表
+    XCSch_Unlock(phTCB->phXCOS);         // 解锁
 
-    return (_XC_R_OK);
+    return (XC_OK);
 }
 
 /**
  * @brief       [用户]任务挂起恢复
  * @param[in]   phTCB   任务控制块
- * @return      int32_t
- * @retval      _XC_R_OK :          恢复成功
- * @retval      _XC_R_Continue :    异步操作中
+ * @return      XC_Retuen_t
+ * @retval      XC_OK :          恢复成功
+ * @retval      XC_CONTINUE :    异步操作中
  * @details
  *  **可在中断中调用** \n
  *  只能恢复被挂起的任务;
  */
-int32_t XC_TaskResume(XCTCB_t* phTCB)
+XC_Retuen_t XCTask_Resume(XC_TaskHandle_t phTCB)
 {
     // 任务没有被挂起,直接成功
-    if(phTCB->TaskState != _XC_S_Suspend) {
-        return (_XC_R_OK); // 没有被挂起
+    if(phTCB->TaskState != XC_TASK_SUSPEND) {
+        return (XC_OK); // 没有被挂起
     }
 
     /**
@@ -365,21 +382,21 @@ int32_t XC_TaskResume(XCTCB_t* phTCB)
      */
     if(XCSch_GetLockState(phTCB->phXCOS) == 1) { // 判断是否有链表操作
         // 触发异步操作
-        phTCB->StateChangeTrigger++;         // 状态改变触发
-        phTCB->StateChangeType = _XC_S_Void; // 状态改变类型:未挂起(恢复)
-        phTCB->phXCOS->TaskSchedTrigger++;   // 异步调度触发
-        return (_XC_R_Continue);
+        phTCB->StateChangeTrigger++;           // 状态改变触发
+        phTCB->StateChangeType = XC_TASK_VOID; // 状态改变类型:未挂起(恢复)
+        phTCB->phXCOS->TaskSchedTrigger++;     // 异步调度触发
+        return (XC_CONTINUE);
     }
 
     /** 同步操作,没有操作链表,直接处理 */
 
-    XCSch_Lock(phTCB->phXCOS);              // 锁
-    XC_MoveTaskToReadyList(phTCB);          // 将任务移动到就绪表
-    phTCB->WakeType  = _XC_Wake_TaskResume; // 被任务恢复唤醒
-    phTCB->TaskState = _XC_S_Ready;         // 任务状态:就绪
-    XCSch_Unlock(phTCB->phXCOS);            // 解锁
+    XCSch_Lock(phTCB->phXCOS);         // 锁
+    XCTask_MoveTaskToReadyList(phTCB); // 将任务移动到就绪表
+    phTCB->WakeType  = XC_WAKE_RESUME; // 被任务恢复唤醒
+    phTCB->TaskState = XC_TASK_READY;  // 任务状态:就绪
+    XCSch_Unlock(phTCB->phXCOS);       // 解锁
 
-    return (_XC_R_OK);
+    return (XC_OK);
 }
 
 /************************************************ 我是分割线 ************************************************/

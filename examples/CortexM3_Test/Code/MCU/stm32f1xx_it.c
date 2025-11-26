@@ -134,7 +134,7 @@ void PendSV_Handler(void)
 void SysTick_Handler(void)
 {
 #if (_Cnf_Examples != 0)
-    XCTime_AccTick();
+    XCTime_TickInc();
 #endif
     HAL_IncTick();
 }

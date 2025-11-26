@@ -3,7 +3,7 @@
  * @brief       框架包含
  * @author      libertyzx (libertyzx@163.com)
  * @version     2.00
- * @date        2025/10/30
+ * @date        2025/11/26
  * **********************************************
  * @copyright   Copyright (c) 2024 libertyzx. All rights reserved.
  * @license     This project is released under the MIT License.
@@ -20,17 +20,18 @@
 /************************************************ 我是分割线 ************************************************/
 
 /**
- *  版本号; \n
+ *  版本号(十进制); \n
  *  101标示1.01; \n
  *  200标示2.00; \n
  */
-#define __XCOS__ (200)
+#define _XCOS_ (200)
 
 /************************************************ 我是分割线 ************************************************/
 //=== 头文件
 
-#include "BinData.h" //二进制值
-#include "XC_Cnf.h"  //配置
+#include "XC_BitPatterns.h" //二进制值
+#include "XC_Cnf.h"         //配置
+#include "XC_Type.h"        //类型
 
 #include "XC_Sch.h"  //调度处理
 #include "XC_Task.h" //任务处理

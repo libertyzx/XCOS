@@ -26,7 +26,7 @@
  ************************************************************************************************************|
  */
 
-/** 配置开关件"main.h"文件 */
+/** 配置开关见"main.h"文件 */
 
 /************************************************ 我是分割线 ************************************************/
 
@@ -39,12 +39,12 @@ XCOS_t s_hXCOS0; // XCOS句柄
 #endif
 
 #if (_Cnf_Examples == 2)
-XCTCB_t s_hTCBn[1] = { 0 }; // 任务控制块
+XC_TaskCB_t s_hTCBn[1] = { 0 }; // 任务控制块
 #endif
 
 #if (_Cnf_Examples == 3)
-XCTCB_t  s_hTCBn[10]   = { 0 }; // 任务控制块
-uint32_t s_A0TaskCount = 0;     // A0计数
+XC_TaskCB_t s_hTCBn[10]   = { 0 }; // 任务控制块
+uint32_t    s_A0TaskCount = 0;     // A0计数
 /**
  * A1和A2运行计数
  * A1触发A2运行;
@@ -111,12 +111,12 @@ struct {
  * @details
  *  基础框架,演示延时和让出控制;
  */
-void Task_A0(XCTCB_t* phTCB)
+void Task_A0(XC_TaskHandle_t phTCB)
 {
     XC_Enter(phTCB); // 协程任务块开始标志
     /** --- */
     while(1) {
-        XC_Delay_ms(10); // 延时
+        XC_DelayMs(10); // 延时
 #if (_Cnf_Examples >= 3)
         s_A0TaskCount++; // 计数,延时了几次
         XC_Yield();      // 让出控制
@@ -137,19 +137,19 @@ void Task_A0(XCTCB_t* phTCB)
  *  测试通知1-发送;
  *  A1和A2是一组测试,A1唤醒A2;
  */
-void Task_A1(XCTCB_t* phTCB)
+void Task_A1(XC_TaskHandle_t phTCB)
 {
     XC_Enter(phTCB);
     /** --- */
     while(1) {
-        XC_Delay_ms(15);                      // 延时
-        XC_SendNotify(&s_hTCBn[2], (void*)2); // 唤醒任务2,传递参数2,正确数据
-        s_A1A2Data.A1TaskCount++;             // 任务计数
+        XC_DelayMs(15);                           // 延时
+        XCTask_NotifySend(&s_hTCBn[2], (void*)2); // 唤醒任务2,传递参数2,正确数据
+        s_A1A2Data.A1TaskCount++;                 // 任务计数
 
-        XC_Delay_ms(15);                      // 延时
-        XC_SendNotify(&s_hTCBn[2], (void*)3); // 唤醒任务2,传递参数3,错误数据
-        s_A1A2Data.A1TaskCount++;             // 任务计数
-        s_A1A2Data.A1SendErrorCount++;        // 发送错误数据数据
+        XC_DelayMs(15);                           // 延时
+        XCTask_NotifySend(&s_hTCBn[2], (void*)3); // 唤醒任务2,传递参数3,错误数据
+        s_A1A2Data.A1TaskCount++;                 // 任务计数
+        s_A1A2Data.A1SendErrorCount++;            // 发送错误数据数据
     }
     /** --- */
     XC_Leave();
@@ -165,12 +165,12 @@ void Task_A1(XCTCB_t* phTCB)
  *  A2SucceedCount == A2ErrorCount == A1SendErrorCount //成功&错误&发送错误计数
  *  A2TimeoutCount == 0         //超时计数
  */
-void Task_A2(XCTCB_t* phTCB)
+void Task_A2(XC_TaskHandle_t phTCB)
 {
     XC_Enter(phTCB);
     /** --- */
     while(1) {
-        XC_WaitNotify_ms(20);                       // 等待通知,超时20ms
+        XC_WaitNotifyMs(20);                        // 等待通知,超时20ms
         if(XC_GetNotifyWakeState() == 0) {          // 未超时,通知到达
             if((uint32_t)XC_GetNotifyData() == 2) { // 获取传递的参数
                 s_A1A2Data.A2SucceedCount++;        // 正确计数
@@ -197,24 +197,24 @@ void Task_A2(XCTCB_t* phTCB)
  *  测试通知2-发送;
  *  A3和A4是一组测试,A3唤醒A4;
  */
-void Task_A3(XCTCB_t* phTCB)
+void Task_A3(XC_TaskHandle_t phTCB)
 {
     XC_Enter(phTCB);
     /** --- */
     while(1) {
-        XC_Delay_ms(50);                      // 延时
-        XC_SendNotify(&s_hTCBn[4], (void*)4); // 唤醒任务4,传递参数4,正确数据
-        s_A3A4Data.A3TaskCount++;             // 任务计数
+        XC_DelayMs(50);                           // 延时
+        XCTask_NotifySend(&s_hTCBn[4], (void*)4); // 唤醒任务4,传递参数4,正确数据
+        s_A3A4Data.A3TaskCount++;                 // 任务计数
 
-        XC_Delay_ms(50);                      // 延时
-        XC_SendNotify(&s_hTCBn[4], (void*)5); // 唤醒任务4,传递参数5,错误数据
-        s_A3A4Data.A3TaskCount++;             // 任务计数
-        s_A3A4Data.A3SendErrorCount++;        // 发送错误数据计数
+        XC_DelayMs(50);                           // 延时
+        XCTask_NotifySend(&s_hTCBn[4], (void*)5); // 唤醒任务4,传递参数5,错误数据
+        s_A3A4Data.A3TaskCount++;                 // 任务计数
+        s_A3A4Data.A3SendErrorCount++;            // 发送错误数据计数
 
-        XC_Delay_ms(65);                      // 延时
-        XC_SendNotify(&s_hTCBn[4], (void*)2); // 唤醒任务4,传递参数6,正确数据
-        s_A3A4Data.A3TaskCount++;             // 任务计数
-        s_A3A4Data.A3SendTimeoutCount++;      // 发送超时数据计数
+        XC_DelayMs(65);                           // 延时
+        XCTask_NotifySend(&s_hTCBn[4], (void*)2); // 唤醒任务4,传递参数6,正确数据
+        s_A3A4Data.A3TaskCount++;                 // 任务计数
+        s_A3A4Data.A3SendTimeoutCount++;          // 发送超时数据计数
     }
     /** --- */
     XC_Leave();
@@ -231,12 +231,12 @@ void Task_A3(XCTCB_t* phTCB)
  *  A3SendTimeoutCount == A4TimeoutCount    //超时计数相同
  *  A4TaskCount == (A4SucceedCount + A4ErrorCount + A4TimeoutCount) //成功计数
  */
-void Task_A4(XCTCB_t* phTCB)
+void Task_A4(XC_TaskHandle_t phTCB)
 {
     XC_Enter(phTCB);
     /** --- */
     while(1) {
-        XC_WaitNotify_ms(60);                       // 等待通知,超时60ms
+        XC_WaitNotifyMs(60);                        // 等待通知,超时60ms
         if(XC_GetNotifyWakeState() == 0) {          // 未超时,通知到达
             if((uint32_t)XC_GetNotifyData() == 4) { // 获取传递的参数
                 s_A3A4Data.A4SucceedCount++;        // 正确计数
@@ -247,7 +247,7 @@ void Task_A4(XCTCB_t* phTCB)
         }
         else {                           // 超时
             s_A3A4Data.A4TimeoutCount++; // 超时计数
-            XC_Delay_ms(10);
+            XC_DelayMs(10);
         }
         s_A3A4Data.A4TaskCount++; // 总计数
     }
@@ -265,14 +265,14 @@ void Task_A4(XCTCB_t* phTCB)
  *  复位后任务重新运行,计数会+1;
  *  "s_A5TaskCount"计数会按10s一次累加;
  */
-void Task_A5(XCTCB_t* phTCB)
+void Task_A5(XC_TaskHandle_t phTCB)
 {
     XC_Enter(phTCB);
     /** --- */
     s_A5TaskCount++; // 复位后这里会++
     while(1) {
-        XC_Delay_ms(10); // 延时
-        XC_Reset();      // 每10s复位一次
+        XC_DelayMs(10); // 延时
+        XC_Reset();     // 每10s复位一次
     }
     /** --- */
     XC_Leave();
@@ -286,13 +286,13 @@ void Task_A5(XCTCB_t* phTCB)
  *  计数到达指定值(100*10ms=1s),移除自己;
  *  s_A6TaskCount == 10,不会改变;
  */
-void Task_A6(XCTCB_t* phTCB)
+void Task_A6(XC_TaskHandle_t phTCB)
 {
     XC_Enter(phTCB);
     /** --- */
     s_A6TaskCount = 0;
     while(1) {
-        XC_Delay_ms(100); // 延时
+        XC_DelayMs(100); // 延时
         s_A6TaskCount++;
         if(s_A6TaskCount >= 10) {
             XC_Remove(); // 移除自己
@@ -314,7 +314,7 @@ void Task_A6(XCTCB_t* phTCB)
  *  操作完成后值数据应该为:
  *  IntSendCount == TaskCount
  */
-void Task_A7(XCTCB_t* phTCB)
+void Task_A7(XC_TaskHandle_t phTCB)
 {
     XC_Enter(phTCB);
     /** --- */
@@ -336,12 +336,12 @@ void Task_A7(XCTCB_t* phTCB)
  *  操作完成后值数据应该为:
  *  IntSendCount == TaskCount
  */
-void Task_A8(XCTCB_t* phTCB)
+void Task_A8(XC_TaskHandle_t phTCB)
 {
     XC_Enter(phTCB);
     /** --- */
     while(1) {
-        XC_WaitNotify_ms(0);                        // 阻塞等待通知
+        XC_WaitNotifyMs(0);                         // 阻塞等待通知
         if(XC_GetNotifyWakeState() == 0) {          // 是被通知唤醒
             if((uint32_t)XC_GetNotifyData() == 8) { // 唤醒通知参数是8
                 s_A8Data.SucceedCount++;            // 成功计数
@@ -362,12 +362,12 @@ void Task_A8(XCTCB_t* phTCB)
  * @details
  *  演示通知-中断定时器唤醒
  */
-void Task_A9(XCTCB_t* phTCB)
+void Task_A9(XC_TaskHandle_t phTCB)
 {
     XC_Enter(phTCB);
     /** --- */
     while(1) {
-        XC_WaitNotify_ms(33);                       // 等待通知,超时33ms
+        XC_WaitNotifyMs(33);                        // 等待通知,超时33ms
         if(XC_GetNotifyWakeState() == 0) {          // 未超时,通知到达
             if((uint32_t)XC_GetNotifyData() == 9) { // 获取传递的参数
                 s_A9Data.A9SucceedCount++;          // 正确计数
@@ -389,11 +389,11 @@ void Task_A9(XCTCB_t* phTCB)
 
 /**
  * @brief       空闲处理
- * @param[in]   hXCOS       框架句柄
+ * @param[in]   phXCOS      框架句柄
  * @param[in]   IdleTick    空闲的Tick
  * @details     空闲处理
  */
-void Idle(XCOS_t* hXCOS, XCuint_t IdleTick)
+void Idle(XC_OSHandle_t phXCOS, XC_Tick_t IdleTick)
 {
     // XCTime_BlockDelay(IdleTick); // 阻塞循环,模拟休眠
     __WFI(); // 休眠
@@ -412,25 +412,25 @@ void XCOS(void)
     XCSch_Init(&s_hXCOS0); // 初始化XCOS
 
 #if (_Cnf_Examples >= 3)
-    _XC_SysTickCount = 0xFFFFF000 - 1;      // 为了测试溢出增加
+    XCTime_TickSet(0xFFFFF000 - 1);         // 为了测试溢出增加
     XCSch_SetIdleCallback(&s_hXCOS0, Idle); // 空闲处理回调
 #endif
     // 初始化任务
 #if (_Cnf_Examples >= 2)
-    XC_TaskReg(&s_hXCOS0, &s_hTCBn[0], Task_A0, NULL);
+    XCTask_Reg(&s_hXCOS0, &s_hTCBn[0], Task_A0, NULL);
 #endif
 #if (_Cnf_Examples >= 3)
-    XC_TaskReg(&s_hXCOS0, &s_hTCBn[1], Task_A1, NULL);
-    XC_TaskReg(&s_hXCOS0, &s_hTCBn[2], Task_A2, NULL);
-    XC_TaskReg(&s_hXCOS0, &s_hTCBn[3], Task_A3, NULL);
-    XC_TaskReg(&s_hXCOS0, &s_hTCBn[4], Task_A4, NULL);
-    XC_TaskReg(&s_hXCOS0, &s_hTCBn[5], Task_A5, NULL);
-    XC_TaskReg(&s_hXCOS0, &s_hTCBn[6], Task_A6, NULL);
-    XC_TaskReg(&s_hXCOS0, &s_hTCBn[7], Task_A7, NULL);
-    XC_TaskReg(&s_hXCOS0, &s_hTCBn[8], Task_A8, NULL);
-    XC_TaskReg(&s_hXCOS0, &s_hTCBn[9], Task_A9, NULL);
+    XCTask_Reg(&s_hXCOS0, &s_hTCBn[1], Task_A1, NULL);
+    XCTask_Reg(&s_hXCOS0, &s_hTCBn[2], Task_A2, NULL);
+    XCTask_Reg(&s_hXCOS0, &s_hTCBn[3], Task_A3, NULL);
+    XCTask_Reg(&s_hXCOS0, &s_hTCBn[4], Task_A4, NULL);
+    XCTask_Reg(&s_hXCOS0, &s_hTCBn[5], Task_A5, NULL);
+    XCTask_Reg(&s_hXCOS0, &s_hTCBn[6], Task_A6, NULL);
+    XCTask_Reg(&s_hXCOS0, &s_hTCBn[7], Task_A7, NULL);
+    XCTask_Reg(&s_hXCOS0, &s_hTCBn[8], Task_A8, NULL);
+    XCTask_Reg(&s_hXCOS0, &s_hTCBn[9], Task_A9, NULL);
 #endif
-    XCSch_Run(&s_hXCOS0); // 调度器阻塞运行
+    XCSch_Start(&s_hXCOS0); // 调度器启动
 }
 #endif
 
@@ -456,25 +456,25 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
     switch(GPIO_Pin) {
         case GPIO_PIN_0:
 #if (_Cnf_Examples >= 3)
-            XC_TaskResume(&s_hTCBn[7]); // 恢复A7
+            XCTask_Resume(&s_hTCBn[7]); // 恢复A7
             s_A7Data.IntSendCount++;
 #endif
             break;
         case GPIO_PIN_1:
 #if (_Cnf_Examples >= 3)
-            XC_SendNotify(&s_hTCBn[8], (void*)8); // 唤醒任务8,传递参数8
+            XCTask_NotifySend(&s_hTCBn[8], (void*)8); // 唤醒任务8,传递参数8
             s_A8Data.IntNotifySendCount++;
 #endif
             break;
         case GPIO_PIN_2:
 #if (_Cnf_Examples >= 3)
-            XC_TaskSuspend(&s_hTCBn[8]); // 挂起A8
+            XCTask_Suspend(&s_hTCBn[8]); // 挂起A8
             s_A8Data.IntSuspendSendCount++;
 #endif
             break;
         case GPIO_PIN_3:
 #if (_Cnf_Examples >= 3)
-            XC_TaskResume(&s_hTCBn[8]); // 恢复A8
+            XCTask_Resume(&s_hTCBn[8]); // 恢复A8
             s_A8Data.IntResumeSendCount++;
 #endif
             break;
@@ -493,7 +493,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim)
 
     if(htim->Instance == TIM2) {
 #if (_Cnf_Examples >= 3)
-        XC_SendNotify(&s_hTCBn[9], (void*)9); // 唤醒任务8,传递参数8
+        XCTask_NotifySend(&s_hTCBn[9], (void*)9); // 唤醒任务8,传递参数8
         s_A9Data.IntTaskCount++;
         NextIntTime = 32;
 #endif

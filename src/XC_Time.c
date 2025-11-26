@@ -21,6 +21,18 @@
  ************************************************ 我是分割线 ************************************************|
  ************************************************************************************************************|
  */
+/** 全局变量 */
+
+// 是中断累加模式,则定义一个全局变量
+#ifdef _XC_SysTickIntIncMode_
+volatile XC_Tick_t g_SysTickCount = 0; // 用户系统Tick
+#endif
+
+/*
+ ************************************************************************************************************|
+ ************************************************ 我是分割线 ************************************************|
+ ************************************************************************************************************|
+ */
 /** 死循环操作 */
 
 /**
@@ -28,11 +40,11 @@
  * @param[in]   DelayTick   需要延时的Tick数
  * @details     while判断死延时
  */
-void XCTime_BlockDelay(XCuint_t DelayTick)
+void XCTime_BlockDelay(XC_Tick_t DelayTick)
 {
-    XCuint_t Tick;
+    XC_Tick_t Tick;
     Tick = XCTime_GetTick();
-    while(!XCTime_CompareTick(Tick, DelayTick));
+    while(!XCTime_CheckTimeout(Tick, DelayTick));
 }
 
 /**
@@ -40,11 +52,11 @@ void XCTime_BlockDelay(XCuint_t DelayTick)
  * @param[in]   Delay_ms    需要延时的ms数
  * @details     while判断死延时
  */
-void XCTime_BlockDelay_ms(XCuint_t Delay_ms)
+void XCTime_BlockDelayMs(XC_Tick_t Delay_ms)
 {
-    XCuint_t Tick;
+    XC_Tick_t Tick;
     Tick = XCTime_GetTick();
-    while(!XCTime_CompareTick(Tick, _Time_ms2Tick(Delay_ms)));
+    while(!XCTime_CheckTimeout(Tick, XCTime_MsToTicks(Delay_ms)));
 }
 
 /************************************************ 我是分割线 ************************************************/
@@ -53,12 +65,12 @@ void XCTime_BlockDelay_ms(XCuint_t Delay_ms)
  * @brief       [用户]获取剩下多少Tick
  * @param[in]   LastTick        上个记录的Tick
  * @param[in]   CompareTick     等待到达的Tick时间
- * @return      XCuint_t        从"LastTick"开始,离"CompareTick"还差多少个Tick,返回0表示到达或者早已到达;
+ * @return      XC_Tick_t        从"LastTick"开始,离"CompareTick"还差多少个Tick,返回0表示到达或者早已到达;
  * @details     获取当前Tick离设定的值还有多少个Tick;
  */
-XCuint_t XCTime_GetRemainTick(XCuint_t LastTick, XCuint_t CompareTick)
+XC_Tick_t XCTime_GetRemain(XC_Tick_t LastTick, XC_Tick_t CompareTick)
 {
-    XCuint_t Tick;
+    XC_Tick_t Tick;
     Tick = XCTime_GetTick(); // 当前Tick
 
     if((Tick - LastTick) >= CompareTick) {
@@ -71,12 +83,12 @@ XCuint_t XCTime_GetRemainTick(XCuint_t LastTick, XCuint_t CompareTick)
  * @brief       [用户]获取运行了多少Tick
  * @param[in]   LastTick    上个记录的Tick
  * @param[in]   CompareTick 等待到达的Tick时间
- * @return      XCuint_t    从"LastTick"开始,到"CompareTick"个Tick已经运行了多少Tick,返回"CompareTick"表示已经运行完成或者早已运行完成;
+ * @return      XC_Tick_t    从"LastTick"开始,到"CompareTick"个Tick已经运行了多少Tick,返回"CompareTick"表示已经运行完成或者早已运行完成;
  * @details     获取当前Tick到设定的值,已经运行了多少个Tick;
  */
-XCuint_t XCTime_GetRunTick(XCuint_t LastTick, XCuint_t CompareTick)
+XC_Tick_t XCTime_GetElapsed(XC_Tick_t LastTick, XC_Tick_t CompareTick)
 {
-    XCuint_t Tick;
+    XC_Tick_t Tick;
     Tick = XCTime_GetTick(); // 当前Tick
 
     if((Tick - LastTick) >= CompareTick) {
@@ -93,13 +105,13 @@ XCuint_t XCTime_GetRunTick(XCuint_t LastTick, XCuint_t CompareTick)
 
 /**
  * @brief       [用户]获取剩下多少Tick
- * @param[in]   tTime       "XCTimeCount_t"类型定义的时间数据;
- * @return      XCuint_t    返回余下Tick,返回0表示到达或者早已到达
+ * @param[in]   tTime       "XC_TimerTick_t"类型定义的时间数据;
+ * @return      XC_Tick_t    返回余下Tick,返回0表示到达或者早已到达
  * @details     [扩展]从上次调用更新计算,获取当前Tick离设定的值还有多少个Tick;
  */
-XCuint_t XCTime_tGetRemainTick(XCTimeCount_t tTime)
+XC_Tick_t XCTime_TimerGetRemain(XC_TimerTick_t tTime)
 {
-    XCuint_t Tick;
+    XC_Tick_t Tick;
     Tick = XCTime_GetTick(); // 当前Tick
 
     if((Tick - tTime.TickCount) >= tTime.WaitCount) {
@@ -110,14 +122,14 @@ XCuint_t XCTime_tGetRemainTick(XCTimeCount_t tTime)
 
 /**
  * @brief       [用户]获取运行了多少Tick
- * @param[in]   tTime       "XCTimeCount_t"类型定义的时间数据;
- * @return      XCuint_t    返回已经运行的Tick,若等于"tTime.WaitCount",表示时间到达或早已到达;
+ * @param[in]   tTime       "XC_TimerTick_t"类型定义的时间数据;
+ * @return      XC_Tick_t    返回已经运行的Tick,若等于"tTime.WaitCount",表示时间到达或早已到达;
  * @details     [扩展]从上次调用更新计算,获取当前Tick到设定的值已经运行了多少个Tick;
  */
-XCuint_t XCTime_tGetRunTick(XCTimeCount_t tTime)
+XC_Tick_t XCTime_TimerGetElapsed(XC_TimerTick_t tTime)
 {
-    XCuint_t Tick;
-    Tick = _XC_SysTickCount;
+    XC_Tick_t Tick;
+    Tick = XCTime_GetTick();
 
     if((Tick - tTime.TickCount) >= tTime.WaitCount) {
         return (tTime.WaitCount);

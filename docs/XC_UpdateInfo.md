@@ -2,10 +2,12 @@
 
 ---
 
-## T2025/11/21
+## T2025/11/26
 - 版本:2.00
 - 将所有注释改为"doxdocgen"形式;
 - 增加"clang-format"格式化配置文件".clang-format";
+- 重命名函数,宏,类型,使之标准化;
+- 用户头文件中隐藏内部实现代码;
 - 优化代码和内存占用,优化运行性能;
 - 清除文件修改日志,以后都在此文件说明;
 - 增加系统嘀嗒计数的全局变量,默认使用中断计数模式(详细件"[配置](./docs/XC_Cnf.md)"说明);
@@ -28,24 +30,15 @@
 - 调度及任务处理("XC_Sch"和"XC_Task")
     - 优化调度处理,增加"通知唤醒","任务挂起","任务挂起恢复"可中断中调用处理;
     - 删除所有"信号量"相关代码;
-- 删除文件统计
-    | 文件名                    | 功能              | 删除原因                                      |
-    | ---                       | ---               | ---                                           |
-    | CortexMx.h                | CortexMx核的功能  | 内核中不使用                                  |
-    | XC_CPU.h                  | 控制器兼容宏      | 框架是纯C语言(ANSI-C或GNU-C)实现,和控制器无关 |
-    | XC_Type.h                 | 类型兼容          | 内核中不使用                                  |
-    | XC_MacroFunc.h            | 一些通用的宏定义  | 内核中不使用                                  |
-    | XC_BitFlag.h              | 通用位定义处理    | 内核中不使用                                  |
-    | XC_TimeCompatibility.h    | 时间处理兼容函数  | 保证内核纯净,不在做兼容                       |
-    | XC_TimeCompile.h          | 版本数据实现      | 内核中不使用                                  |
-    | XCBase.h                  | 兼容"XCBase"      | 保证内核纯净,不在做兼容                       |
-    | XC_Sem.c                  | 信号量实现        | 用通知替代                                    |
-    | XC_Sem.h                  | 信号量实现        | 用通知替代                                    |
-- 注:
+- 删除说明
+
+    保证内核纯净,将不使用或者其他通用库的文件删除,并删除所有兼容老版本的宏;
+
+- **注:**
 
     V2.0版本改动略大,除了核心链表调度没有改变,其他处理都已经重构,包括函数和变量名称;
     所以此版本可以当作独立的初始版本使用,从1.0上删除/修改/增加的函数(宏/变量等)不做独立说明;
-    函数列表说明可以见"[XCOS.md](./docs/XCOS.md)"文件,在源码中每个函数或者宏都有详细说明;
+    函数列表说明可以见"[API文档](./docs/XCOS.md)",在源码中每个函数或者宏都有详细说明;
     详细的使用可以参考"examples"中的工程;
 
 ---
@@ -92,8 +85,8 @@
 #### XC_Sch
 - 修改"XCSch_TaskReset"函数,任务复位不复位传递参数"Param";
 #### XC_Time
-- 修正"XCTime_GetRemainTick"函数,获取滴答计数变为ms的问题;
-- 增加函数宏"XCTime_tGetRunTime_ms"获取运行了多少ms;
+- 修正"XCTime_GetRemain"函数,获取滴答计数变为ms的问题;
+- 增加函数宏"XCTime_TimerGetElapsedMs"获取运行了多少ms;
 
 ---
 
@@ -103,7 +96,7 @@
 - "XC_Time.h"中编译相关宏独立到"XC_TimeCompile.h";
 - "XC_Time.h"中系统时间计数相关宏独立到"XC_TimeCount.h";
 - 将"XC_Time"中所有兼容性代码移至"XC_TimeCompatibility.h";
-- 将"XCTime_CompareTick_t"重命名"XCTime_CompareTickt",防止认为是变量类型;
+- 将"XCTime_CheckTimeout_t"重命名"XCTime_CheckTimeoutt",防止认为是变量类型;
 
 ---
 

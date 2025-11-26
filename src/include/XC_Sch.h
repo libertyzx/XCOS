@@ -3,7 +3,7 @@
  * @brief       调度器实现
  * @author      libertyzx (libertyzx@163.com)
  * @version     2.00
- * @date        2025/11/21
+ * @date        2025/11/26
  * **********************************************
  * @copyright   Copyright (c) 2024 libertyzx. All rights reserved.
  * @license     This project is released under the MIT License.
@@ -17,97 +17,7 @@
 #ifndef _XC_Sch_H_
 #define _XC_Sch_H_
 //=== 头文件
-#include "XC_Cnf.h"
-#include "XC_List.h"
-
-/*
- ************************************************************************************************************|
- ************************************************ 我是分割线 ************************************************|
- ************************************************************************************************************|
- */
-/** 数据类型 */
-
-/**
- * @brief   [用户]XCOS句柄
- * @details
- *  用于记录XCOS实例的数据,一个工程中开源有多个XCOS实例,用此句柄区分; \n
- *  字节数说明(32bit): 8*4+4*2+4+4 = 48Byte
- */
-typedef struct XCOS_t {
-    // 链表
-    XCListNode_t ReadyList;        // 就绪链表
-    XCListNode_t TimeList;         // 延时/超时/等待的链表
-    XCListNode_t TimeOverflowList; // 时间溢出的链表
-    XCListNode_t BlockedList;      // 阻塞链表
-
-    XCListNode_t* pNextReadyNode; // 下个就绪的节点,位于就绪表
-
-    XCuint_t PrevTick; // 上个Tick,用于判断Tick溢出,在时间处理中时间表更新时更新
-
-    uint8_t TaskNum; // 任务数量
-    uint8_t Lock;    // 锁(1锁定;0解锁),用于中断处理
-
-    uint8_t TaskSchedTrigger;   // 任务调度触发(用于通知,挂起,恢复异步操作触发)
-    uint8_t TaskSchedProcessed; // 任务调度处理(用于通知,挂起,恢复异步操作触发后处理)
-    /**
-     * @brief       框架空闲处理回调
-     * @param[in]   phXCOS      [XCOS_t*]框架句柄
-     * @param[in]   IdleTick    [XCuint_t]空闲的Tick值(空闲多少个Tick)
-     * @details
-     *  在此回调函数中处理空闲相关事宜; \n
-     *  当函数被调用时,必定没有任务是就绪的,框架是空闲的; \n
-     *  若是在空闲时休眠系统,则需配置系统在"IdleTick"后唤醒框架; \n
-     *  若是系统Tick计数也停止了则需要更新Tick值: \n
-     *  - 系统Tick是定时器中断计数运行的,可以使用以下方式更新: \n
-     *      ```
-     *      volatile XCuint_t Tick;
-     *      Tick             = _XC_SysTickCount + Tick;
-     *      _XC_SysTickCount = Tick;
-     *      ```
-     *  - 系统Tick是一个计数器,则计数器需要更新为"_XC_SysTickCount + Tick"; \n
-     */
-    void (*fIdle)(struct XCOS_t*, XCuint_t);
-} XCOS_t;
-
-/*
- ************************************************************************************************************|
- ************************************************ 我是分割线 ************************************************|
- ************************************************************************************************************|
- */
-/**函数宏*/
-
-/**
- * @brief       [内部]锁
- * @param[in]   _phXCOS [XCOS_t*]框架句柄(会强制转换"XCOS句柄指针"类型)
- * @details
- *  主要用来锁定任务切换(包括链表操作,状态切换),防止中断调用时资源竞争;
- */
-#define XCSch_Lock(_phXCOS)             \
-    {                                   \
-        ((XCOS_t*)(_phXCOS))->Lock = 1; \
-    }
-
-/**
- * @brief       [内部]解锁
- * @param[in]   _phXCOS [XCOS_t*]框架句柄(会强制转换"XCOS句柄指针"类型)
- * @details
- *  主要用来锁定任务切换(包括链表操作,状态切换),防止中断调用时资源竞争;
- */
-#define XCSch_Unlock(_phXCOS)           \
-    {                                   \
-        ((XCOS_t*)(_phXCOS))->Lock = 0; \
-    }
-
-/**
- * @brief       [内部]获取锁的状态
- * @param[in]   _phXCOS [XCOS_t*]框架句柄(会强制转换"XCOS句柄指针"类型)
- * @return      uint8_t
- * @retval      0 : 解锁
- * @retval      1 : 锁定
- * @details
- *  主要用来锁定任务切换(包括链表操作,状态切换),防止中断调用时资源竞争;
- */
-#define XCSch_GetLockState(_phXCOS) (((XCOS_t*)(_phXCOS))->Lock)
+#include "XC_Type.h"
 
 /*
  ************************************************************************************************************|
@@ -121,14 +31,14 @@ typedef struct XCOS_t {
  * @param[in]   phXCOS  框架句柄
  * @details     在创建好"XCOS"句柄后,调用此函数初始化框架;
  */
-void XCSch_Init(XCOS_t* phXCOS);
+void XCSch_Init(XC_OSHandle_t phXCOS);
 
 /**
- * @brief       [用户]调度器运行(阻塞)
+ * @brief       [用户]调度器启动(阻塞)
  * @param[in]   phXCOS  框架句柄
  * @details     阻塞的运行调度器,调用此函数后不会返回;
  */
-void XCSch_Run(XCOS_t* phXCOS);
+void XCSch_Start(XC_OSHandle_t phXCOS);
 
 /**
  * @brief       [用户]获取任务数
@@ -136,7 +46,7 @@ void XCSch_Run(XCOS_t* phXCOS);
  * @return      uint8_t 返回任务数量
  * @details     当前框架中有多少任务;
  */
-uint8_t XCSch_GetTaskNum(XCOS_t* phXCOS);
+uint8_t XCSch_GetTaskNum(XC_OSHandle_t phXCOS);
 
 /************************************************ 我是分割线 ************************************************/
 
@@ -146,9 +56,22 @@ uint8_t XCSch_GetTaskNum(XCOS_t* phXCOS);
  * @param[in]   fIdle  框架空闲处理回调
  * @details
  *  用于设置框架空闲处理回调; \n
- *  若是需要清除回调则"fIdle"值为NULL即可;
+ *  若是需要清除回调则"fIdle"值为NULL即可; \n
+ *  回调说明: \n
+ *      简述: 框架空闲处理回调 \n
+ *      参数[in]: phXCOS    [XC_OSHandle_t]框架句柄 \n
+ *      参数[in]: IdleTick  [XC_Tick_t]空闲的Tick值(空闲多少个Tick) \n
+ *      说明: 若是休眠,则需要"IdleTick"个Tick计数后唤醒; \n
+ *          若是系统Tick计数也停止了则需要更新Tick值: \n
+ *          - 系统Tick是定时器中断计数运行的,可以使用以下方式更新: \n
+ *              ```
+ *              volatile XC_Tick_t Tick;
+ *              Tick = XCTime_GetTick() + IdleTick;
+ *              XCTime_TickSet(Tick)
+ *              ```
+ *          - 系统Tick是一个计数器,则计数器等于"XCTime_GetTick() + IdleTick"; \n
  */
-void XCSch_SetIdleCallback(XCOS_t* phXCOS, void (*fIdle)(XCOS_t*, XCuint_t));
+void XCSch_SetIdleCallback(XC_OSHandle_t phXCOS, void (*fIdle)(XC_OSHandle_t, XC_Tick_t));
 
 /************************************************ 我是分割线 ************************************************/
 /*
