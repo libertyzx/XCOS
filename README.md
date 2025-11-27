@@ -3,13 +3,13 @@
 <div align="center">
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
-![Version](https://img.shields.io/badge/version-2.0-green.svg)
+![Version](https://img.shields.io/badge/version-2.0.0-green.svg)
 ![C Language](https://img.shields.io/badge/language-C-orange.svg)
 ![Platform](https://img.shields.io/badge/platform-Embedded-lightgrey.svg)
 
 **专为资源受限嵌入式环境设计的轻量级协程调度框架**
 
-[特性](#特性) • [快速开始](#快速开始) • [文档](#文档) • [文件结构](#文件结构)
+[特性](#-特性) • [快速开始](#-快速开始) • [文档](#-文档) • [文件结构](#-文件结构)
 
 </div>
 
@@ -151,7 +151,7 @@ src/                            # 源码文件
 |   |-- XC_Task.h               # 任务处理头文件
 |   |-- XC_Time.h               # 时间处理头文件
 |   |-- XC_Type.h               # 框架中所有用户类型
-|   |-- XCOS.h                  # 总头文件
+|   |-- XCOS.h                  # 总头文件,包含版本信息
 |-- XC_List.c                   # 内部链表实现
 |-- XC_Sch.c                    # 调度处理
 |-- XC_Task.c                   # 任务处理
