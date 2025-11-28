@@ -40,14 +40,14 @@
 
 ### 核心数据类型
 
-| 类型名            | 大小(32位)    | 文件      | 说明                  |
-| ---               | ---           | ---       | ---                   |
-| `XC_Tick_t`       | 4 Bytes       | XC_Cnf.h  | 系统Tick计数类型      |
-| `XC_TimerTick_t`  | 8 Bytes       | XC_Type.h | 软件定时器计数类型    |
-| `XCOS_t`          | 48 Bytes      | XC_Type.h | XCOS框架实例结构体    |
-| `XC_OSHandle_t`   | 4 Bytes       | XC_Type.h | 框架操作句柄          |
-| `XC_TaskCB_t`     | 40 Bytes      | XC_Type.h | 任务控制块实例        |
-| `XC_TaskHandle_t` | 4 Bytes       | XC_Type.h | 任务操作句柄          |
+| 类型名            | 大小(32位)    | 文件          | 说明                  |
+| ---               | ---           | ---           | ---                   |
+| `XC_Tick_t`       | 4 Bytes       | XC_Config.h   | 系统Tick计数类型      |
+| `XC_TimerTick_t`  | 8 Bytes       | XC_Type.h     | 软件定时器计数类型    |
+| `XCOS_t`          | 48 Bytes      | XC_Type.h     | XCOS框架实例结构体    |
+| `XC_OSHandle_t`   | 4 Bytes       | XC_Type.h     | 框架操作句柄          |
+| `XC_TaskCB_t`     | 40 Bytes      | XC_Type.h     | 任务控制块实例        |
+| `XC_TaskHandle_t` | 4 Bytes       | XC_Type.h     | 任务操作句柄          |
 
 ## 🎯 常量枚举
 

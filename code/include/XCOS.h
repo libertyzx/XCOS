@@ -52,7 +52,7 @@
 //=== 头文件
 
 #include "XC_BitPatterns.h" //二进制值
-#include "XC_Cnf.h"         //配置
+#include "XC_Config.h"      //配置
 #include "XC_Type.h"        //类型
 
 #include "XC_Sch.h"  //调度处理

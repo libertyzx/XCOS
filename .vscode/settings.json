@@ -33,8 +33,8 @@
         "bak": true,
         "docs/bak": true,
         "doxygen/bak": true,
-        "src/bak": true,
-        "src/include/bak": true,
+        "code/bak": true,
+        "code/include/bak": true,
     },
     //===以下 Doxygen 注释配置
     //除第一行和最后一行,每行注释的前缀;

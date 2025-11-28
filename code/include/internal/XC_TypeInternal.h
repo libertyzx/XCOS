@@ -17,7 +17,7 @@
 #ifndef _XC_TypeInternal_h_
 #define _XC_TypeInternal_h_
 //=== м╥нд╪Ч
-#include "XC_Cnf.h"
+#include "XC_Config.h"
 #include "internal/XC_List.h"
 
 /*

@@ -1,5 +1,5 @@
 /**
- * @file        XC_Cnf.h
+ * @file        XC_Config.h
  * @brief       配置
  * @author      libertyzx (libertyzx@163.com)
  * @version     2.00
@@ -14,8 +14,8 @@
  *  - 见"XC_UpdateInfo.md"的更新说明;
  */
 //=== 防重复定义
-#ifndef _XC_Cnf_H_
-#define _XC_Cnf_H_
+#ifndef _XC_Config_H_
+#define _XC_Config_H_
 //=== 头文件
 #include <stddef.h>
 #include <stdint.h>

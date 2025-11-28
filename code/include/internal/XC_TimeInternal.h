@@ -17,7 +17,7 @@
 #ifndef _XC_TimeInternal_h_
 #define _XC_TimeInternal_h_
 //=== 头文件
-#include "XC_Cnf.h"
+#include "XC_Config.h"
 
 /*
  ************************************************************************************************************|
@@ -26,7 +26,7 @@
  */
 /**
  * 滴答计数频率转换
- * "XC_CFG_TICKS_PER_SEC"在"XC_Cnf.h"文件定义;
+ * "XC_CFG_TICKS_PER_SEC"在"XC_Config.h"文件定义;
  */
 
 /**

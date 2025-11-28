@@ -339,7 +339,7 @@
               <MiscControls></MiscControls>
               <Define>USE_HAL_DRIVER,STM32F103xE</Define>
               <Undefine></Undefine>
-              <IncludePath>.\Code\lib\CMSIS_5\CMSIS\Core\Include;.\Code\lib\STM32Cube_FW_F1\Drivers\CMSIS\Device\ST\STM32F1xx\Include;.\Code\lib\STM32Cube_FW_F1\Drivers\STM32F1xx_HAL_Driver\Inc;.\Code\MCU;.\Code\main;.\Code\User;..\..\src\include</IncludePath>
+              <IncludePath>.\Code\lib\CMSIS_5\CMSIS\Core\Include;.\Code\lib\STM32Cube_FW_F1\Drivers\CMSIS\Device\ST\STM32F1xx\Include;.\Code\lib\STM32Cube_FW_F1\Drivers\STM32F1xx_HAL_Driver\Inc;.\Code\MCU;.\Code\main;.\Code\User;..\..\code\include</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -476,22 +476,22 @@
             <File>
               <FileName>XC_List.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\src\XC_List.c</FilePath>
+              <FilePath>..\..\code\XC_List.c</FilePath>
             </File>
             <File>
               <FileName>XC_Sch.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\src\XC_Sch.c</FilePath>
+              <FilePath>..\..\code\XC_Sch.c</FilePath>
             </File>
             <File>
               <FileName>XC_Task.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\src\XC_Task.c</FilePath>
+              <FilePath>..\..\code\XC_Task.c</FilePath>
             </File>
             <File>
               <FileName>XC_Time.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\src\XC_Time.c</FilePath>
+              <FilePath>..\..\code\XC_Time.c</FilePath>
             </File>
           </Files>
         </Group>
