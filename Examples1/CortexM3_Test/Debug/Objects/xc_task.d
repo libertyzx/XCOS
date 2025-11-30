@@ -1,0 +1,11 @@
+.\debug\objects\xc_task.o: ..\..\Code\XC_Task.c
+.\debug\objects\xc_task.o: ..\..\code\include\XC_Task.h
+.\debug\objects\xc_task.o: ..\..\code\include\XC_Type.h
+.\debug\objects\xc_task.o: ..\..\code\include\Internal/XC_TypeInternal.h
+.\debug\objects\xc_task.o: ..\..\code\include\Internal/XC_List.h
+.\debug\objects\xc_task.o: ..\..\code\include\XC_Config.h
+.\debug\objects\xc_task.o: C:\Software\Keil\MDK5\ARM\ARMCC\Bin\..\include\stddef.h
+.\debug\objects\xc_task.o: C:\Software\Keil\MDK5\ARM\ARMCC\Bin\..\include\stdint.h
+.\debug\objects\xc_task.o: ..\..\code\include\Internal/XC_CorGNU.h
+.\debug\objects\xc_task.o: ..\..\code\include\Internal/XC_Internal.h
+.\debug\objects\xc_task.o: ..\..\code\include\XC_Sch.h

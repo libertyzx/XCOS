@@ -1,0 +1,2096 @@
+L 1 "..\..\Code\XC_Sch.c"
+N/**
+N * @file        XC_Sch.c
+N * @brief       调度器实现
+N * @author      libertyzx (libertyzx@163.com)
+N * @version     2.00
+N * @date        2025/11/26
+N * **********************************************
+N * @copyright   Copyright (c) 2024 libertyzx. All rights reserved.
+N * @license     This project is released under the MIT License.
+N * **********************************************
+N * @details     用于调度任务的调度器实现;
+N * **********************************************
+N *  修改日志
+N *  - 见"XC_UpdateInfo.md"的更新说明;
+N */
+N//=== 头文件
+N#include "XC_Sch.h"
+L 1 "..\..\code\include\XC_Sch.h" 1
+N/**
+N * @file        XC_Sch.h
+N * @brief       调度器实现
+N * @author      libertyzx (libertyzx@163.com)
+N * @version     2.00
+N * @date        2025/11/26
+N * **********************************************
+N * @copyright   Copyright (c) 2024 libertyzx. All rights reserved.
+N * @license     This project is released under the MIT License.
+N * **********************************************
+N * @details     用于调度任务的代码
+N * **********************************************
+N *  修改日志
+N *  - 见"XC_UpdateInfo.md"的更新说明;
+N */
+N//=== 防重复定义
+N#ifndef _XC_Sch_H_
+N#define _XC_Sch_H_
+N//=== 头文件
+N#include "XC_Type.h"
+L 1 "..\..\code\include\XC_Type.h" 1
+N/**
+N * @file        XC_Type.h
+N * @brief       框架的类型
+N * @author      libertyzx (libertyzx@163.com)
+N * @version     2.00
+N * @date        2025/11/26
+N * **********************************************
+N * @copyright   Copyright (c) 2024 libertyzx. All rights reserved.
+N * @license     This project is released under the MIT License.
+N * **********************************************
+N * @details
+N *  框架中用户调用的类型
+N *  注意:"XC_Tick_t"类型特殊(可配置),在"XC_Config.h"中定义;
+N * **********************************************
+N *  修改日志
+N *  - 见"XC_UpdateInfo.md"的更新说明;
+N */
+N//=== 防重复定义
+N#ifndef _XC_Type_h_
+N#define _XC_Type_h_
+N//=== 头文件
+N#include "Internal/XC_TypeInternal.h"
+L 1 "..\..\code\include\Internal/XC_TypeInternal.h" 1
+N/**
+N * @file        XC_TypeInternal.h.h
+N * @brief       内部类型
+N * @author      libertyzx (libertyzx@163.com)
+N * @version     2.00
+N * @date        2025/11/26
+N * **********************************************
+N * @copyright   Copyright (c) 2024 libertyzx. All rights reserved.
+N * @license     This project is released under the MIT License.
+N * **********************************************
+N * @details     存放框架内部类型的代码
+N * **********************************************
+N *  修改日志
+N *  - 见"XC_UpdateInfo.md"的更新说明;
+N */
+N//=== 防重复定义
+N#ifndef _XC_TypeInternal_h_
+N#define _XC_TypeInternal_h_
+N//=== 头文件
+N#include "Internal/XC_List.h"
+L 1 "..\..\code\include\Internal/XC_List.h" 1
+N/**
+N * @file        XC_List.h
+N * @brief       链表操作的声明
+N * @author      libertyzx (libertyzx@163.com)
+N * @version     2.0
+N * @date        2025/11/26
+N * **********************************************
+N * @copyright   Copyright (c) 2024 libertyzx. All rights reserved.
+N * @license     This project is released under the MIT License.
+N * **********************************************
+N * @details     链表操作的函数声明及类型定义;
+N *  本文件中所有类型都是内部使用;用户不要使用;
+N * **********************************************
+N *  修改日志
+N *  - 见"XC_UpdateInfo.md"的更新说明;
+N */
+N//=== 防重复定义
+N#ifndef _XC_List_H_
+N#define _XC_List_H_
+N
+N/*
+N ************************************************************************************************************|
+N ************************************************ 我是分割线 ************************************************|
+N ************************************************************************************************************|
+N */
+N/**数据类型 */
+N
+N/**
+N * @brief   [内部]双向链表节点类型
+N * @details
+N *  普通节点和根节点都使用此类型;
+N *  根节点只是标记的普通节点;
+N *  32位下占8字节;
+N */
+Ntypedef struct XCListNode_t {
+N    struct XCListNode_t* pNext; // 指向下个节点
+N    struct XCListNode_t* pPrev; // 指向上个节点
+N} XCListNode_t;
+N
+N/*
+N ************************************************************************************************************|
+N ************************************************ 我是分割线 ************************************************|
+N ************************************************************************************************************|
+N */
+N/**初始化操作 */
+N
+N/**
+N * @brief       [内部]初始化节点
+N * @param[in]   pNode   [XCListNode_t*]需要初始化的节点
+N * @details     初始化节点时使用,指向自己,优化为宏;
+N */
+N#define XCList_InitNode(_pNode)     \
+N    {                               \
+N        (_pNode)->pNext = (_pNode); \
+N        (_pNode)->pPrev = (_pNode); \
+N    }
+X#define XCList_InitNode(_pNode)         {                                       (_pNode)->pNext = (_pNode);         (_pNode)->pPrev = (_pNode);     }
+N
+N/**
+N * @brief       [内部]初始化链表
+N * @param[in]   pList   需要初始化的链表
+N * @details     初始化链表时使用
+N */
+N#define XCList_Init(_pList) XCList_InitNode(_pList)
+N
+N/************************************************ 我是分割线 ************************************************/
+N/**链表节点操作 */
+N
+N/**
+N * @brief       [内部]将新节点插入某节点之前
+N * @param[in]   pListNode   [XCListNode_t*]要插入位置的节点
+N * @param[in]   pNewNode    [XCListNode_t*]新节点
+N * @details     只插入节点;
+N */
+Nvoid XCList_InsertNodeBefore(XCListNode_t* pListNode, XCListNode_t* pNewNode);
+N
+N/**
+N * @brief       [内部]将节点移动到某个节点之前
+N * @param[in]   pDestNode   [XCListNode_t*]目标节点
+N * @param[in]   pSrcNode    [XCListNode_t*]需要移动的节点
+N * @details
+N *  将节点从原先链表中移除,并移动到目标节点之前;
+N */
+Nvoid XCList_MoveNodeBefore(XCListNode_t* pDestNode, XCListNode_t* pSrcNode);
+N
+N/**
+N * @brief       [内部]从链表中移除一个节点
+N * @param[in]   pNode   [XCListNode_t*]需要删除的节点
+N * @details     只处理链表节点部分,不影响节点挂载的其他数据;
+N */
+Nvoid XCList_Remove(XCListNode_t* pNode);
+N
+N/************************************************ 我是分割线 ************************************************/
+N/**基础判断 */
+N
+N/**
+N * @brief       [内部]链表是否有效
+N * @param[in]   _pList [XCListNode_t*]链表指针
+N * @return      boot
+N * @retval      0 : 没有节点
+N * @retval      1 : 有节点
+N * @details     判断一个链表的是否有效(是否有节点)
+N */
+N#define XCList_ListValid(_pList)            ((_pList) != ((_pList)->pNext))
+N
+N/**
+N * @brief       [内部]节点是否到达结尾节点
+N * @param[in]   _pList  [XCListNode_t*]链表指针
+N * @param[in]   _pNode  [XCListNode_t*]节点指针
+N * @return      boot
+N * @retval      0 : 没有到达结尾节点
+N * @retval      1 : 到达结尾节点(节点和链表根地址相同)
+N * @details     用于遍历链表时,判断遍历的节点是否到达根节点(既是否结束遍历)
+N */
+N#define XCList_ReachEndNode(_pList, _pNode) ((_pList) == (_pNode))
+N
+N/**
+N * @brief       [内部]获取链表的开始节点
+N * @param[in]   _pList  [XCListNode_t*]链表地址
+N * @return      XCListNode_t*   返回节点地址
+N * @details     得到当前链表的开始地址
+N */
+N#define XCList_GetListStartNode(_pList)     ((_pList)->pNext)
+N
+N/************************************************ 我是分割线 ************************************************/
+N/**链表操作 */
+N
+N/**
+N * @brief       [内部]将一个链表全部移动到另个链表的一个节点前
+N * @param[in]   pDestNode   需要移入链表的节点(链表将移动到此节点前)
+N * @param[in]   pSrcList    需要移动的链表
+N * @details  转移完节点后的链表会被清除;
+N *  - 注意:不要移动自己;
+N */
+Nvoid XCList_MoveListToNodeBefore(XCListNode_t* pDestNode, XCListNode_t* pSrcList);
+N
+N/************************************************ 我是分割线 ************************************************/
+N/*
+N ************************************************************************************************************|
+N ************************************************ 我是分割线 ************************************************|
+N ************************************************************************************************************|
+N */
+N//=== 文件结束
+N#endif
+L 21 "..\..\code\include\Internal/XC_TypeInternal.h" 2
+N#include "XC_Config.h"
+L 1 "..\..\code\include\XC_Config.h" 1
+N/**
+N * @file        XC_Config.h
+N * @brief       配置
+N * @author      libertyzx (libertyzx@163.com)
+N * @version     2.00
+N * @date        2025/11/26
+N * **********************************************
+N * @copyright   Copyright (c) 2024 libertyzx. All rights reserved.
+N * @license     This project is released under the MIT License.
+N * **********************************************
+N * @details     用于存放"XCOS"的配置参数;
+N * **********************************************
+N *  修改日志
+N *  - 见"XC_UpdateInfo.md"的更新说明;
+N */
+N//=== 防重复定义
+N#ifndef _XC_Config_H_
+N#define _XC_Config_H_
+N//=== 头文件
+N#include <stddef.h>
+L 1 "C:\Software\Keil\MDK5\ARM\ARMCC\Bin\..\include\stddef.h" 1
+N/* stddef.h: ANSI 'C' (X3J11 Oct 88) library header, section 4.1.4 */
+N
+N/* Copyright (C) ARM Ltd., 1999
+N * All rights reserved
+N * RCS $Revision$
+N * Checkin $Date$
+N * Revising $Author: agrant $
+N */
+N
+N/* Copyright (C) Codemist Ltd., 1988                            */
+N/* Copyright 1991 ARM Limited. All rights reserved.             */
+N/* version 0.05 */
+N
+N/*
+N * The following types and macros are defined in several headers referred to in
+N * the descriptions of the functions declared in that header. They are also
+N * defined in this header file.
+N */
+N
+N#ifndef __stddef_h
+N#define __stddef_h
+N#define __ARMCLIB_VERSION 5060044
+N
+N  #ifndef __STDDEF_DECLS
+N  #define __STDDEF_DECLS
+N    #undef __CLIBNS
+N    #ifdef __cplusplus
+S        namespace std {
+S        #define __CLIBNS ::std::
+S        extern "C" {
+N    #else
+N      #define __CLIBNS
+N    #endif  /* __cplusplus */
+N
+N#if __sizeof_ptr == 8
+X#if 4 == 8
+S  typedef signed long ptrdiff_t;
+N#else
+N  typedef signed int ptrdiff_t;
+N#endif
+N
+N#if defined(__cplusplus) || !defined(__STRICT_ANSI__)
+X#if 0L || !0L
+N /* unconditional in C++ and non-strict C for consistency of debug info */
+N  #if __sizeof_ptr == 8
+X  #if 4 == 8
+S    typedef unsigned long size_t;   /* see <stddef.h> */
+N  #else
+N    typedef unsigned int size_t;   /* see <stddef.h> */
+N  #endif
+N#elif !defined(__size_t)
+X#elif !0L
+S  #define __size_t 1
+S  #if __sizeof_ptr == 8
+S    typedef unsigned long size_t;   /* see <stddef.h> */
+S  #else
+S    typedef unsigned int size_t;   /* see <stddef.h> */
+S  #endif
+S   /* the unsigned integral type of the result of the sizeof operator. */
+N#endif
+N
+N#ifndef __cplusplus  /* wchar_t is a builtin type for C++ */
+N  #if !defined(__STRICT_ANSI__)
+X  #if !0L
+N  /* unconditional in non-strict C for consistency of debug info */
+N    #if defined(__WCHAR32) || (defined(__ARM_SIZEOF_WCHAR_T) && __ARM_SIZEOF_WCHAR_T == 4)
+X    #if 0L || (0L && __ARM_SIZEOF_WCHAR_T == 4)
+S      typedef unsigned int wchar_t; /* also in <stdlib.h> and <inttypes.h> */
+N    #else
+N      typedef unsigned short wchar_t; /* also in <stdlib.h> and <inttypes.h> */
+N    #endif
+N  #elif !defined(__wchar_t)
+X  #elif !0L
+S    #define __wchar_t 1
+S    #if defined(__WCHAR32) || (defined(__ARM_SIZEOF_WCHAR_T) && __ARM_SIZEOF_WCHAR_T == 4)
+S      typedef unsigned int wchar_t; /* also in <stdlib.h> and <inttypes.h> */
+S    #else
+S      typedef unsigned short wchar_t; /* also in <stdlib.h> and <inttypes.h> */
+S    #endif
+S   /*
+S    * An integral type whose range of values can represent distinct codes for
+S    * all members of the largest extended character set specified among the
+S    * supported locales; the null character shall have the code value zero and
+S    * each member of the basic character set shall have a code value when used
+S    * as the lone character in an integer character constant.
+S    */
+N  #endif
+N#endif
+N
+N#undef NULL  /* others (e.g. <stdio.h>) also define */
+N#define NULL 0
+N   /* null pointer constant. */
+N
+N#ifdef __clang__
+S  #define offsetof(t, d) __builtin_offsetof(t, d)
+N#else
+N  /* EDG uses __INTADDR__ to avoid errors when strict */
+N  #define offsetof(t, memb) ((__CLIBNS size_t)__INTADDR__(&(((t *)0)->memb)))
+N#endif
+N
+N#if !defined(__STRICT_ANSI__) || (defined(__STDC_VERSION__) && 201112L <= __STDC_VERSION__) || (defined(__cplusplus) && 201103L <= __cplusplus)
+X#if !0L || (1L && 201112L <= 199901L) || (0L && 201103L <= __cplusplus)
+N  typedef long double max_align_t;
+N#endif
+N
+N    #ifdef __cplusplus
+S         }  /* extern "C" */
+S      }  /* namespace std */
+N    #endif /* __cplusplus */
+N  #endif /* __STDDEF_DECLS */
+N
+N
+N  #ifdef __cplusplus
+S    #ifndef __STDDEF_NO_EXPORTS
+S      using ::std::size_t;
+S      using ::std::ptrdiff_t;
+S      #if !defined(__STRICT_ANSI__) || (defined(__cplusplus) && 201103L <= __cplusplus)
+S        using ::std::max_align_t;
+S      #endif
+S    #endif 
+N  #endif /* __cplusplus */
+N
+N#endif
+N
+N/* end of stddef.h */
+N
+L 21 "..\..\code\include\XC_Config.h" 2
+N#include <stdint.h>
+L 1 "C:\Software\Keil\MDK5\ARM\ARMCC\Bin\..\include\stdint.h" 1
+N/* Copyright (C) ARM Ltd., 1999,2014 */
+N/* All rights reserved */
+N
+N/*
+N * RCS $Revision$
+N * Checkin $Date$
+N * Revising $Author: agrant $
+N */
+N
+N#ifndef __stdint_h
+N#define __stdint_h
+N#define __ARMCLIB_VERSION 5060044
+N
+N  #ifdef __INT64_TYPE__
+S    /* armclang predefines '__INT64_TYPE__' and '__INT64_C_SUFFIX__' */
+S    #define __INT64 __INT64_TYPE__
+N  #else
+N    /* armcc has builtin '__int64' which can be used in --strict mode */
+N    #define __INT64 __int64
+N    #define __INT64_C_SUFFIX__ ll
+N  #endif
+N  #define __PASTE2(x, y) x ## y
+N  #define __PASTE(x, y) __PASTE2(x, y)
+N  #define __INT64_C(x)  __ESCAPE__(__PASTE(x, __INT64_C_SUFFIX__))
+N  #define __UINT64_C(x)  __ESCAPE__(__PASTE(x ## u, __INT64_C_SUFFIX__))
+N  #if defined(__clang__) || (defined(__ARMCC_VERSION) && !defined(__STRICT_ANSI__))
+X  #if 0L || (1L && !0L)
+N    /* armclang and non-strict armcc allow 'long long' in system headers */
+N    #define __LONGLONG long long
+N  #else
+S    /* strict armcc has '__int64' */
+S    #define __LONGLONG __int64
+N  #endif
+N
+N  #ifndef __STDINT_DECLS
+N  #define __STDINT_DECLS
+N
+N    #undef __CLIBNS
+N
+N    #ifdef __cplusplus
+S      namespace std {
+S          #define __CLIBNS std::
+S          extern "C" {
+N    #else
+N      #define __CLIBNS
+N    #endif  /* __cplusplus */
+N
+N
+N/*
+N * 'signed' is redundant below, except for 'signed char' and if
+N * the typedef is used to declare a bitfield.
+N */
+N
+N    /* 7.18.1.1 */
+N
+N    /* exact-width signed integer types */
+Ntypedef   signed          char int8_t;
+Ntypedef   signed short     int int16_t;
+Ntypedef   signed           int int32_t;
+Ntypedef   signed       __INT64 int64_t;
+Xtypedef   signed       __int64 int64_t;
+N
+N    /* exact-width unsigned integer types */
+Ntypedef unsigned          char uint8_t;
+Ntypedef unsigned short     int uint16_t;
+Ntypedef unsigned           int uint32_t;
+Ntypedef unsigned       __INT64 uint64_t;
+Xtypedef unsigned       __int64 uint64_t;
+N
+N    /* 7.18.1.2 */
+N
+N    /* smallest type of at least n bits */
+N    /* minimum-width signed integer types */
+Ntypedef   signed          char int_least8_t;
+Ntypedef   signed short     int int_least16_t;
+Ntypedef   signed           int int_least32_t;
+Ntypedef   signed       __INT64 int_least64_t;
+Xtypedef   signed       __int64 int_least64_t;
+N
+N    /* minimum-width unsigned integer types */
+Ntypedef unsigned          char uint_least8_t;
+Ntypedef unsigned short     int uint_least16_t;
+Ntypedef unsigned           int uint_least32_t;
+Ntypedef unsigned       __INT64 uint_least64_t;
+Xtypedef unsigned       __int64 uint_least64_t;
+N
+N    /* 7.18.1.3 */
+N
+N    /* fastest minimum-width signed integer types */
+Ntypedef   signed           int int_fast8_t;
+Ntypedef   signed           int int_fast16_t;
+Ntypedef   signed           int int_fast32_t;
+Ntypedef   signed       __INT64 int_fast64_t;
+Xtypedef   signed       __int64 int_fast64_t;
+N
+N    /* fastest minimum-width unsigned integer types */
+Ntypedef unsigned           int uint_fast8_t;
+Ntypedef unsigned           int uint_fast16_t;
+Ntypedef unsigned           int uint_fast32_t;
+Ntypedef unsigned       __INT64 uint_fast64_t;
+Xtypedef unsigned       __int64 uint_fast64_t;
+N
+N    /* 7.18.1.4 integer types capable of holding object pointers */
+N#if __sizeof_ptr == 8
+X#if 4 == 8
+Stypedef   signed       __INT64 intptr_t;
+Stypedef unsigned       __INT64 uintptr_t;
+N#else
+Ntypedef   signed           int intptr_t;
+Ntypedef unsigned           int uintptr_t;
+N#endif
+N
+N    /* 7.18.1.5 greatest-width integer types */
+Ntypedef   signed     __LONGLONG intmax_t;
+Xtypedef   signed     long long intmax_t;
+Ntypedef unsigned     __LONGLONG uintmax_t;
+Xtypedef unsigned     long long uintmax_t;
+N
+N
+N#if !defined(__cplusplus) || defined(__STDC_LIMIT_MACROS)
+X#if !0L || 0L
+N
+N    /* 7.18.2.1 */
+N
+N    /* minimum values of exact-width signed integer types */
+N#define INT8_MIN                   -128
+N#define INT16_MIN                -32768
+N#define INT32_MIN          (~0x7fffffff)   /* -2147483648 is unsigned */
+N#define INT64_MIN  __INT64_C(~0x7fffffffffffffff) /* -9223372036854775808 is unsigned */
+N
+N    /* maximum values of exact-width signed integer types */
+N#define INT8_MAX                    127
+N#define INT16_MAX                 32767
+N#define INT32_MAX            2147483647
+N#define INT64_MAX  __INT64_C(9223372036854775807)
+N
+N    /* maximum values of exact-width unsigned integer types */
+N#define UINT8_MAX                   255
+N#define UINT16_MAX                65535
+N#define UINT32_MAX           4294967295u
+N#define UINT64_MAX __UINT64_C(18446744073709551615)
+N
+N    /* 7.18.2.2 */
+N
+N    /* minimum values of minimum-width signed integer types */
+N#define INT_LEAST8_MIN                   -128
+N#define INT_LEAST16_MIN                -32768
+N#define INT_LEAST32_MIN          (~0x7fffffff)
+N#define INT_LEAST64_MIN  __INT64_C(~0x7fffffffffffffff)
+N
+N    /* maximum values of minimum-width signed integer types */
+N#define INT_LEAST8_MAX                    127
+N#define INT_LEAST16_MAX                 32767
+N#define INT_LEAST32_MAX            2147483647
+N#define INT_LEAST64_MAX  __INT64_C(9223372036854775807)
+N
+N    /* maximum values of minimum-width unsigned integer types */
+N#define UINT_LEAST8_MAX                   255
+N#define UINT_LEAST16_MAX                65535
+N#define UINT_LEAST32_MAX           4294967295u
+N#define UINT_LEAST64_MAX __UINT64_C(18446744073709551615)
+N
+N    /* 7.18.2.3 */
+N
+N    /* minimum values of fastest minimum-width signed integer types */
+N#define INT_FAST8_MIN           (~0x7fffffff)
+N#define INT_FAST16_MIN          (~0x7fffffff)
+N#define INT_FAST32_MIN          (~0x7fffffff)
+N#define INT_FAST64_MIN  __INT64_C(~0x7fffffffffffffff)
+N
+N    /* maximum values of fastest minimum-width signed integer types */
+N#define INT_FAST8_MAX             2147483647
+N#define INT_FAST16_MAX            2147483647
+N#define INT_FAST32_MAX            2147483647
+N#define INT_FAST64_MAX  __INT64_C(9223372036854775807)
+N
+N    /* maximum values of fastest minimum-width unsigned integer types */
+N#define UINT_FAST8_MAX            4294967295u
+N#define UINT_FAST16_MAX           4294967295u
+N#define UINT_FAST32_MAX           4294967295u
+N#define UINT_FAST64_MAX __UINT64_C(18446744073709551615)
+N
+N    /* 7.18.2.4 */
+N
+N    /* minimum value of pointer-holding signed integer type */
+N#if __sizeof_ptr == 8
+X#if 4 == 8
+S#define INTPTR_MIN INT64_MIN
+N#else
+N#define INTPTR_MIN INT32_MIN
+N#endif
+N
+N    /* maximum value of pointer-holding signed integer type */
+N#if __sizeof_ptr == 8
+X#if 4 == 8
+S#define INTPTR_MAX INT64_MAX
+N#else
+N#define INTPTR_MAX INT32_MAX
+N#endif
+N
+N    /* maximum value of pointer-holding unsigned integer type */
+N#if __sizeof_ptr == 8
+X#if 4 == 8
+S#define UINTPTR_MAX UINT64_MAX
+N#else
+N#define UINTPTR_MAX UINT32_MAX
+N#endif
+N
+N    /* 7.18.2.5 */
+N
+N    /* minimum value of greatest-width signed integer type */
+N#define INTMAX_MIN  __ESCAPE__(~0x7fffffffffffffffll)
+N
+N    /* maximum value of greatest-width signed integer type */
+N#define INTMAX_MAX  __ESCAPE__(9223372036854775807ll)
+N
+N    /* maximum value of greatest-width unsigned integer type */
+N#define UINTMAX_MAX __ESCAPE__(18446744073709551615ull)
+N
+N    /* 7.18.3 */
+N
+N    /* limits of ptrdiff_t */
+N#if __sizeof_ptr == 8
+X#if 4 == 8
+S#define PTRDIFF_MIN INT64_MIN
+S#define PTRDIFF_MAX INT64_MAX
+N#else
+N#define PTRDIFF_MIN INT32_MIN
+N#define PTRDIFF_MAX INT32_MAX
+N#endif
+N
+N    /* limits of sig_atomic_t */
+N#define SIG_ATOMIC_MIN (~0x7fffffff)
+N#define SIG_ATOMIC_MAX   2147483647
+N
+N    /* limit of size_t */
+N#if __sizeof_ptr == 8
+X#if 4 == 8
+S#define SIZE_MAX UINT64_MAX
+N#else
+N#define SIZE_MAX UINT32_MAX
+N#endif
+N
+N    /* limits of wchar_t */
+N    /* NB we have to undef and redef because they're defined in both
+N     * stdint.h and wchar.h */
+N#undef WCHAR_MIN
+N#undef WCHAR_MAX
+N
+N#if defined(__WCHAR32) || (defined(__ARM_SIZEOF_WCHAR_T) && __ARM_SIZEOF_WCHAR_T == 4)
+X#if 0L || (0L && __ARM_SIZEOF_WCHAR_T == 4)
+S  #define WCHAR_MIN   0
+S  #define WCHAR_MAX   0xffffffffU
+N#else
+N  #define WCHAR_MIN   0
+N  #define WCHAR_MAX   65535
+N#endif
+N
+N    /* limits of wint_t */
+N#define WINT_MIN (~0x7fffffff)
+N#define WINT_MAX 2147483647
+N
+N#endif /* __STDC_LIMIT_MACROS */
+N
+N#if !defined(__cplusplus) || defined(__STDC_CONSTANT_MACROS)
+X#if !0L || 0L
+N
+N    /* 7.18.4.1 macros for minimum-width integer constants */
+N#define INT8_C(x)   (x)
+N#define INT16_C(x)  (x)
+N#define INT32_C(x)  (x)
+N#define INT64_C(x)  __INT64_C(x)
+N
+N#define UINT8_C(x)  (x ## u)
+N#define UINT16_C(x) (x ## u)
+N#define UINT32_C(x) (x ## u)
+N#define UINT64_C(x) __UINT64_C(x)
+N
+N    /* 7.18.4.2 macros for greatest-width integer constants */
+N#define INTMAX_C(x)  __ESCAPE__(x ## ll)
+N#define UINTMAX_C(x) __ESCAPE__(x ## ull)
+N
+N#endif /* __STDC_CONSTANT_MACROS */
+N
+N    #ifdef __cplusplus
+S         }  /* extern "C" */
+S      }  /* namespace std */
+N    #endif /* __cplusplus */
+N  #endif /* __STDINT_DECLS */
+N
+N  #ifdef __cplusplus
+S    #ifndef __STDINT_NO_EXPORTS
+S      using ::std::int8_t;
+S      using ::std::int16_t;
+S      using ::std::int32_t;
+S      using ::std::int64_t;
+S      using ::std::uint8_t;
+S      using ::std::uint16_t;
+S      using ::std::uint32_t;
+S      using ::std::uint64_t;
+S      using ::std::int_least8_t;
+S      using ::std::int_least16_t;
+S      using ::std::int_least32_t;
+S      using ::std::int_least64_t;
+S      using ::std::uint_least8_t;
+S      using ::std::uint_least16_t;
+S      using ::std::uint_least32_t;
+S      using ::std::uint_least64_t;
+S      using ::std::int_fast8_t;
+S      using ::std::int_fast16_t;
+S      using ::std::int_fast32_t;
+S      using ::std::int_fast64_t;
+S      using ::std::uint_fast8_t;
+S      using ::std::uint_fast16_t;
+S      using ::std::uint_fast32_t;
+S      using ::std::uint_fast64_t;
+S      using ::std::intptr_t;
+S      using ::std::uintptr_t;
+S      using ::std::intmax_t;
+S      using ::std::uintmax_t;
+S    #endif
+N  #endif /* __cplusplus */
+N
+N#undef __INT64
+N#undef __LONGLONG
+N
+N#endif /* __stdint_h */
+N
+N/* end of stdint.h */
+L 22 "..\..\code\include\XC_Config.h" 2
+N
+N/*
+N ************************************************************************************************************|
+N ************************************************ 我是分割线 ************************************************|
+N ************************************************************************************************************|
+N */
+N//=== 需要配置的参数
+N
+N/**
+N * @brief   [用户]XCOS基础数据类型
+N * @details
+N *  默认32位,用于系统滴答计数的数据
+N *  一般不用改
+N */
+N#ifndef XC_Tick_t
+N#define XC_Tick_t uint32_t
+N#endif
+N
+N/************************************************ 我是分割线 ************************************************/
+N
+N/**
+N * @brief   [内部]最大任务数
+N * @details
+N *  因为是协作式调度,任务数太多会导致每个任务运行卡顿;
+N *  这个参数限制最大能注册的任务;
+N *  数值范围:10~255;
+N *  默认:100
+N */
+N#ifndef XC_CFG_MAX_TASKS
+N#define XC_CFG_MAX_TASKS (100)
+N#endif
+N
+N/************************************************ 我是分割线 ************************************************/
+N
+N/**
+N * @brief   [内部]系统每秒滴答数(滴答计数频率)
+N * @details
+N *  单位Hz,是系统最小的时间单位;
+N *  最大值是1000000Hz;对应时间是1us;
+N *  一般设置1000,对应时间为1ms;
+N */
+N#ifndef XC_CFG_TICKS_PER_SEC
+N#define XC_CFG_TICKS_PER_SEC (1000)
+N#endif
+N
+N/************************************************ 我是分割线 ************************************************/
+N
+N/**
+N * @brief   [内部]系统滴答计数实现
+N * @details
+N *  滴答计数是一个累加值,累加时间必须和"XC_CFG_TICKS_PER_SEC"时间一致;
+N *  此值会在操作中被读取,作为时间计算的依据;
+N *  系统滴答计数可用2种方式使用:
+N *--- 方式1:中断累加形式(默认);
+N *  用一个变量在定时器中累加,每一个滴答时间则+1;
+N *  在此模式下,系统已经定义了一个全局变量"g_SysTickCount"(位于"XC_Sch.c"文件),
+N *  并同时在本文件中做了"外部声明全局滴答时间计数";
+N *  用户只需要做以下处理即可:
+N *      1.创建定时器,按"XC_CFG_TICKS_PER_SEC"计数;
+N *      2.在定时器中累加系统滴答计数,即调用"XC_AccSysTickCount()"函数;
+N *--- 方式2:计数器形式;
+N *  因为协程并不需要中断来切换上下文,所以为了使效率最高可以用一个计数器来做系统滴答计数;
+N *  宏"XC_SYS_TICK_COUNT"作为一个计数器的函数的返回值(或其本身寄存器值);
+N *  用户需要处理:
+N *      1.创建定时器,按"XC_CFG_TICKS_PER_SEC"计数;
+N *      2.将计数值作为"XC_SYS_TICK_COUNT"的指向;
+N *  注意:
+N *      计数器必须是32位计数器;
+N *      宏"XC_SYS_TICK_COUNT"会频繁只读调用,注意寄存器读取效率;
+N */
+N#ifndef XC_SYS_TICK_COUNT
+N
+N#define _XC_SysTickIntIncMode_            // [默认]以中断递增的模式形式
+Nextern volatile XC_Tick_t g_SysTickCount; // 外部声明全局滴答时间计数
+Xextern volatile uint32_t g_SysTickCount; 
+N#define XC_SYS_TICK_COUNT g_SysTickCount  // 调用滴答时间计数
+N
+N#endif
+N
+N/*
+N ************************************************************************************************************|
+N ************************************************ 我是分割线 ************************************************|
+N ************************************************************************************************************|
+N */
+N//=== 文件结束
+N#endif
+L 22 "..\..\code\include\Internal/XC_TypeInternal.h" 2
+N
+N/*
+N ************************************************************************************************************|
+N ************************************************ 我是分割线 ************************************************|
+N ************************************************************************************************************|
+N */
+N
+N/** 协程底层实现("ANSI-C"和"GNU-C"区分) */
+N#ifdef __GNUC__
+N#include "Internal/XC_CorGNU.h" //运行"GNU-C"库
+L 1 "..\..\code\include\Internal/XC_CorGNU.h" 1
+N/**
+N * @file        XC_CorGNU.h
+N * @brief       协程库(GNU-C实现)
+N * @author      libertyzx (libertyzx@163.com)
+N * @version     0.4
+N * @date        2025/09/24
+N * **********************************************
+N * @copyright   Copyright (c) 2018 libertyzx. All rights reserved.
+N * @license     This project is released under the MIT License.
+N * **********************************************
+N * @details
+N *  在GUN环境下,使用"goto label"来实现协程;
+N *  goto标签由"__func__"和"__LINE__"组合而成, 断点直接获取标签地址;
+N *  使用"goto *标签地址"即可跳转到指定标签;
+N *  使用协程库后,每个文件代码行数不能超过65535;
+N * **********************************************
+N *  修改日志
+N *  - 2018/04/16
+N *      - 版本:0.1
+N *      - 初始编写
+N *  - 2022/08/15
+N *      - 版本:0.2
+N *      - 修改断点在断点标号前加'_',为了防止数字开头的文件,导致标号不符合c语言规范;
+N *      - "_COR_End"添加goto结束断点;
+N *  - 2023/12/21
+N *      - 版本:0.3
+N *      - 增加"_COR_Break"直接跳出协程;
+N *  - 2024/03/23
+N *      - 版本:0.4
+N *      - 删除宏中的"do{}while(0)"操作;
+N */
+N//=== 防重复定义
+N#ifndef _XC_CorGNU_h_
+N#define _XC_CorGNU_h_
+N
+N/*
+N ************************************************************************************************************|
+N ************************************************ 我是分割线 ************************************************|
+N ************************************************************************************************************|
+N */
+N/** 数据类型 */
+N
+N/**
+N * @brief       协程断点类型
+N * @details     用于保存断点的地址;
+N */
+Ntypedef void* COR_BP_t;
+N
+N/*
+N ************************************************************************************************************|
+N ************************************************ 我是分割线 ************************************************|
+N ************************************************************************************************************|
+N */
+N/** 协程实现 */
+N
+N//=== 基础函数宏 ==============================================================|
+N
+N/**
+N * @brief       [私有]协程-组合断点标志
+N * @param[in]   S1  [字符]goto标签前缀
+N * @param[in]   S1  [字符]goto标签后缀
+N * @details
+N *  使用了"##"字符连接符,所以展开需要2次才能得到标签;
+N */
+N#define _COR_BP2(S1, S2) _##S1##S2
+N#define _COR_BP(S1, S2)  _COR_BP2(S1, S2)
+N
+N/**
+N * @brief       协程-断点初始化
+N * @param[in]   BP  [COR_BP_t]协程断点
+N * @details     初始化断点;
+N */
+N#define _COR_Init(BP)    ((BP) = NULL)
+N
+N/**
+N * @brief       协程-代码开头
+N * @param[in]   BP  [COR_BP_t]协程断点
+N * @details     协程块的开始(状态机的开始);
+N */
+N#define _COR_Start(BP)   \
+N    {                    \
+N        if(BP != NULL) { \
+N            goto* BP;    \
+N        }                \
+N    }
+X#define _COR_Start(BP)       {                            if(BP != NULL) {             goto* BP;            }                    }
+N
+N/**
+N * @brief       协程-设置断点
+N * @param[in]   BP  [COR_BP_t]协程断点
+N * @details     保存当前行的标签地址;
+N */
+N#define _COR_SetBP(BP)                        \
+N    {                                         \
+N        /*保存并设置断点(函数名+行号)*/       \
+N        (BP) = &&_COR_BP(__func__, __LINE__); \
+N        _COR_BP(__func__, __LINE__) :;        \
+N    }
+X#define _COR_SetBP(BP)                            {                                                                 (BP) = &&_COR_BP(__func__, __LINE__);         _COR_BP(__func__, __LINE__) :;            }
+N
+N/**
+N * @brief       协程-跳出
+N * @param[in]   BP  [COR_BP_t]协程断点
+N * @details     直接跳出协程
+N */
+N#define _COR_Break(BP) \
+N    goto _XCCOR_GOTO_End;
+X#define _COR_Break(BP)     goto _XCCOR_GOTO_End;
+N
+N/**
+N * @brief       协程-设置断点并跳出
+N * @param[in]   BP  [COR_BP_t]协程断点
+N * @details     保存当前行的标签地址,然后跳出;
+N */
+N#define _COR_SetBPBreak(BP)                     \
+N    {                                           \
+N        /*保存并设置断点(函数名+行号)然后跳出*/ \
+N        (BP) = &&_COR_BP(__func__, __LINE__);   \
+N        goto _XCCOR_GOTO_End;                   \
+N        _COR_BP(__func__, __LINE__) :;          \
+N    }
+X#define _COR_SetBPBreak(BP)                         {                                                             (BP) = &&_COR_BP(__func__, __LINE__);           goto _XCCOR_GOTO_End;                           _COR_BP(__func__, __LINE__) :;              }
+N
+N/**
+N * @brief       协程-代码结束
+N * @details     协程块的结束(状态机的结尾);
+N */
+N#define _COR_End() \
+N    _XCCOR_GOTO_End: /*结束跳转标志*/
+X#define _COR_End()     _XCCOR_GOTO_End:  
+N
+N/*
+N ************************************************************************************************************|
+N ************************************************ 我是分割线 ************************************************|
+N ************************************************************************************************************|
+N */
+N//=== 文件结束
+N#endif
+L 32 "..\..\code\include\Internal/XC_TypeInternal.h" 2
+N#else
+S#include "Internal/XC_CorANSI.h" //运行"ANSI-C"库
+N#endif
+N
+N/*
+N ************************************************************************************************************|
+N ************************************************ 我是分割线 ************************************************|
+N ************************************************************************************************************|
+N */
+N/** 数据类型 */
+N
+N/**
+N * @brief   [用户]XCOS句柄
+N * @details
+N *  用于记录XCOS实例的数据,一个工程中开源有多个XCOS实例,用此句柄区分;
+N *  字节数说明(32bit): 8*4+4*2+4+4 = 48Byte
+N */
+Nstruct XCOS_t {
+N    // 链表
+N    XCListNode_t ReadyList;        // 就绪链表
+N    XCListNode_t TimeList;         // 延时/超时/等待的链表
+N    XCListNode_t TimeOverflowList; // 时间溢出的链表
+N    XCListNode_t BlockedList;      // 阻塞链表
+N
+N    XCListNode_t* pNextReadyNode; // 下个就绪的节点,位于就绪表
+N
+N    XC_Tick_t PrevTick; // 上个Tick,用于判断Tick溢出,在时间处理中时间表更新时更新
+X    uint32_t PrevTick; 
+N
+N    uint8_t TaskNum; // 任务数量
+N    uint8_t Lock;    // 锁(1锁定;0解锁),用于中断处理
+N
+N    uint8_t TaskSchedTrigger;   // 任务调度触发(用于通知,挂起,恢复异步操作触发)
+N    uint8_t TaskSchedProcessed; // 任务调度处理(用于通知,挂起,恢复异步操作触发后处理)
+N    /**
+N     * @brief       框架空闲处理回调
+N     * @param[in]   phXCOS      [XC_OSHandle_t]框架句柄
+N     * @param[in]   IdleTick    [XC_Tick_t]空闲的Tick值(空闲多少个Tick)
+N     * @details
+N     *  在此回调函数中处理空闲相关事宜;
+N     *  当函数被调用时,必定没有任务是就绪的,框架是空闲的;
+N     *  若是在空闲时休眠系统,则需配置系统在"IdleTick"后唤醒框架;
+N     *  若是系统Tick计数也停止了则需要更新Tick值:
+N     *  - 系统Tick是定时器中断计数运行的,可以使用以下方式更新:
+N     *      ```
+N     *      volatile XC_Tick_t Tick;
+N     *      Tick = XCTime_GetTick() + IdleTick;
+N     *      XCTime_TickSet(Tick)
+N     *      ```
+N     *  - 系统Tick是一个计数器,则计数器等于"XCTime_GetTick() + IdleTick";
+N     */
+N    void (*fIdle)(struct XCOS_t*, XC_Tick_t);
+X    void (*fIdle)(struct XCOS_t*, uint32_t);
+N};
+N
+N/************************************************ 我是分割线 ************************************************/
+N
+N/**
+N * @brief   [内部]XCOS核心断点类型
+N * @details 用于创建上下文切换的断点标记
+N */
+Ntypedef COR_BP_t XCBP_t;
+N
+N/**
+N * @brief   [用户]协程任务控制块(Task Control Block)
+N * @details
+N *  用于记录任务控制相关的数据,每个任务都需要一个独立的TCB;
+N *  类型占字节数(32bit): 8+4*6+4+3=39Byte,补齐占:40Byte
+N */
+Ntypedef struct XC_TaskCB_t {
+N    XCListNode_t   ListNode;            // 链表节点
+N    struct XCOS_t* phXCOS;              // 任务所属的框架句柄
+N    void (*fTask)(struct XC_TaskCB_t*); // 函数运行入口(任务入口)
+N    XC_Tick_t TaskWakeTick;             // 任务下个唤醒的时间(0则一直阻塞)
+X    uint32_t TaskWakeTick;             
+N    XCBP_t    BP;                       // 协程断点(Break Point)
+N
+N    void* pParam;      // 传递的参数
+N    void* pNotifyData; // 通知数据
+N
+N    uint8_t WakeType;  // 任务唤醒的类型("XC_WakeType_t"类型数据),用于判断是谁唤醒或者超时;
+N    uint8_t TaskState; // 任务状态("XC_TaskState_t"类型数据);
+N
+N    uint8_t NotifyTrigger;   // 通知触发
+N    uint8_t NotifyProcessed; // 通知触发处理
+N
+N    /**
+N     *  以下三个变量用于处理任务挂起恢复;
+N     *  主要用于任务挂起和恢复的异步操作;
+N     *  "StateChangeType"的值为"XC_TaskState_t"类型中的:
+N     *  - "XC_TASK_VOID"    : 未挂起
+N     *  - "XC_TASK_SUSPEND" : 挂起
+N     */
+N    uint8_t StateChangeTrigger;   // 状态改变触发
+N    uint8_t StateChangeProcessed; // 状态改变处理
+N    uint8_t StateChangeType;      // 最后一次改变的是什么状态(XC_TASK_SUSPEND/XC_TASK_VOID)
+N} XC_TaskCB_t;
+N
+N/*
+N ************************************************************************************************************|
+N ************************************************ 我是分割线 ************************************************|
+N ************************************************************************************************************|
+N */
+N//=== 文件结束
+N#endif
+L 23 "..\..\code\include\XC_Type.h" 2
+N
+N/*
+N ************************************************************************************************************|
+N ************************************************ 我是分割线 ************************************************|
+N ************************************************************************************************************|
+N */
+N/** 枚举类型 */
+N
+N/**
+N * @brief   [用户]函数返回值
+N */
+Ntypedef enum {
+N    XC_FAIL = -1, // 失败
+N    XC_OK   = 0,  // 成功
+N    XC_CONTINUE,  // 继续
+N} XC_Retuen_t;
+N
+N/**
+N * @brief   [用户]任务状态值(当前协程状态)
+N */
+Ntypedef enum {
+N    XC_TASK_VOID = 0, // 空,被移除后的状态
+N    XC_TASK_RUN,      // 运行
+N    XC_TASK_READY,    // 就绪(注册后的状态)
+N    XC_TASK_SUSPEND,  // [阻塞]挂起
+N    /** 延时和等待通知会在代码中比较,所以要放在最后 */
+N    XC_TASK_DELAY,       // [阻塞]延时
+N    XC_TASK_WAIT_NOTIFY, // [阻塞]等待通知
+N} XC_TaskState_t;
+N
+N/**
+N * @brief   [用户]唤醒状态
+N * @details
+N *  注意,这里"XC_WAKE_NOTIFY"做了特殊化,固定0;
+N *  因为在调用通知唤醒状态时会判断"XC_WAKE_NOTIFY",
+N *  此配置为0时,编译器编译"Cortex-M*"编译优化小于"-O3"时可减少存储占用;
+N */
+Ntypedef enum {
+N    XC_WAKE_NONE   = 1, // 无唤醒
+N    XC_WAKE_TIME   = 2, // 时间到达唤醒
+N    XC_WAKE_NOTIFY = 0, // 通知到达唤醒
+N    XC_WAKE_RESUME = 3, // 任务挂起后恢复
+N} XC_WakeType_t;
+N
+N/*
+N ************************************************************************************************************|
+N ************************************************ 我是分割线 ************************************************|
+N ************************************************************************************************************|
+N */
+N/** 基础类型 */
+N
+N/**
+N * @brief   [用户]XCOS基础数据类型
+N * @details
+N *  默认32位,用于系统滴答计数的数据
+N *  一般不用改
+N */
+N/** "XC_Tick_t"在"XC_Config.h"文件定义 */
+N
+N/**
+N * [用户]软件定时器计数类型
+N */
+Ntypedef struct {
+N    XC_Tick_t TickCount;
+X    uint32_t TickCount;
+N    XC_Tick_t WaitCount;
+X    uint32_t WaitCount;
+N} XC_TimerTick_t;
+N
+N/************************************************ 我是分割线 ************************************************/
+N/** 框架使用 */
+N
+N/**
+N * @brief   [用户]XCOS框架实例
+N * @details
+N *  用于记录XCOS实例的数据,一个工程中开源有多个XCOS实例,用此类型区分;
+N *  字节数说明(32bit): 48Byte
+N */
+Ntypedef struct XCOS_t XCOS_t;
+N
+N/**
+N * @brief   [用户]XCOS框架句柄
+N * @details
+N *  不透明指针;
+N *  对外提供的框架句柄指针,指向框架实例
+N */
+Ntypedef XCOS_t* XC_OSHandle_t;
+N
+N/************************************************ 我是分割线 ************************************************/
+N/** 任务控制块 */
+N
+N/**
+N * @brief   [用户]协程任务控制块(Task Control Block)的实例
+N * @details
+N *  用于记录任务控制相关的数据,每个任务都需要一个独立的TCB;
+N *  类型占字节数(32bit):40Byte
+N */
+Ntypedef struct XC_TaskCB_t XC_TaskCB_t;
+N
+N/**
+N * @brief   [用户]任务句柄
+N * @details
+N *  不透明指针;
+N *  对外提供的任务句柄指针,指向任务实例
+N */
+Ntypedef XC_TaskCB_t* XC_TaskHandle_t;
+N
+N/*
+N ************************************************************************************************************|
+N ************************************************ 我是分割线 ************************************************|
+N ************************************************************************************************************|
+N */
+N//=== 文件结束
+N#endif
+L 21 "..\..\code\include\XC_Sch.h" 2
+N
+N/*
+N ************************************************************************************************************|
+N ************************************************ 我是分割线 ************************************************|
+N ************************************************************************************************************|
+N */
+N/** 函数声明-[用户]调度器处理 */
+N
+N/**
+N * @brief       [用户]调度器初始化
+N * @param[in]   phXCOS  框架句柄
+N * @details     在创建好"XCOS"句柄后,调用此函数初始化框架;
+N */
+Nvoid XCSch_Init(XC_OSHandle_t phXCOS);
+N
+N/**
+N * @brief       [用户]调度器启动(阻塞)
+N * @param[in]   phXCOS  框架句柄
+N * @details     阻塞的运行调度器,调用此函数后不会返回;
+N */
+Nvoid XCSch_Start(XC_OSHandle_t phXCOS);
+N
+N/**
+N * @brief       [用户]获取任务数
+N * @param[in]   phXCOS  框架句柄
+N * @return      uint8_t 返回任务数量
+N * @details     当前框架中有多少任务;
+N */
+Nuint8_t XCSch_GetTaskNum(XC_OSHandle_t phXCOS);
+N
+N/************************************************ 我是分割线 ************************************************/
+N
+N/**
+N * @brief       [用户]设置空闲处理回调
+N * @param[in]   phXCOS  框架句柄
+N * @param[in]   fIdle  框架空闲处理回调
+N * @details
+N *  用于设置框架空闲处理回调;
+N *  若是需要清除回调则"fIdle"值为NULL即可;
+N *  回调说明:
+N *      简述: 框架空闲处理回调
+N *      参数[in]: phXCOS    [XC_OSHandle_t]框架句柄
+N *      参数[in]: IdleTick  [XC_Tick_t]空闲的Tick值(空闲多少个Tick)
+N *      说明: 若是休眠,则需要"IdleTick"个Tick计数后唤醒;
+N *          若是系统Tick计数也停止了则需要更新Tick值:
+N *          - 系统Tick是定时器中断计数运行的,可以使用以下方式更新:
+N *              ```
+N *              volatile XC_Tick_t Tick;
+N *              Tick = XCTime_GetTick() + IdleTick;
+N *              XCTime_TickSet(Tick)
+N *              ```
+N *          - 系统Tick是一个计数器,则计数器等于"XCTime_GetTick() + IdleTick";
+N */
+Nvoid XCSch_SetIdleCallback(XC_OSHandle_t phXCOS, void (*fIdle)(XC_OSHandle_t, XC_Tick_t));
+Xvoid XCSch_SetIdleCallback(XC_OSHandle_t phXCOS, void (*fIdle)(XC_OSHandle_t, uint32_t));
+N
+N/************************************************ 我是分割线 ************************************************/
+N/*
+N ************************************************************************************************************|
+N ************************************************ 我是分割线 ************************************************|
+N ************************************************************************************************************|
+N */
+N//=== 文件结束
+N#endif
+L 18 "..\..\Code\XC_Sch.c" 2
+N#include "Internal/XC_Internal.h"
+L 1 "..\..\code\include\Internal/XC_Internal.h" 1
+N/**
+N * @file        XC_Internal.h
+N * @brief       内部实现
+N * @author      libertyzx (libertyzx@163.com)
+N * @version     2.00
+N * @date        2025/11/26
+N * **********************************************
+N * @copyright   Copyright (c) 2024 libertyzx. All rights reserved.
+N * @license     This project is released under the MIT License.
+N * **********************************************
+N * @details     框架内部实现的代码
+N * **********************************************
+N *  修改日志
+N *  - 见"XC_UpdateInfo.md"的更新说明;
+N */
+N//=== 防重复定义
+N#ifndef _XC_Internal_h_
+N#define _XC_Internal_h_
+N
+N/*
+N ************************************************************************************************************|
+N ************************************************ 我是分割线 ************************************************|
+N ************************************************************************************************************|
+N */
+N/** 调度器调度锁 */
+N
+N/**
+N * @brief       [内部]锁
+N * @param[in]   _phXCOS [XC_OSHandle_t]框架句柄(会强制转换"XCOS句柄指针"类型)
+N * @details
+N *  主要用来锁定任务切换(包括链表操作,状态切换),防止中断调用时资源竞争;
+N */
+N#define XCSch_Lock(_phXCOS)                   \
+N    {                                         \
+N        ((XC_OSHandle_t)(_phXCOS))->Lock = 1; \
+N    }
+X#define XCSch_Lock(_phXCOS)                       {                                                 ((XC_OSHandle_t)(_phXCOS))->Lock = 1;     }
+N
+N/**
+N * @brief       [内部]解锁
+N * @param[in]   _phXCOS [XC_OSHandle_t]框架句柄(会强制转换"XCOS句柄指针"类型)
+N * @details
+N *  主要用来锁定任务切换(包括链表操作,状态切换),防止中断调用时资源竞争;
+N */
+N#define XCSch_Unlock(_phXCOS)                 \
+N    {                                         \
+N        ((XC_OSHandle_t)(_phXCOS))->Lock = 0; \
+N    }
+X#define XCSch_Unlock(_phXCOS)                     {                                                 ((XC_OSHandle_t)(_phXCOS))->Lock = 0;     }
+N
+N/**
+N * @brief       [内部]获取锁的状态
+N * @param[in]   _phXCOS [XC_OSHandle_t]框架句柄(会强制转换"XCOS句柄指针"类型)
+N * @return      uint8_t
+N * @retval      0 : 解锁
+N * @retval      1 : 锁定
+N * @details
+N *  主要用来锁定任务切换(包括链表操作,状态切换),防止中断调用时资源竞争;
+N */
+N#define XCSch_GetLockState(_phXCOS)          (((XC_OSHandle_t)(_phXCOS))->Lock)
+N
+N/************************************************ 我是分割线 ************************************************/
+N
+N/** 任务链表节点处理 */
+N
+N/**
+N * @brief       [内部]将任务移动到就绪表
+N * @param[in]   phTCB   [XC_TaskHandle_t]协程控制块
+N * @details
+N *  将任务移动到下个就绪节点前,确保最后调用;
+N */
+N#define XCTask_MoveTaskToReadyList(_phTCB)   XCList_MoveNodeBefore((_phTCB)->phXCOS->pNextReadyNode, &(_phTCB)->ListNode);
+N
+N/**
+N * @brief       [内部]将任务移动到阻塞表
+N * @param[in]   phTCB   [XC_TaskHandle_t]协程控制块
+N * @details
+N *  将任务移动到阻塞表尾部;
+N */
+N#define XCTask_MoveTaskToBlockedList(_phTCB) XCList_MoveNodeBefore(&(_phTCB)->phXCOS->BlockedList, &(_phTCB)->ListNode);
+N
+N/**
+N * @brief       [内部]移除任务节点
+N * @param[in]   phTCB   [XC_TaskHandle_t]协程控制块
+N * @return      void
+N * @details
+N *  从XCOS中删除TCB节点;
+N */
+N#define XCTask_RemoveTaskNode(_phTCB)        XCList_Remove(&(_phTCB)->ListNode);
+N
+N/*
+N ************************************************************************************************************|
+N ************************************************ 我是分割线 ************************************************|
+N ************************************************************************************************************|
+N */
+N//=== 文件结束
+N#endif
+L 19 "..\..\Code\XC_Sch.c" 2
+N#include "Internal/XC_List.h"
+N#include "XC_Time.h"
+L 1 "..\..\code\include\XC_Time.h" 1
+N/**
+N * @file        XC_Time.h
+N * @brief       时间计数的实现
+N * @author      libertyzx (libertyzx@163.com)
+N * @version     2.00
+N * @date        2025/11/21
+N * **********************************************
+N * @copyright   Copyright (c) 2024 libertyzx. All rights reserved.
+N * @license     This project is released under the MIT License.
+N * **********************************************
+N * @details     时间计数实现的相关代码
+N * **********************************************
+N *  修改日志
+N *  - 见"XC_UpdateInfo.md"的更新说明;
+N */
+N//=== 防重复定义
+N#ifndef _XC_Time_H_
+N#define _XC_Time_H_
+N//=== 头文件
+N#include "Internal/XC_TimeInternal.h"
+L 1 "..\..\code\include\Internal/XC_TimeInternal.h" 1
+N/**
+N * @file        XC_TimeInternal.h
+N * @brief       内部时间处理
+N * @author      libertyzx (libertyzx@163.com)
+N * @version     2.00
+N * @date        2025/11/26
+N * **********************************************
+N * @copyright   Copyright (c) 2024 libertyzx. All rights reserved.
+N * @license     This project is released under the MIT License.
+N * **********************************************
+N * @details     存放框架内部时间处理的相关代码
+N * **********************************************
+N *  修改日志
+N *  - 见"XC_UpdateInfo.md"的更新说明;
+N */
+N//=== 防重复定义
+N#ifndef _XC_TimeInternal_h_
+N#define _XC_TimeInternal_h_
+N//=== 头文件
+N#include "XC_Config.h"
+N
+N/*
+N ************************************************************************************************************|
+N ************************************************ 我是分割线 ************************************************|
+N ************************************************************************************************************|
+N */
+N/**
+N * 滴答计数频率转换
+N * "XC_CFG_TICKS_PER_SEC"在"XC_Config.h"文件定义;
+N */
+N
+N/**
+N * (XC_CFG_TICKS_PER_SEC <= 1000),表示时基单位是1ms到1000ms
+N */
+N#if (XC_CFG_TICKS_PER_SEC <= 1000)
+X#if ((1000) <= 1000)
+N
+N#define _XC_TICK_PERIOD_MS    (1000 / XC_CFG_TICKS_PER_SEC) // 系统滴答计数时基(单位:ms)
+N#define _XC_TICK_PERIOD_US    (_XC_TICK_PERIOD_MS * 1000)   // 系统滴答计数时基(单位:us)
+N
+N/**
+N *  将时间转换成Tick(1个时间是多少Tick)
+N *  注意:使用"XCTime_UsToTicks"时,时间误差会非常大,tick是ms级的,us时间处理按1个tick处理;
+N */
+N#define XCTime_UsToTicks(_t)  (((_t) + _XC_TICK_PERIOD_MS * 1000 - 1) / (_XC_TICK_PERIOD_MS * 1000)) /*(t)us 转换成Tick*/
+N#define XCTime_MsToTicks(_t)  (((_t) + _XC_TICK_PERIOD_MS - 1) / _XC_TICK_PERIOD_MS)                 /*(t)ms 转换成Tick*/
+N#define XCTime_SecToTicks(_t) ((_t) * XC_CFG_TICKS_PER_SEC)                                          /*(t)s  转换成Tick*/
+N
+N/**将Tick转换成时间(1个tick等于多少个时间)*/
+N#define XCTime_TicksToUs(_c)  ((_c) * _XC_TICK_PERIOD_MS * 1000) /*(c)转换成us*/
+N#define XCTime_TicksToMs(_c)  ((_c) * _XC_TICK_PERIOD_MS)        /*(c)转换成ms*/
+N#define XCTime_TicksToSec(_c) ((_c) / XC_CFG_TICKS_PER_SEC)      /*(c)转换成s*/
+N
+N/**
+N *  (XC_CFG_TICKS_PER_SEC <= 1000000),表示时基单位是1us到999us
+N */
+N#elif (XC_CFG_TICKS_PER_SEC <= 1000000)
+X#elif ((1000) <= 1000000)
+S
+S#define _XC_TICK_PERIOD_US    (1000000 / XC_CFG_TICKS_PER_SEC)                       // 系统滴答计数时基(单位:us)
+S
+S/*将时间转换成Tick(1个时间是多少Tick)*/
+S#define XCTime_UsToTicks(_t)  (((_t) + _XC_TICK_PERIOD_US - 1) / _XC_TICK_PERIOD_US) /*(t)us 转换成Tick*/
+S#define XCTime_MsToTicks(_t)  ((_t) * XC_CFG_TICKS_PER_SEC)                          /*(t)ms 转换成Tick*/
+S#define XCTime_SecToTicks(_t) (XCTime_MsToTicks(_t) * 1000)                          /*(t)s  转换成Tick*/
+S
+S/**将Tick转换成时间(1个tick等于多少个时间)*/
+S#define XCTime_TicksToUs(_c)  ((_c) * _XC_TICK_PERIOD_US)                            /*(c)转换成us*/
+S#define XCTime_TicksToMs(_c)  ((_c) / XC_CFG_TICKS_PER_SEC)                          /*(c)转换成ms*/
+S#define XCTime_TicksToSec(_c) (XCTime_TicksToMs(_c) / 1000)                          /*(c)转换成s*/
+S
+S#else
+S#error "系统每秒滴答数[XC_CFG_TICKS_PER_SECd]设置错误!"
+N#endif
+N
+N/*
+N ************************************************************************************************************|
+N ************************************************ 我是分割线 ************************************************|
+N ************************************************************************************************************|
+N */
+N//=== 文件结束
+N#endif
+L 21 "..\..\code\include\XC_Time.h" 2
+N#include "XC_Type.h"
+N
+N/*
+N ************************************************************************************************************|
+N ************************************************ 我是分割线 ************************************************|
+N ************************************************************************************************************|
+N */
+N/** 获取基础时间 */
+N
+N/**
+N * @brief       [用户]获取系统Tick最小时间(单位:us)
+N * @return      int32_t     返回当前系统嘀嗒计数(Tick)最小时间(单位:us);
+N * @details     即是一次计数过去了多少时间;
+N */
+N#define XCTime_GetTickUnit() (_XC_TICK_PERIOD_US)
+N
+N/**
+N * @brief       [用户]获取系统Tick
+N * @return      XC_Tick_t    返回当前系统嘀嗒计数(Tick)值;
+N * @details     获取的是一个全局变量
+N */
+N#define XCTime_GetTick()     (XC_SYS_TICK_COUNT)
+N
+N/************************************************ 我是分割线 ************************************************/
+N
+N/**
+N *  系统嘀嗒计数处理;
+N *  在"XC_SYS_TICK_COUNT"配置为默认状态下有效;
+N */
+N
+N#ifdef _XC_SysTickIntIncMode_
+N
+N/**
+N * @brief   [用户]递增系统Tick
+N * @details 在中断中调用,XC_CFG_TICKS_PER_SECond"频率计数;
+N */
+N#define XCTime_TickInc()  \
+N    {                     \
+N        g_SysTickCount++; \
+N    }
+X#define XCTime_TickInc()      {                             g_SysTickCount++;     }
+N
+N/**
+N * @brief   [用户]设置系统Tick
+N * @param[in]   _Tick   设置的Tick
+N * @details
+N *  特殊情况下使用,如休眠唤醒后重新设置系统滴答时间计数;
+N */
+N#define XCTime_TickSet(_Tick)     \
+N    {                             \
+N        g_SysTickCount = (_Tick); \
+N    }
+X#define XCTime_TickSet(_Tick)         {                                     g_SysTickCount = (_Tick);     }
+N
+N#endif
+N
+N/*
+N ************************************************************************************************************|
+N ************************************************ 我是分割线 ************************************************|
+N ************************************************************************************************************|
+N */
+N/**
+N * 基础时间比较
+N *
+N *  使用方式(例程):
+N *  - 允许出现"Tick"溢出,溢出后时间计算仍然是对的;
+N *  - 这里时间计数限制是:延时等待时间+每次查询Tick是否到达时间,不能超过设置的类型值大小;
+N *  ```c
+N *  XC_Tick_t Lc;
+N *  XC_Tick_t Cache32;
+N *  Lc  = XCTime_GetTick();      //得到当前系统Tick
+N *  while(1){
+N *      if(XCTime_CheckTimeout(Lc, 1000)){
+N *          //等待>=1000个Tick后会运行这里;
+N *      }
+N *      Cache32 = XCTime_GetRemain(Lc,1000);     //从Lc开始,离1000个Tick还差多少个Tick
+N *      Cache32 = XCTime_GetElapsed(Lc,1000);        //从Lc开始,到1000个Tick已经运行了多少Tick
+N *      if(XCTime_CheckTimeoutMs(Lc, 700){
+N *          //等待>=700ms后会运行这里;
+N *      }
+N *  }
+N *  ```
+N * ---
+N *  注:在时间处理上不要用以下方式处理,在Tick溢出后会出错;
+N *  ```c
+N *  XC_Tick_t Lct;
+N *  Lct = XCTime_GetTick() + 100;           //获取系统Tick+100;
+N *  while(1){
+N *      if(XCTime_GetTick() >= (Lct)){      //得到Tick+100后运行;
+N *          //等待超过100个Tick后运行;
+N *      }
+N *  }
+N *  ```
+N */
+N
+N/**
+N * @brief       [用户]比较Tick是否到达设定值
+N * @param[in]   _Lc     上个记录的Tick
+N * @param[in]   _c      需要比较的Tick个数
+N * @return      boor    1:时间到达;0:时间没有到达;
+N * @details     判断是否运行了"_c"个Tick,用于判断时间是否到达;
+N */
+N#define XCTime_CheckTimeout(_Lc, _c)    ((XCTime_GetTick() - (_Lc)) >= (_c))
+N
+N/**
+N * @brief       [用户]比较时间是否到达设定值(单位:ms)
+N * @param[in]   _Lc     上个记录的Tick
+N * @param[in]   _t      需要比较时间
+N * @return      boor    1:时间到达;0:时间没有到达;
+N * @details     判断是否运行了"_t"个时间,用于判断时间是否到达;
+N */
+N#define XCTime_CheckTimeoutMs(_Lc, _t)  (XCTime_CheckTimeout((_Lc), XCTime_MsToTicks(_t)))
+N
+N/**
+N * @brief       [用户]比较时间是否到达设定值(单位:s)
+N * @param[in]   _Lc     上个记录的Tick
+N * @param[in]   _t      需要比较时间
+N * @return      boor    1:时间到达;0:时间没有到达;
+N * @details     判断是否运行了"_t"个时间,用于判断时间是否到达;
+N */
+N#define XCTime_CheckTimeoutSec(_Lc, _t) (XCTime_CheckTimeout((_Lc), XCTime_SecToTicks(_t)))
+N
+N/************************************************ 我是分割线 ************************************************/
+N
+N/**
+N * @brief       [用户]获取剩下多少Tick
+N * @param[in]   LastTick        上个记录的Tick
+N * @param[in]   CompareTick     等待到达的Tick时间
+N * @return      XC_Tick_t        从"LastTick"开始,离"CompareTick"还差多少个Tick,返回0表示到达或者早已到达;
+N * @details     获取当前Tick离设定的值还有多少个Tick;
+N */
+NXC_Tick_t XCTime_GetRemain(XC_Tick_t LastTick, XC_Tick_t CompareTick);
+Xuint32_t XCTime_GetRemain(uint32_t LastTick, uint32_t CompareTick);
+N
+N/**
+N * @brief       [用户]获取运行了多少Tick
+N * @param[in]   LastTick    上个记录的Tick
+N * @param[in]   CompareTick 等待到达的Tick时间
+N * @return      XC_Tick_t    从"LastTick"开始,到"CompareTick"个Tick已经运行了多少Tick,返回"CompareTick"表示已经运行完成或者早已运行完成;
+N * @details     获取当前Tick到设定的值,已经运行了多少个Tick;
+N */
+NXC_Tick_t XCTime_GetElapsed(XC_Tick_t LastTick, XC_Tick_t CompareTick);
+Xuint32_t XCTime_GetElapsed(uint32_t LastTick, uint32_t CompareTick);
+N
+N/*
+N ************************************************************************************************************|
+N ************************************************ 我是分割线 ************************************************|
+N ************************************************************************************************************|
+N */
+N/**
+N *  扩展时间处理
+N *  相比基础时间处理,扩展时间处理增加了数据类型,简化处理;
+N *  使用方式(例程):
+N *  - "XC_TimerTick_t"类型由2个变量组成,简化"时间处理1"的操作;
+N *  - 允许出现"Tick"溢出,溢出后时间计算仍然是对的;
+N *  - 这里时间计数限制是:延时等待时间+每次查询Tick是否到达时间,不能超过设置的类型值大小;
+N *  ```c
+N *  XC_TimerTick_t tCount;
+N *  XCTime_TimerSetMs(tCount, 100);     //更新比较的Tick值为100ms
+N *  while(1){
+N *      if(XCTime_TimerCheck(tCount)){
+N *          //等待超过100ms后运行;
+N *      }
+N *  }
+N *  ```
+N */
+N
+N/**
+N * @brief       [用户]更新需要延时比较的Tick
+N * @param[in]   _tC     "XC_TimerTick_t"类型定义的数据;
+N * @param[in]   _c      更新比较的Tick计数
+N * @details     [扩展]更新需要比较或者延时的Tick数
+N */
+N#define XCTime_TimerSet(_tC, _c)    ((_tC).TickCount = XCTime_GetTick(), (_tC).WaitCount = (_c))
+N
+N/**
+N * @brief       [用户]更新需要延时比较的时间(ms)
+N * @param[in]   _tC     "XC_TimerTick_t"类型定义的数据;
+N * @param[in]   _t      更新比较的时间
+N * @details     [扩展]更新需要比较或者延时的时间
+N */
+N#define XCTime_TimerSetMs(_tC, _t)  XCTime_TimerSet((_tC), XCTime_MsToTicks(_t)) /*更新:_t毫秒*/
+N
+N/**
+N * @brief       [用户]更新需要延时比较的时间(s)
+N * @param[in]   _tC     "XC_TimerTick_t"类型定义的数据;
+N * @param[in]   _t      更新比较的时间
+N * @details     [扩展]更新需要比较或者延时的时间
+N */
+N#define XCTime_TimerSetSec(_tC, _t) XCTime_TimerSet((_tC), XCTime_SecToTicks(_t)) /*更新:_t秒*/
+N
+N/**
+N * @brief       [用户]重复更新上次需要延时比较的时间
+N * @param[in]   _tC     "XC_TimerTick_t"类型定义的数据;
+N * @details     [扩展]重复更新上次需要比较或者延时的时间;
+N */
+N#define XCTime_TimerRepeat(_tC)     ((_tC).TickCount = XCTime_GetTick())
+N
+N/**
+N * @brief       [用户]判断需要比较或延时的时间是否到达
+N * @param[in]   _tC     "XC_TimerTick_t"类型定义的数据;
+N * @return      boot    1时间达到;0时间没有到达;
+N * @details     [扩展]判断需要比较或延时的时间是否到达
+N */
+N#define XCTime_TimerCheck(_tC)      ((XCTime_GetTick() - ((_tC).TickCount)) >= ((_tC).WaitCount))
+N
+N/**
+N * @brief       [用户]清除类型中所有计数
+N * @param[in]   _tC     "XC_TimerTick_t"类型定义的数据;
+N * @details     [扩展]"XC_TimerTick_t"类型数据全清零;
+N */
+N#define XCTime_TimerClr(_tC)        ((_tC).TickCount = 0, (_tC).WaitCount = 0)
+N
+N/************************************************ 我是分割线 ************************************************/
+N/**
+N * @brief       [用户]获取剩下多少Tick
+N * @param[in]   tTime       "XC_TimerTick_t"类型定义的时间数据;
+N * @return      XC_Tick_t    返回余下Tick,返回0表示到达或者早已到达
+N * @details     [扩展]从上次调用更新计算,获取当前Tick离设定的值还有多少个Tick;
+N */
+NXC_Tick_t XCTime_TimerGetRemain(XC_TimerTick_t tTime);
+Xuint32_t XCTime_TimerGetRemain(XC_TimerTick_t tTime);
+N
+N/**
+N * @brief       [用户]获取运行了多少Tick
+N * @param[in]   tTime       "XC_TimerTick_t"类型定义的时间数据;
+N * @return      XC_Tick_t    返回已经运行的Tick,若等于"tTime.WaitCount",表示时间到达或早已到达;
+N * @details     从上次调用更新计算,获取当前Tick到设定的值已经运行了多少个Tick;
+N */
+NXC_Tick_t XCTime_TimerGetElapsed(XC_TimerTick_t tTime);
+Xuint32_t XCTime_TimerGetElapsed(XC_TimerTick_t tTime);
+N
+N/**
+N * @brief       [用户]获取运行了多少ms
+N * @param[in]   tTime       "XC_TimerTick_t"类型定义的时间数据;
+N * @return      XC_Tick_t    返回已经运行的ms,若等于"tTime.WaitCount",表示时间到达或早已到达;
+N * @details     [扩展]从上次调用更新计算,获取当前Tick到设定的值已经运行了多少个Tick;
+N */
+N#define XCTime_TimerGetElapsedMs(_tC) XCTime_TicksToMs(XCTime_TimerGetElapsed(_tC)) // 获取运行了多少ms
+N
+N/*
+N ************************************************************************************************************|
+N ************************************************ 我是分割线 ************************************************|
+N ************************************************************************************************************|
+N */
+N/** 死循环延时 */
+N
+N/**
+N * @brief       [用户]死循环延时Tick个计数
+N * @param[in]   DelayTick   需要延时的Tick数
+N * @details     while判断死延时
+N */
+Nvoid XCTime_BlockDelay(XC_Tick_t DelayTick);
+Xvoid XCTime_BlockDelay(uint32_t DelayTick);
+N
+N/**
+N * @brief       [用户]死循环延时ms
+N * @param[in]   Delay_ms    需要延时的ms数
+N * @details     while判断死延时
+N */
+Nvoid XCTime_BlockDelayMs(XC_Tick_t Delay_ms);
+Xvoid XCTime_BlockDelayMs(uint32_t Delay_ms);
+N
+N/*
+N ************************************************************************************************************|
+N ************************************************ 我是分割线 ************************************************|
+N ************************************************************************************************************|
+N */
+N//=== 文件结束
+N#endif
+L 21 "..\..\Code\XC_Sch.c" 2
+N
+N/*
+N ************************************************************************************************************|
+N ************************************************ 我是分割线 ************************************************|
+N ************************************************************************************************************|
+N */
+N/** 外部函数 */
+N
+Nextern void XCTask_InsertTaskToTimeList(XCListNode_t* pList, XC_TaskHandle_t phTCB); // [内部]将任务插入到时间表
+N
+N/************************************************ 我是分割线 ************************************************/
+N/** 私有宏 */
+N
+N/**
+N * @brief   [私有]获取下个任务唤醒的时间
+N * @return  XC_Tick_t    下个唤醒的Tick值;
+N * @details
+N *  下个任务唤醒的时间为:时间表首节点唤醒时间;
+N */
+N#define XCSch_GetNextTaskWakeTick() (((XC_TaskHandle_t)(XCList_GetListStartNode(&phXCOS->TimeList)))->TaskWakeTick)
+N
+N/*
+N ************************************************************************************************************|
+N ************************************************ 我是分割线 ************************************************|
+N ************************************************************************************************************|
+N */
+N/**调度处理*/
+N
+N/**
+N * @brief       [私有]时间调度
+N * @param[in]   phXCOS  框架句柄
+N * @details
+N *  时间调度处理:
+N *  - 处理系统Tick溢出后的任务调度(时间表移动到就绪表,溢出表移动到时间表);
+N *  - 处理任务时间到达后的任务调度(到达任务移动到就绪表);
+N *  注意:
+N *  > 此函数只处理在时间表和溢出时间表的任务的调度;
+N *  > 操作此函数需要"XCSch_Lock";
+N */
+Nstatic void XCSch_TimeSched(XC_OSHandle_t phXCOS)
+N{
+N    volatile XCListNode_t* pIterator;
+N    XC_TaskHandle_t        phTCB;
+N    XC_Tick_t              Tick;
+X    uint32_t              Tick;
+N
+N    Tick = XCTime_GetTick(); // 得到当前系统Tick
+X    Tick = (g_SysTickCount); 
+N    /**
+N     *  Tick时间溢出处理
+N     *  比较保存的Tick("PrevTick")和当前的Tick值,保存的值大于当前的值,则表示计数溢出
+N     *  溢出后处理如下:
+N     *  - 遍历时间表("TimeList"),更改节点装,并将节点移动到就绪表("ReadyList");
+N     *  - 将时间溢出表("TimeOverflowList")的所有节点移动到时间表("TimeList");
+N     *  - 从时间表得到最新的下个唤醒时间(时间表首节点);
+N     */
+N    if(phXCOS->PrevTick > Tick) { // 保存的Tick大于当前Tick,时间溢出,需要处理
+N        // 时间表处理
+N        if(XCList_ListValid(&phXCOS->TimeList)) { // 时间表有节点
+X        if(((&phXCOS->TimeList) != ((&phXCOS->TimeList)->pNext))) { 
+N            // 所有节点移动到就绪表;
+N            pIterator = XCList_GetListStartNode(&phXCOS->TimeList); // 得到时间链表初始节点
+X            pIterator = ((&phXCOS->TimeList)->pNext); 
+N            do {
+N                ((XC_TaskHandle_t)pIterator)->TaskState = XC_TASK_READY;    // 任务状态:就绪
+N                ((XC_TaskHandle_t)pIterator)->WakeType  = XC_WAKE_TIME;     // 是时间唤醒
+N                pIterator                               = pIterator->pNext; // 指向下个节点
+N            } while(!XCList_ReachEndNode(&phXCOS->TimeList, pIterator)); // 到达结尾则结束
+X            } while(!((&phXCOS->TimeList) == (pIterator))); 
+N            XCList_MoveListToNodeBefore(phXCOS->pNextReadyNode, &phXCOS->TimeList); // 时间表所有节点移动到就绪表
+N        }
+N        // 时间溢出表处理(溢出表全部节点移动时间表)
+N        if(XCList_ListValid(&phXCOS->TimeOverflowList)) {                              // 时间溢出表有节点
+X        if(((&phXCOS->TimeOverflowList) != ((&phXCOS->TimeOverflowList)->pNext))) {                              
+N            XCList_MoveListToNodeBefore(&phXCOS->TimeList, &phXCOS->TimeOverflowList); // 时间溢出表所有节点移动到时间表
+N        }
+N        phXCOS->PrevTick = Tick; // 更新保存Tick
+N    }
+N
+N    /**
+N     *  时间表处理
+N     *  时间表("TimeList")有节点,且下个唤醒任务的时间到达,则调用;
+N     *  需要以下操作;
+N     *  - 遍历时间表("TimeList"),唤醒时间到达的任务都移动到就绪表("ReadyList");
+N     *  注意:
+N     *      - 必须先处理"Tick时间溢出处理";
+N     *      - 安全操作中,必须另存任务TCB并立刻将迭代器移动至下个节点,
+N     *          因为当前节点会移动到就绪表,若是直接移动迭代器,链表指向就会错误;
+N     */
+N    if((XCList_ListValid(&phXCOS->TimeList)) && (Tick >= XCSch_GetNextTaskWakeTick())) { // 时间表有效 && 任务唤醒时间已经到达
+X    if((((&phXCOS->TimeList) != ((&phXCOS->TimeList)->pNext))) && (Tick >= (((XC_TaskHandle_t)(((&phXCOS->TimeList)->pNext)))->TaskWakeTick))) { 
+N        pIterator = XCList_GetListStartNode(&phXCOS->TimeList);                          // 得到时间链表初始节点
+X        pIterator = ((&phXCOS->TimeList)->pNext);                          
+N        // 轮询链表,将时间到达的节点都移动到就绪表;
+N        while(Tick >= ((XC_TaskHandle_t)pIterator)->TaskWakeTick) { // 唤醒时间到达
+N            phTCB     = (XC_TaskHandle_t)pIterator;                 // 安全操作1,得到当前任务的TCB
+N            pIterator = pIterator->pNext;                           // 安全操作2,指向下个任务
+N            XCTask_MoveTaskToReadyList(phTCB);                      // 唤醒任务,移到就绪表
+X            XCList_MoveNodeBefore((phTCB)->phXCOS->pNextReadyNode, &(phTCB)->ListNode);;                      
+N            phTCB->TaskState = XC_TASK_READY;                       // 任务状态:就绪
+N            phTCB->WakeType  = XC_WAKE_TIME;                        // 时间唤醒
+N            // 轮询结束判断
+N            if(XCList_ReachEndNode(&phXCOS->TimeList, pIterator)) { // 到达结尾
+X            if(((&phXCOS->TimeList) == (pIterator))) { 
+N                break;                                              // 结束轮询
+N            }
+N        }
+N        phXCOS->PrevTick = Tick; // 更新保存Tick
+N    }
+N}
+N
+N/**
+N * @brief       [私有]阻塞调度
+N * @param[in]   phXCOS  框架句柄
+N * @param[in]   phTCB   有阻塞操作的任务TCB句柄
+N * @details
+N *  处理任务的阻塞状态;
+N *  - 处理任务唤醒时间,由唤醒时间决定任务是进时间表还是时间溢出表;
+N *  - 处理任务阻塞,挂起或者死等的任务进入阻塞表;
+N *  注意:
+N *  > 调用此函数前先判断函数是否需要阻塞处理;
+N *  > 此调度函数主要是分配阻塞的任务;
+N *  > 操作此函数需要"XCSch_Lock";
+N */
+Nstatic void XCSch_BlockedSched(XC_OSHandle_t phXCOS, XC_TaskHandle_t phTCB)
+N{
+N    XC_Tick_t TaskWakeTick;
+X    uint32_t TaskWakeTick;
+N    XC_Tick_t Tick;
+X    uint32_t Tick;
+N
+N    Tick = XCTime_GetTick(); // 得到当前系统Tick
+X    Tick = (g_SysTickCount); 
+N    /**
+N     *  处理任务操作中的延时,超时,阻塞;
+N     *  在任务中只是将需要延时或者超时的值做保存,在此处处理;
+N     *  延时或者超时的值加上当前的Tick后得到下次需要唤醒的Tick;
+N     *  但是要注意,计算下次唤醒的Tick时计数值可能会溢出,所以需要做溢出判断,
+N     *  将任务分别挂载到两个链表中:时间表("TimeList")和溢出表("TimeOverflowList");
+N     */
+N    if(phTCB->TaskWakeTick != 0) {                        // 有延时或超时时间("TaskWakeTick"!=0)
+N        TaskWakeTick        = phTCB->TaskWakeTick + Tick; // 得到此任务下次唤醒的的时刻
+N        phTCB->TaskWakeTick = TaskWakeTick;               // 保存下次唤醒时刻
+N        XCTask_RemoveTaskNode(phTCB);                     // 将当前节点从就绪表移除
+X        XCList_Remove(&(phTCB)->ListNode);;                     
+N        /**
+N         * 判断任务下个唤醒时刻是否是在Tick溢出后:
+N         *  (TaskWakeTick < Tick) ? 溢出 : 非溢出
+N         * 由溢出和非溢出选择任务入溢出表或者时间表;
+N         */
+N        XCTask_InsertTaskToTimeList((TaskWakeTick < Tick) ? (&phXCOS->TimeOverflowList) : (&phXCOS->TimeList), phTCB);
+N    }
+N    else {                                   // 无时间,阻塞处理
+N        XCTask_MoveTaskToBlockedList(phTCB); // 任务移动到阻塞表(任务挂起或者死等,进入阻塞表;)
+X        XCList_MoveNodeBefore(&(phTCB)->phXCOS->BlockedList, &(phTCB)->ListNode);; 
+N    }
+N}
+N
+N/**
+N * @brief       [私有]任务调度
+N * @param[in]   phXCOS  框架句柄
+N * @details
+N *  此函数用于:
+N *      - 任务唤醒XCTask_NotifySendfy"函数触发;
+N *      - 任务挂起XCTask_Suspendnd"函数触发;
+N *      - 任务挂起恢XCTask_Resumeume"函数触发;
+N *  只有在以上3个函数在中断不安全的情况下被调用,才会触发运行此函数;
+N *  注意:
+N *  > 在调用此函数前必须先判断"phXCOS->TaskSchedTrigger != phXCOS->TaskSchedProcessed";
+N *  > 此函数的实现主要是循环搜索链表(全部),判断是否有需要处理的任务:
+N *  > 操作此函数需要"XCSch_Lock";
+N */
+Nstatic void XCSch_TaskSched(XC_OSHandle_t phXCOS)
+N{
+N    volatile uint8_t Trigger;
+N    volatile uint8_t StateChangeType;
+N    XCListNode_t*    pIterator;
+N    XCListNode_t*    pList[4];
+N    XC_TaskHandle_t  phTCB;
+N    uint8_t          i;
+N
+N    pList[0] = &phXCOS->TimeList;         //"TimeList"延时/超时/等待的链表
+N    pList[1] = &phXCOS->TimeOverflowList; //"TimeOverflowList"时间溢出的链表
+N    pList[2] = &phXCOS->BlockedList;      //"BlockedList"阻塞链表
+N    pList[3] = &phXCOS->ReadyList;        //"ReadyList"就绪链表
+N
+N    /**
+N     * 链表循环搜索判断
+N     */
+N    for(i = 0; i < 4; i++) {
+N        pIterator = XCList_GetListStartNode(pList[i]);      // 得到链表初始节点
+X        pIterator = ((pList[i])->pNext);      
+N        while(!XCList_ReachEndNode(pList[i], pIterator)) {  // 判断是否到达结尾
+X        while(!((pList[i]) == (pIterator))) {  
+N            phTCB           = (XC_TaskHandle_t)(pIterator); // 得到当前任务TCB
+N            pIterator       = pIterator->pNext;             // 指向下个节点(必须在操作前指向下个节点)
+N            StateChangeType = phTCB->StateChangeType;       // 原子操作,状态改变的类型
+N            Trigger         = phTCB->StateChangeTrigger;    // 原子操作,状态改变触发
+N            /** 优先处理挂起和挂起恢复,再处理通知 */
+N            if(Trigger != phTCB->StateChangeProcessed) { // 状态被改变,挂起挂起恢复处理
+N                phTCB->StateChangeProcessed = Trigger;   // 更新状态改变处理
+N                if(StateChangeType == XC_TASK_VOID) {
+N                    /** 任务恢复 */
+N                    XCTask_MoveTaskToReadyList(phTCB); // 任务移动到就绪表
+X                    XCList_MoveNodeBefore((phTCB)->phXCOS->pNextReadyNode, &(phTCB)->ListNode);; 
+N                    phTCB->WakeType  = XC_WAKE_RESUME; // 被任务恢复唤醒
+N                    phTCB->TaskState = XC_TASK_READY;  // 任务状态:就绪
+N                }
+N                else {
+N                    /** 任务挂起 */
+N                    phTCB->TaskState = XC_TASK_SUSPEND;  // 任务状态:挂起
+N                    XCTask_MoveTaskToBlockedList(phTCB); // 任务移动到阻塞表
+X                    XCList_MoveNodeBefore(&(phTCB)->phXCOS->BlockedList, &(phTCB)->ListNode);; 
+N                }
+N            }
+N            else {                                      // 通知处理
+N                Trigger = phTCB->NotifyTrigger;         // 原子操作,通知触发
+N                if(Trigger != phTCB->NotifyProcessed) { // 状态被改变
+N                    phTCB->NotifyProcessed = Trigger;   // 更新状态改变处理
+N                    /** 通知唤醒 */
+N                    XCTask_MoveTaskToReadyList(phTCB); // 任务移动到就绪表
+X                    XCList_MoveNodeBefore((phTCB)->phXCOS->pNextReadyNode, &(phTCB)->ListNode);; 
+N                    phTCB->WakeType  = XC_WAKE_NOTIFY; // 被通知唤醒
+N                    phTCB->TaskState = XC_TASK_READY;  // 任务状态:就绪
+N                }
+N            }
+N        }
+N    }
+N}
+N
+N/*
+N ************************************************************************************************************|
+N ************************************************ 我是分割线 ************************************************|
+N ************************************************************************************************************|
+N */
+N/** 用户函数 */
+N
+N/**
+N * @brief       [用户]调度器初始化
+N * @param[in]   phXCOS  框架句柄
+N * @details
+N *  用于初始化框架的调度器;
+N *  任务启动默认就是调度锁定状态;
+N */
+Nvoid XCSch_Init(XC_OSHandle_t phXCOS)
+N{
+N    /** 初始第一步为锁,防止出现以为中断调度的情况; */
+N    phXCOS->Lock = 1; // 锁(1锁,0解锁),用于中断处理
+N
+N    phXCOS->pNextReadyNode     = &phXCOS->ReadyList; // 下个就绪节点指向就绪表根
+N    phXCOS->PrevTick           = 0;                  // 保存上个Tick值
+N    phXCOS->TaskNum            = 0;                  // 任务数量
+N    phXCOS->TaskSchedTrigger   = 0;                  // 任务调度触发(用于通知,挂起,恢复异步操作触发)
+N    phXCOS->TaskSchedProcessed = 0;                  // 任务调度处理(用于通知,挂起,恢复异步操作触发后处理)
+N    phXCOS->fIdle              = NULL;               // 框架空闲处理
+X    phXCOS->fIdle              = 0;               
+N
+N    XCList_Init(&phXCOS->ReadyList);
+X    { (&phXCOS->ReadyList)->pNext = (&phXCOS->ReadyList); (&phXCOS->ReadyList)->pPrev = (&phXCOS->ReadyList); };
+N    XCList_Init(&phXCOS->TimeList);
+X    { (&phXCOS->TimeList)->pNext = (&phXCOS->TimeList); (&phXCOS->TimeList)->pPrev = (&phXCOS->TimeList); };
+N    XCList_Init(&phXCOS->TimeOverflowList);
+X    { (&phXCOS->TimeOverflowList)->pNext = (&phXCOS->TimeOverflowList); (&phXCOS->TimeOverflowList)->pPrev = (&phXCOS->TimeOverflowList); };
+N    XCList_Init(&phXCOS->BlockedList);
+X    { (&phXCOS->BlockedList)->pNext = (&phXCOS->BlockedList); (&phXCOS->BlockedList)->pPrev = (&phXCOS->BlockedList); };
+N}
+N
+N/**
+N * @brief       [用户]调度器启动(阻塞)
+N * @param[in]   phXCOS  框架句柄
+N * @details
+N *  此函数无返回,阻塞运行;
+N *  > 注意:阻塞下要是有看门狗,记得在任务中喂狗;
+N */
+Nvoid XCSch_Start(XC_OSHandle_t phXCOS)
+N{
+N    volatile uint8_t Trigger;
+N    XCListNode_t*    pIterator; // 节点迭代器
+N    XC_TaskHandle_t  phTCB;
+N    XC_Tick_t        Tick;
+X    uint32_t        Tick;
+N
+N    pIterator = &phXCOS->ReadyList; // 就绪节点指向就绪表根
+N    XCSch_Lock(phXCOS);             // 锁
+X    { ((XC_OSHandle_t)(phXCOS))->Lock = 1; };             
+N    do {
+N        if(XCList_ListValid(&phXCOS->ReadyList)) {                   // 就绪表有节点,处理
+X        if(((&phXCOS->ReadyList) != ((&phXCOS->ReadyList)->pNext))) {                   
+N            if(XCList_ReachEndNode(&phXCOS->ReadyList, pIterator)) { // 到达结尾(是根节点)
+X            if(((&phXCOS->ReadyList) == (pIterator))) { 
+N                pIterator = pIterator->pNext;                        // 再次向下更新就绪节点
+N            }
+N            phTCB                  = (XC_TaskHandle_t)(pIterator); // 得到任务TCB
+N            pIterator              = pIterator->pNext;             // 向下更新就绪节点
+N            phXCOS->pNextReadyNode = pIterator;                    // 得到下个就绪节点
+N            phTCB->TaskState       = XC_TASK_RUN;                  // 任务状态:运行
+N            XCSch_Unlock(phXCOS);                                  // 解锁
+X            { ((XC_OSHandle_t)(phXCOS))->Lock = 0; };                                  
+N            phTCB->fTask(phTCB);                                   // 运行任务
+N            XCSch_Lock(phXCOS);                                    // 锁
+X            { ((XC_OSHandle_t)(phXCOS))->Lock = 1; };                                    
+N            // 任务阻塞处理
+N            if(phTCB->TaskState >= XC_TASK_DELAY) {
+N                XCSch_BlockedSched(phXCOS, phTCB); // 当前任务阻塞调度处理
+N            }
+N        }
+N
+N        XCSch_TimeSched(phXCOS); // 时间调度处理
+N
+N        // 任务异步调度处理
+N        Trigger = phXCOS->TaskSchedTrigger;
+N        if(Trigger != phXCOS->TaskSchedProcessed) {
+N            phXCOS->TaskSchedProcessed = Trigger;
+N            XCSch_TaskSched(phXCOS);
+N        }
+N
+N        // 判断就绪表是否有任务(空闲处理)
+N        if((phXCOS->fIdle != NULL) &&                     // 有空闲处理函数
+X        if((phXCOS->fIdle != 0) &&                     
+N           (XCList_ListValid(&phXCOS->ReadyList) == 0)) { // 就绪表没有节点
+X           (((&phXCOS->ReadyList) != ((&phXCOS->ReadyList)->pNext)) == 0)) { 
+N            /**
+N             *  主要判断时间表和溢出表是否有效(1有效,0无效):
+N             *  - 时间表1,溢出表0: 取数据"XCSch_GetNextTaskWakeTick()"(时间表首节点);
+N             *  - 时间表1,溢出表1: 取数据"XCSch_GetNextTaskWakeTick()"(时间表首节点);
+N             *  - 时间表0,溢出表1: 取溢出表首节点唤醒时间;
+N             *  - 时间表0,溢出表0: 系统休眠;
+N             */
+N            Tick = XCTime_GetTick();                  // 得到当前Tick
+X            Tick = (g_SysTickCount);                  
+N            if(XCList_ListValid(&phXCOS->TimeList)) { // 时间表有节点
+X            if(((&phXCOS->TimeList) != ((&phXCOS->TimeList)->pNext))) { 
+N                Tick = XCSch_GetNextTaskWakeTick() - Tick;
+X                Tick = (((XC_TaskHandle_t)(((&phXCOS->TimeList)->pNext)))->TaskWakeTick) - Tick;
+N            }
+N            else if(XCList_ListValid(&phXCOS->TimeOverflowList)) { // 溢出表有节点
+X            else if(((&phXCOS->TimeOverflowList) != ((&phXCOS->TimeOverflowList)->pNext))) { 
+N                Tick = ((XC_TaskHandle_t)(XCList_GetListStartNode(&phXCOS->TimeOverflowList)))->TaskWakeTick - Tick;
+X                Tick = ((XC_TaskHandle_t)(((&phXCOS->TimeOverflowList)->pNext)))->TaskWakeTick - Tick;
+N            }
+N            else {         // 时间表,溢出表都没有节点;
+N                Tick = ~0; // 按最大时间休眠
+N            }
+N            XCSch_Unlock(phXCOS);        // 解锁
+X            { ((XC_OSHandle_t)(phXCOS))->Lock = 0; };        
+N            phXCOS->fIdle(phXCOS, Tick); // 框架空闲处理
+N            XCSch_Lock(phXCOS);          // 锁
+X            { ((XC_OSHandle_t)(phXCOS))->Lock = 1; };          
+N        }
+N    } while(1);
+N}
+N
+N/**
+N * @brief       [用户]获取任务数
+N * @param[in]   phXCOS  框架句柄
+N * @return      uint8_t 返回任务数量
+N * @details     直接获取框架句柄中的任务数字段;
+N */
+Nuint8_t XCSch_GetTaskNum(XC_OSHandle_t phXCOS)
+N{
+N    return (phXCOS->TaskNum);
+N}
+N
+N/************************************************ 我是分割线 ************************************************/
+N
+N/**
+N * @brief       [用户]设置空闲处理回调
+N * @param[in]   phXCOS  框架句柄
+N * @param[in]   fIdle  框架空闲处理回调
+N * @details
+N *  用于设置框架空闲处理回调;
+N *  若是需要清除回调则"fIdle"值为NULL即可;
+N */
+Nvoid XCSch_SetIdleCallback(XC_OSHandle_t phXCOS, void (*fIdle)(XC_OSHandle_t, XC_Tick_t))
+Xvoid XCSch_SetIdleCallback(XC_OSHandle_t phXCOS, void (*fIdle)(XC_OSHandle_t, uint32_t))
+N{
+N    phXCOS->fIdle = fIdle;
+N}
+N
+N/*
+N ************************************************************************************************************|
+N ************************************************ 我是分割线 ************************************************|
+N ************************************************************************************************************|
+N */
