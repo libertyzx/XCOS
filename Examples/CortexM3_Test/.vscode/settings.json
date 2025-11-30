@@ -1,0 +1,77 @@
+{
+    "files.associations": {
+        "main.h": "c",
+        "stm32f1xx_hal.h": "c",
+        "stm32f1xx_hal_conf.h": "c",
+        "stm32f1xx_hal_rcc.h": "c",
+        "stm32f1xx_hal_def.h": "c",
+        "stm32f1xx.h": "c",
+        "stm32f103xe.h": "c",
+        "xc_type.h": "c",
+        "XC_CorANSI.h": "c",
+        "xc_sch.h": "c",
+        "stdio.h": "c",
+        "XC_CorGNU.h": "c",
+        "xc_list.h": "c",
+        "xcos.h": "c",
+        "xc_cnf.h": "c",
+        "xc_cpu.h": "c",
+        "XC_BitPatterns.h": "c",
+        "stddef.h": "c",
+        "xc_task.h": "c"
+    },
+    //忽略的文件
+    "files.exclude": {
+        //git
+        ".git": true,
+        //Listings
+        "Debug/Listings": true,
+        //Objects
+        "Debug/Objects/*.o": true,
+        "Debug/Objects/*.d": true,
+        "Debug/Objects/*.crf": true,
+        "Debug/Objects/*.Bak": true,
+        "Debug/Objects/*.axf": true,
+        "Debug/Objects/*.dep": true,
+        "Debug/Objects/*.lnp": true,
+        "Debug/Objects": false,
+        //SI
+        "SI": true,
+        //工程文件
+        "CortexM3_Test.uvguix.libertyzx": true,
+        "CortexM3_Test.uvoptx": true,
+        "CortexM3_Test.uvprojx": true,
+        //对应硬件输出
+        "Debug": true,
+        //其他文件
+        "Bak": true,
+        "bak": true,
+        "docs": true,
+        "DebugConfig": true,
+        "Win_MCU_DelCache.bat": true,
+        "EventRecorderStub.scvd": true,
+        "JLinkSettings.ini": true,
+        "JLinkLog.txt": true,
+        "trace.dat": true,
+        "RTE": true,
+        //源码
+        "Code/Config/BAK": true,
+        "Code/Include/BAK": true,
+        "Code/MCU/bak": true,
+        "Code/Main/bak": true,
+        "Code/User/bak": true,
+        //其他
+        "Code/lib/CMSIS_5/CMSIS_5-5.9.1-dev.txt": true,
+        "Code/lib/CMSIS_5/LICENSE.txt": true,
+        "Code/lib/STM32Cube_FW_F1/STM32Cube_FW_F1_V1.8.0.txt": true,
+    },
+    "C_Cpp.default.compilerPath": "",
+    "[dockercompose]": {
+        "editor.autoIndent": "full",
+        "editor.tabSize": 4
+    },
+    "[yaml]": {
+        "editor.tabSize": 4
+    },
+    "editor.detectIndentation": false
+}
