@@ -2,9 +2,9 @@
 
 #忽略文件夹
 bak/*
-docs/bak/*
-code/bak/*
-code/include/bak/*
+Docs/bak/*
+Code/bak/*
+Code/Include/bak/*
 doxygen
 
 #文件类型
@@ -14,8 +14,8 @@ doxygen
 *.log
 
 #examples
-examples/CortexM3_Test/Debug/*
-examples/CortexM3_Test/DebugConfig/*
-examples/CortexM3_Test/CortexM3_Test.uvguix.*
-examples/CortexM3_Test/.vscode/uv4.log.lock
-examples/CortexM3_Test/EventRecorderStub.scvd
+Examples/CortexM3_Test/Debug/*
+Examples/CortexM3_Test/DebugConfig/*
+Examples/CortexM3_Test/CortexM3_Test.uvguix.*
+Examples/CortexM3_Test/.vscode/uv4.log.lock
+Examples/CortexM3_Test/EventRecorderStub.scvd

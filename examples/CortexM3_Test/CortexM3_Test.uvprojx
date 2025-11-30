@@ -381,12 +381,12 @@
       </TargetOption>
       <Groups>
         <Group>
-          <GroupName>main</GroupName>
+          <GroupName>Main</GroupName>
           <Files>
             <File>
               <FileName>main.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\Code\main\main.c</FilePath>
+              <FilePath>.\Code\Main\main.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -401,97 +401,97 @@
           </Files>
         </Group>
         <Group>
-          <GroupName>lib\ST</GroupName>
+          <GroupName>Lib\ST</GroupName>
           <Files>
             <File>
               <FileName>system_stm32f1xx.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\Code\lib\STM32Cube_FW_F1\Drivers\CMSIS\Device\ST\STM32F1xx\Source\Templates\system_stm32f1xx.c</FilePath>
+              <FilePath>.\Code\Lib\STM32Cube_FW_F1\Drivers\CMSIS\Device\ST\STM32F1xx\Source\Templates\system_stm32f1xx.c</FilePath>
             </File>
             <File>
               <FileName>startup_stm32f103xe.s</FileName>
               <FileType>2</FileType>
-              <FilePath>.\Code\lib\STM32Cube_FW_F1\Drivers\CMSIS\Device\ST\STM32F1xx\Source\Templates\arm\startup_stm32f103xe.s</FilePath>
+              <FilePath>.\Code\Lib\STM32Cube_FW_F1\Drivers\CMSIS\Device\ST\STM32F1xx\Source\Templates\arm\startup_stm32f103xe.s</FilePath>
             </File>
           </Files>
         </Group>
         <Group>
-          <GroupName>lib\HAL</GroupName>
+          <GroupName>Lib\HAL</GroupName>
           <Files>
             <File>
               <FileName>stm32f1xx_hal.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\Code\lib\STM32Cube_FW_F1\Drivers\STM32F1xx_HAL_Driver\Src\stm32f1xx_hal.c</FilePath>
+              <FilePath>.\Code\Lib\STM32Cube_FW_F1\Drivers\STM32F1xx_HAL_Driver\Src\stm32f1xx_hal.c</FilePath>
             </File>
             <File>
               <FileName>stm32f1xx_hal_rcc.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\Code\lib\STM32Cube_FW_F1\Drivers\STM32F1xx_HAL_Driver\Src\stm32f1xx_hal_rcc.c</FilePath>
+              <FilePath>.\Code\Lib\STM32Cube_FW_F1\Drivers\STM32F1xx_HAL_Driver\Src\stm32f1xx_hal_rcc.c</FilePath>
             </File>
             <File>
               <FileName>stm32f1xx_hal_rcc_ex.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\Code\lib\STM32Cube_FW_F1\Drivers\STM32F1xx_HAL_Driver\Src\stm32f1xx_hal_rcc_ex.c</FilePath>
+              <FilePath>.\Code\Lib\STM32Cube_FW_F1\Drivers\STM32F1xx_HAL_Driver\Src\stm32f1xx_hal_rcc_ex.c</FilePath>
             </File>
             <File>
               <FileName>stm32f1xx_hal_cortex.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\Code\lib\STM32Cube_FW_F1\Drivers\STM32F1xx_HAL_Driver\Src\stm32f1xx_hal_cortex.c</FilePath>
+              <FilePath>.\Code\Lib\STM32Cube_FW_F1\Drivers\STM32F1xx_HAL_Driver\Src\stm32f1xx_hal_cortex.c</FilePath>
             </File>
             <File>
               <FileName>stm32f1xx_hal_gpio.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\Code\lib\STM32Cube_FW_F1\Drivers\STM32F1xx_HAL_Driver\Src\stm32f1xx_hal_gpio.c</FilePath>
+              <FilePath>.\Code\Lib\STM32Cube_FW_F1\Drivers\STM32F1xx_HAL_Driver\Src\stm32f1xx_hal_gpio.c</FilePath>
             </File>
             <File>
               <FileName>stm32f1xx_hal_gpio_ex.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\Code\lib\STM32Cube_FW_F1\Drivers\STM32F1xx_HAL_Driver\Src\stm32f1xx_hal_gpio_ex.c</FilePath>
+              <FilePath>.\Code\Lib\STM32Cube_FW_F1\Drivers\STM32F1xx_HAL_Driver\Src\stm32f1xx_hal_gpio_ex.c</FilePath>
             </File>
             <File>
               <FileName>stm32f1xx_hal_exti.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\Code\lib\STM32Cube_FW_F1\Drivers\STM32F1xx_HAL_Driver\Src\stm32f1xx_hal_exti.c</FilePath>
+              <FilePath>.\Code\Lib\STM32Cube_FW_F1\Drivers\STM32F1xx_HAL_Driver\Src\stm32f1xx_hal_exti.c</FilePath>
             </File>
             <File>
               <FileName>stm32f1xx_hal_tim.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\Code\lib\STM32Cube_FW_F1\Drivers\STM32F1xx_HAL_Driver\Src\stm32f1xx_hal_tim.c</FilePath>
+              <FilePath>.\Code\Lib\STM32Cube_FW_F1\Drivers\STM32F1xx_HAL_Driver\Src\stm32f1xx_hal_tim.c</FilePath>
             </File>
             <File>
               <FileName>stm32f1xx_hal_dma.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\Code\lib\STM32Cube_FW_F1\Drivers\STM32F1xx_HAL_Driver\Src\stm32f1xx_hal_dma.c</FilePath>
+              <FilePath>.\Code\Lib\STM32Cube_FW_F1\Drivers\STM32F1xx_HAL_Driver\Src\stm32f1xx_hal_dma.c</FilePath>
             </File>
             <File>
               <FileName>stm32f1xx_hal_tim_ex.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\Code\lib\STM32Cube_FW_F1\Drivers\STM32F1xx_HAL_Driver\Src\stm32f1xx_hal_tim_ex.c</FilePath>
+              <FilePath>.\Code\Lib\STM32Cube_FW_F1\Drivers\STM32F1xx_HAL_Driver\Src\stm32f1xx_hal_tim_ex.c</FilePath>
             </File>
           </Files>
         </Group>
         <Group>
-          <GroupName>lib\XCOS</GroupName>
+          <GroupName>Lib\XCOS</GroupName>
           <Files>
             <File>
               <FileName>XC_List.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\code\XC_List.c</FilePath>
+              <FilePath>..\..\Code\XC_List.c</FilePath>
             </File>
             <File>
               <FileName>XC_Sch.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\code\XC_Sch.c</FilePath>
+              <FilePath>..\..\Code\XC_Sch.c</FilePath>
             </File>
             <File>
               <FileName>XC_Task.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\code\XC_Task.c</FilePath>
+              <FilePath>..\..\Code\XC_Task.c</FilePath>
             </File>
             <File>
               <FileName>XC_Time.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\code\XC_Time.c</FilePath>
+              <FilePath>..\..\Code\XC_Time.c</FilePath>
             </File>
           </Files>
         </Group>

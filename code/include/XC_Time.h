@@ -17,8 +17,8 @@
 #ifndef _XC_Time_H_
 #define _XC_Time_H_
 //=== м╥нд╪Ч
+#include "Internal/XC_TimeInternal.h"
 #include "XC_Type.h"
-#include "internal/XC_TimeInternal.h"
 
 /*
  ************************************************************************************************************|

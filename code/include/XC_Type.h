@@ -19,7 +19,7 @@
 #ifndef _XC_Type_h_
 #define _XC_Type_h_
 //=== 头文件
-#include "internal/XC_TypeInternal.h"
+#include "Internal/XC_TypeInternal.h"
 
 /*
  ************************************************************************************************************|
@@ -74,8 +74,8 @@ typedef enum {
 /**
  * @brief   [用户]XCOS基础数据类型
  * @details
- *  默认32位,用于系统滴答计数的数据 \n
- *  一般不用改 \n
+ *  默认32位,用于系统滴答计数的数据
+ *  一般不用改
  */
 /** "XC_Tick_t"在"XC_Config.h"文件定义 */
 
@@ -93,7 +93,7 @@ typedef struct {
 /**
  * @brief   [用户]XCOS框架实例
  * @details
- *  用于记录XCOS实例的数据,一个工程中开源有多个XCOS实例,用此类型区分; \n
+ *  用于记录XCOS实例的数据,一个工程中开源有多个XCOS实例,用此类型区分;
  *  字节数说明(32bit): 48Byte
  */
 typedef struct XCOS_t XCOS_t;
@@ -101,8 +101,8 @@ typedef struct XCOS_t XCOS_t;
 /**
  * @brief   [用户]XCOS框架句柄
  * @details
- *  不透明指针; \n
- *  对外提供的框架句柄指针,指向框架实例 \n
+ *  不透明指针;
+ *  对外提供的框架句柄指针,指向框架实例
  */
 typedef XCOS_t* XC_OSHandle_t;
 
@@ -112,7 +112,7 @@ typedef XCOS_t* XC_OSHandle_t;
 /**
  * @brief   [用户]协程任务控制块(Task Control Block)的实例
  * @details
- *  用于记录任务控制相关的数据,每个任务都需要一个独立的TCB; \n
+ *  用于记录任务控制相关的数据,每个任务都需要一个独立的TCB;
  *  类型占字节数(32bit):40Byte
  */
 typedef struct XC_TaskCB_t XC_TaskCB_t;
@@ -120,8 +120,8 @@ typedef struct XC_TaskCB_t XC_TaskCB_t;
 /**
  * @brief   [用户]任务句柄
  * @details
- *  不透明指针; \n
- *  对外提供的任务句柄指针,指向任务实例 \n
+ *  不透明指针;
+ *  对外提供的任务句柄指针,指向任务实例
  */
 typedef XC_TaskCB_t* XC_TaskHandle_t;
 

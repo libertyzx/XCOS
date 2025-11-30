@@ -82,7 +82,7 @@
 
 ## 🛠️ 功能演示
 
-💡 完整示例代码请查看工程目录 `examples/CortexM3_Test/`
+💡 完整示例代码请查看工程目录 `Examples/CortexM3_Test/`
 
 ### 测试场景详解
 

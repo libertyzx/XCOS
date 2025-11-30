@@ -19,22 +19,22 @@
         //doxygen
         "doxygen/html": true,
         //examples
-        "examples/CortexM3_Test/Debug": true,
-        "examples/CortexM3_Test/DebugConfig": true,
-        "examples/CortexM3_Test/*.uvguix.*": true,
-        "examples/CortexM3_Test/*.uvoptx": true,
-        "examples/CortexM3_Test/*.uvprojx": true,
-        "examples/CortexM3_Test/*.scvd": true,
+        "Examples/CortexM3_Test/Debug": true,
+        "Examples/CortexM3_Test/DebugConfig": true,
+        "Examples/CortexM3_Test/*.uvguix.*": true,
+        "Examples/CortexM3_Test/*.uvoptx": true,
+        "Examples/CortexM3_Test/*.uvprojx": true,
+        "Examples/CortexM3_Test/*.scvd": true,
         //源码
-        "examples/CortexM3_Test/Code/lib/CMSIS_5/CMSIS_5-5.9.1-dev.txt": true,
-        "examples/CortexM3_Test/Code/lib/CMSIS_5/LICENSE.txt": true,
-        "examples/CortexM3_Test/Code/lib/STM32Cube_FW_F1/STM32Cube_FW_F1_V1.8.0.txt": true,
+        "Examples/CortexM3_Test/Code/lib/CMSIS_5/CMSIS_5-5.9.1-dev.txt": true,
+        "Examples/CortexM3_Test/Code/lib/CMSIS_5/LICENSE.txt": true,
+        "Examples/CortexM3_Test/Code/lib/STM32Cube_FW_F1/STM32Cube_FW_F1_V1.8.0.txt": true,
         //备份
         "bak": true,
-        "docs/bak": true,
+        "Docs/bak": true,
         "doxygen/bak": true,
-        "code/bak": true,
-        "code/include/bak": true,
+        "Code/bak": true,
+        "codeInclude//bak": true,
     },
     //===以下 Doxygen 注释配置
     //除第一行和最后一行,每行注释的前缀;
@@ -133,8 +133,8 @@
     "C_Cpp.formatting": "clangFormat",
     "editor.formatOnSave": true,
     "editor.detectIndentation": false,
+    //=== clangFormat格式化相关结束
     "[c]": {
         "editor.defaultFormatter": "ms-vscode.cpptools"
     },
-    //"C_Cpp.errorSquiggles": "disabled"
 }

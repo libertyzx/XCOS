@@ -15,9 +15,9 @@
  */
 //=== 头文件
 #include "XC_Task.h"
+#include "Internal/XC_Internal.h"
+#include "Internal/XC_List.h"
 #include "XC_Sch.h"
-#include "internal/XC_Internal.h"
-#include "internal/XC_List.h"
 
 /*
  ************************************************************************************************************|
@@ -45,7 +45,7 @@
  * @brief       [私有]任务基本初始化
  * @param[in]   phTCB   任务控制块
  * @details
- *  用户不调用; \n
+ *  用户不调用;
  *  "TCB"中以下数据不会被初始化:
  *      - "ListNode" :  链表节点
  *      - "phXCOS" :    任务所属的框架句柄
@@ -77,8 +77,8 @@ static void XC_TaskBasicInit(XC_TaskHandle_t phTCB)
  * @param[in]   pList   需插入的链表(TimeList | TimeOverflowList)
  * @param[in]   phTCB   协程控制块
  * @details
- *  插入的节点需确保纯净,此函数不会处理插入节点的上下的连接; \n
- *  插入时间表按升序排列; \n
+ *  插入的节点需确保纯净,此函数不会处理插入节点的上下的连接;
+ *  插入时间表按升序排列;
  *  从根节点向下(Next)查询"任务下个唤醒的时间"(TaskWakeTick),根据查询值从小到大排列;
  *  > 注意:若查询值相同,新节点插入在旧节点的前面;
  */
@@ -117,8 +117,8 @@ void XCTask_InsertTaskToTimeList(XCListNode_t* pList, XC_TaskHandle_t phTCB)
  * @retval      XC_OK :      注册成功
  * @retval      XC_FAIL :    注册失败,任务太多
  * @details
- *  **不可在中断中使用(有链表操作)** \n
- *  **不可多次注册同个任务(没有做重复判断,会发生未知错误)** \n
+ *  **不可在中断中使用(有链表操作)**
+ *  **不可多次注册同个任务(没有做重复判断,会发生未知错误)**
  *  任务注册完成后会挂载到就绪表;
  */
 XC_Retuen_t XCTask_Reg(XC_OSHandle_t phXCOS, XC_TaskHandle_t phTCB, void (*fTask)(XC_TaskHandle_t), void* pParam)
@@ -147,7 +147,7 @@ XC_Retuen_t XCTask_Reg(XC_OSHandle_t phXCOS, XC_TaskHandle_t phTCB, void (*fTask
  * @brief       [用户]任务移除
  * @param[in]   phTCB 协程控制块
  * @details
- *  **不可在中断中使用(有链表操作)** \n
+ *  **不可在中断中使用(有链表操作)**
  *  会从链表中删除,并清空TCB数据;
  *  不可移除自身,移除自身使用"XC_Remove()"函数;
  */
@@ -173,10 +173,10 @@ void XCTask_Remove(XC_TaskHandle_t phTCB)
  * @brief       [用户]任务复位
  * @param[in]   phTCB   协程控制块
  * @details
- *  **不可在中断中使用(有链表操作)** \n
- *  **不可复位自身(复位自身使用"XC_Reset")** \n
- *  会清除所有状态(包含挂起),任务复位; \n
- *  任务将重置到就绪表,然后从头运行; \n
+ *  **不可在中断中使用(有链表操作)**
+ *  **不可复位自身(复位自身使用"XC_Reset")**
+ *  会清除所有状态(包含挂起),任务复位;
+ *  任务将重置到就绪表,然后从头运行;
  *  任务TCB中除了"phXCOS","fTask","Param"其他全部重置;
  */
 void XCTask_Reset(XC_TaskHandle_t phTCB)
@@ -204,8 +204,8 @@ void XCTask_Reset(XC_TaskHandle_t phTCB)
  * @param[in]   fTask   任务的函数指针(任务入口)
  * @param[in]   pParam  传递给任务的参数
  * @details
- *  **不可在中断中使用** \n
- *  只设置任务入口和传递给任务的参数; \n
+ *  **不可在中断中使用**
+ *  只设置任务入口和传递给任务的参数;
  *  一般配合"XCTask_Add"使用;
  */
 void XCTask_SetEntry(XC_TaskHandle_t phTCB, void (*fTask)(XC_TaskHandle_t), void* pParam)
@@ -222,9 +222,9 @@ void XCTask_SetEntry(XC_TaskHandle_t phTCB, void (*fTask)(XC_TaskHandle_t), void
  * @retval  XC_OK :      注册成功
  * @retval  XC_FAIL :    注册失败,任务太多
  * @details
- *  **不可在中断中使用(有链表操作)** \n
- *  添加的任务必须先调用"XCTask_SetEntry"; \n
- *  设置好任务入口和传递的参数才可添加; \n
+ *  **不可在中断中使用(有链表操作)**
+ *  添加的任务必须先调用"XCTask_SetEntry";
+ *  设置好任务入口和传递的参数才可添加;
  *  添加后挂载到就绪表;
  */
 XC_Retuen_t XCTask_Add(XC_OSHandle_t phXCOS, XC_TaskHandle_t phTCB)
@@ -262,11 +262,11 @@ XC_Retuen_t XCTask_Add(XC_OSHandle_t phXCOS, XC_TaskHandle_t phTCB)
  * @retval      XC_CONTINUE :    异步操作中
  * @retval      XC_FAIL :        任务不是在等待通知
  * @details
- *  **可在中断中调用** \n
- *  发送通知,唤醒任务; \n
- *  多次重复中断: \n
- *      - 异步操作: 参数是最后一次操作的值; \n
- *      - 同步操作: 参数是成功操作的值; \n
+ *  **可在中断中调用**
+ *  发送通知,唤醒任务;
+ *  多次重复中断:
+ *      - 异步操作: 参数是最后一次操作的值;
+ *      - 同步操作: 参数是成功操作的值;
  */
 XC_Retuen_t XCTask_NotifySend(XC_TaskHandle_t phTCB, void* pNotifyData)
 {
@@ -317,10 +317,10 @@ XC_Retuen_t XCTask_NotifySend(XC_TaskHandle_t phTCB, void* pNotifyData)
  * @retval      XC_FAIL:         失败(任务不存在)
  * @retval      XC_CONTINUE :    异步操作中
  * @details
- *  **可在中断中调用** \n
- *  将任务挂起,**本次任务运行完成后暂停任务**; \n
- *  挂起可以覆盖任务的所有阻塞状态,优先级最高; \n
- *  挂起后只能被恢复任务唤醒; \n
+ *  **可在中断中调用**
+ *  将任务挂起,**本次任务运行完成后暂停任务**;
+ *  挂起可以覆盖任务的所有阻塞状态,优先级最高;
+ *  挂起后只能被恢复任务唤醒;
  *  任务唤醒后原先的阻塞将失效,并以"XC_WAKE_RESUME"作为唤醒类型继续运行;
  */
 XC_Retuen_t XCTask_Suspend(XC_TaskHandle_t phTCB)
@@ -366,7 +366,7 @@ XC_Retuen_t XCTask_Suspend(XC_TaskHandle_t phTCB)
  * @retval      XC_OK :          恢复成功
  * @retval      XC_CONTINUE :    异步操作中
  * @details
- *  **可在中断中调用** \n
+ *  **可在中断中调用**
  *  只能恢复被挂起的任务;
  */
 XC_Retuen_t XCTask_Resume(XC_TaskHandle_t phTCB)

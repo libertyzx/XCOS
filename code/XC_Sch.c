@@ -15,9 +15,9 @@
  */
 //=== 头文件
 #include "XC_Sch.h"
+#include "Internal/XC_Internal.h"
+#include "Internal/XC_List.h"
 #include "XC_Time.h"
-#include "internal/XC_Internal.h"
-#include "internal/XC_List.h"
 
 /*
  ************************************************************************************************************|
@@ -50,11 +50,11 @@ extern void XCTask_InsertTaskToTimeList(XCListNode_t* pList, XC_TaskHandle_t phT
  * @brief       [私有]时间调度
  * @param[in]   phXCOS  框架句柄
  * @details
- *  时间调度处理: \n
- *  - 处理系统Tick溢出后的任务调度(时间表移动到就绪表,溢出表移动到时间表); \n
- *  - 处理任务时间到达后的任务调度(到达任务移动到就绪表); \n \n
- *  注意: \n
- *  > 此函数只处理在时间表和溢出时间表的任务的调度; \n
+ *  时间调度处理:
+ *  - 处理系统Tick溢出后的任务调度(时间表移动到就绪表,溢出表移动到时间表);
+ *  - 处理任务时间到达后的任务调度(到达任务移动到就绪表);
+ *  注意:
+ *  > 此函数只处理在时间表和溢出时间表的任务的调度;
  *  > 操作此函数需要"XCSch_Lock";
  */
 static void XCSch_TimeSched(XC_OSHandle_t phXCOS)
@@ -124,13 +124,13 @@ static void XCSch_TimeSched(XC_OSHandle_t phXCOS)
  * @param[in]   phXCOS  框架句柄
  * @param[in]   phTCB   有阻塞操作的任务TCB句柄
  * @details
- *  处理任务的阻塞状态; \n
- *  - 处理任务唤醒时间,由唤醒时间决定任务是进时间表还是时间溢出表; \n
- *  - 处理任务阻塞,挂起或者死等的任务进入阻塞表; \n
- *  注意: \n
- *  > 调用此函数前先判断函数是否需要阻塞处理; \n
- *  > 此调度函数主要是分配阻塞的任务; \n
- *  > 操作此函数需要"XCSch_Lock"; \n
+ *  处理任务的阻塞状态;
+ *  - 处理任务唤醒时间,由唤醒时间决定任务是进时间表还是时间溢出表;
+ *  - 处理任务阻塞,挂起或者死等的任务进入阻塞表;
+ *  注意:
+ *  > 调用此函数前先判断函数是否需要阻塞处理;
+ *  > 此调度函数主要是分配阻塞的任务;
+ *  > 操作此函数需要"XCSch_Lock";
  */
 static void XCSch_BlockedSched(XC_OSHandle_t phXCOS, XC_TaskHandle_t phTCB)
 {
@@ -169,10 +169,10 @@ static void XCSch_BlockedSched(XC_OSHandle_t phXCOS, XC_TaskHandle_t phTCB)
  *      - 任务唤醒XCTask_NotifySendfy"函数触发;
  *      - 任务挂起XCTask_Suspendnd"函数触发;
  *      - 任务挂起恢XCTask_Resumeume"函数触发;
- *  只有在以上3个函数在中断不安全的情况下被调用,才会触发运行此函数; \n
+ *  只有在以上3个函数在中断不安全的情况下被调用,才会触发运行此函数;
  *  注意:
- *  > 在调用此函数前必须先判断"phXCOS->TaskSchedTrigger != phXCOS->TaskSchedProcessed"; \n
- *  > 此函数的实现主要是循环搜索链表(全部),判断是否有需要处理的任务: \n
+ *  > 在调用此函数前必须先判断"phXCOS->TaskSchedTrigger != phXCOS->TaskSchedProcessed";
+ *  > 此函数的实现主要是循环搜索链表(全部),判断是否有需要处理的任务:
  *  > 操作此函数需要"XCSch_Lock";
  */
 static void XCSch_TaskSched(XC_OSHandle_t phXCOS)
@@ -348,7 +348,7 @@ uint8_t XCSch_GetTaskNum(XC_OSHandle_t phXCOS)
  * @param[in]   phXCOS  框架句柄
  * @param[in]   fIdle  框架空闲处理回调
  * @details
- *  用于设置框架空闲处理回调; \n
+ *  用于设置框架空闲处理回调;
  *  若是需要清除回调则"fIdle"值为NULL即可;
  */
 void XCSch_SetIdleCallback(XC_OSHandle_t phXCOS, void (*fIdle)(XC_OSHandle_t, XC_Tick_t))

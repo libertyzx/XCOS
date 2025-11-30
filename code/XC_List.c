@@ -18,7 +18,7 @@
  *  - 见"XC_UpdateInfo.md"的更新说明;
  */
 //=== 头文件
-#include "internal/XC_List.h"
+#include "Internal/XC_List.h"
 
 /*
  ************************************************************************************************************|
@@ -86,12 +86,12 @@ void XCList_Remove(XCListNode_t* pNode)
  *  - 转移完节点后的链表会被清除;
  *  - 注意:不要移动自己;
  *  - 移动流程如下:
- *  >   链表X:Root,X1,X2,X3,Root \n
- *  >   链表Y:Root,Y1,Y2,Y3,Root \n
- *  >   在链表1节点X2的上面插入链表2; \n
- *  >   函数为:XCList_MoveListToNodeBefore(&X2,&Y); \n
- *  >   运行后得到: \n
- *  >   链表X: Root,X1,Y1,Y2,Y3,X2,X3,Root; \n
+ *  >   链表X:Root,X1,X2,X3,Root
+ *  >   链表Y:Root,Y1,Y2,Y3,Root
+ *  >   在链表1节点X2的上面插入链表2;
+ *  >   函数为:XCList_MoveListToNodeBefore(&X2,&Y);
+ *  >   运行后得到:
+ *  >   链表X: Root,X1,Y1,Y2,Y3,X2,X3,Root;
  *  >   链表Y: 被清除;
  *  - 运行表(运行:XCList_MoveListToNodeBefore(&X2,&Y);)
  *  > XR,YR:为根节点; X*,Y*:为节点; P:指向上个节点; N:指向下个节点

@@ -58,8 +58,8 @@
 
 将项目添加到您的工程中:
 
-1. 将 `code` 目录下所有 `.c` 文件加入工程
-2. 将 `code/include` 添加到工程包含路径
+1. 将 `Code` 目录下所有 `.c` 文件加入工程
+2. 将 `Code/include` 添加到工程包含路径
 3. 使用时只需包含主头文件:
 
 ```c
@@ -124,38 +124,46 @@ void TimerISR(void)
 
 ### 3. 配置说明
 
-默认配置已优化, 开箱即用; 如需自定义配置, 请参考 [配置文档](./docs/XC_Config.md) ;
+默认配置已优化, 开箱即用; 如需自定义配置, 请参考 [配置文档](./Docs/XC_Config.md) ;
 
 ## 📚 文档
 
-- [API文档](./docs/XCOS.md) - 完整的数据类型与函数说明
-- [使用示例](./docs/examples.md) - 丰富的示例代码
-- [配置说明](./docs/XC_Config.md) - 详细的配置选项说明
-- [更新日志](./docs/XC_UpdateInfo.md) - 版本更新记录
+- [API文档](./Docs/XCOS.md) - 完整的数据类型与函数说明
+- [使用示例](./Docs/Examples.md) - 丰富的示例代码
+- [配置说明](./Docs/XC_Config.md) - 详细的配置选项说明
+- [更新日志](./Docs/XC_UpdateInfo.md) - 版本更新记录
 
 ## 🔧 文件结构
 
 ```dir
-code/                           # 源码文件
-|-- include/                    # 头文件
-|   |-- internal/               # 内部头文件
-|   |   |-- XC_CorANSI.h        # 协程底层实现("ANSI-C"是由"switch case"实现)
-|   |   |-- XC_CorGNU.h         # 协程底层实现("GNU-C" 是由"goto label" 实现)
-|   |   |-- XC_List.h           # 链表实现头文件
-|   |   |-- XC_Internal.h       # 框架相关的内部代码
-|   |   |-- XC_TypeInternal.h   # 类型相关的内部代码
-|   |   |-- XC_TimeInternal.h   # 时间相关的内部代码
-|   |-- XC_BitPatterns.h        # 二进制数值宏定义
-|   |-- XC_Config.h             # 用于存放"XCOS"的配置参数
-|   |-- XC_Sch.h                # 调度处理头文件
-|   |-- XC_Task.h               # 任务处理头文件
-|   |-- XC_Time.h               # 时间处理头文件
-|   |-- XC_Type.h               # 框架中所有用户类型
-|   |-- XCOS.h                  # 总头文件,包含版本信息
-|-- XC_List.c                   # 内部链表实现
-|-- XC_Sch.c                    # 调度处理
-|-- XC_Task.c                   # 任务处理
-|-- XC_Time.c                   # 时间处理
+XCOS
+|-- .vscode/
+|-- Code/                           # 源码文件
+|   |-- Include/                    # 头文件
+|   |   |-- Internal/               # 内部头文件
+|   |   |   |-- XC_CorANSI.h        # 协程底层实现("ANSI-C"是由"switch case"实现)
+|   |   |   |-- XC_CorGNU.h         # 协程底层实现("GNU-C" 是由"goto label" 实现)
+|   |   |   |-- XC_List.h           # 链表实现头文件
+|   |   |   |-- XC_Internal.h       # 框架相关的内部代码
+|   |   |   |-- XC_TypeInternal.h   # 类型相关的内部代码
+|   |   |   |-- XC_TimeInternal.h   # 时间相关的内部代码
+|   |   |-- XC_BitPatterns.h        # 二进制数值宏定义
+|   |   |-- XC_Config.h             # 用于存放"XCOS"的配置参数
+|   |   |-- XC_Sch.h                # 调度处理头文件
+|   |   |-- XC_Task.h               # 任务处理头文件
+|   |   |-- XC_Time.h               # 时间处理头文件
+|   |   |-- XC_Type.h               # 框架中所有用户类型
+|   |   |-- XCOS.h                  # 总头文件,包含版本信息
+|   |-- XC_List.c                   # 内部链表实现
+|   |-- XC_Sch.c                    # 调度处理
+|   |-- XC_Task.c                   # 任务处理
+|   |-- XC_Time.c                   # 时间处理
+|-- Docs/                           # 文档
+|-- Examples/                       # 示例
+|-- .clang-format                   # 格式化配置
+|-- .gitignore
+|-- LICENSE
+|-- README.md
 ```
 
 ## 🔬 技术实现

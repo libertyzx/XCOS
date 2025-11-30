@@ -55,21 +55,21 @@ uint8_t XCSch_GetTaskNum(XC_OSHandle_t phXCOS);
  * @param[in]   phXCOS  框架句柄
  * @param[in]   fIdle  框架空闲处理回调
  * @details
- *  用于设置框架空闲处理回调; \n
- *  若是需要清除回调则"fIdle"值为NULL即可; \n
- *  回调说明: \n
- *      简述: 框架空闲处理回调 \n
- *      参数[in]: phXCOS    [XC_OSHandle_t]框架句柄 \n
- *      参数[in]: IdleTick  [XC_Tick_t]空闲的Tick值(空闲多少个Tick) \n
- *      说明: 若是休眠,则需要"IdleTick"个Tick计数后唤醒; \n
- *          若是系统Tick计数也停止了则需要更新Tick值: \n
- *          - 系统Tick是定时器中断计数运行的,可以使用以下方式更新: \n
+ *  用于设置框架空闲处理回调;
+ *  若是需要清除回调则"fIdle"值为NULL即可;
+ *  回调说明:
+ *      简述: 框架空闲处理回调
+ *      参数[in]: phXCOS    [XC_OSHandle_t]框架句柄
+ *      参数[in]: IdleTick  [XC_Tick_t]空闲的Tick值(空闲多少个Tick)
+ *      说明: 若是休眠,则需要"IdleTick"个Tick计数后唤醒;
+ *          若是系统Tick计数也停止了则需要更新Tick值:
+ *          - 系统Tick是定时器中断计数运行的,可以使用以下方式更新:
  *              ```
  *              volatile XC_Tick_t Tick;
  *              Tick = XCTime_GetTick() + IdleTick;
  *              XCTime_TickSet(Tick)
  *              ```
- *          - 系统Tick是一个计数器,则计数器等于"XCTime_GetTick() + IdleTick"; \n
+ *          - 系统Tick是一个计数器,则计数器等于"XCTime_GetTick() + IdleTick";
  */
 void XCSch_SetIdleCallback(XC_OSHandle_t phXCOS, void (*fIdle)(XC_OSHandle_t, XC_Tick_t));
 

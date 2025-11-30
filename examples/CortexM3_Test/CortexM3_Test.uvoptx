@@ -267,7 +267,7 @@
   </Target>
 
   <Group>
-    <GroupName>main</GroupName>
+    <GroupName>Main</GroupName>
     <tvExp>1</tvExp>
     <tvExpOptDlg>0</tvExpOptDlg>
     <cbSel>0</cbSel>
@@ -279,7 +279,7 @@
       <tvExp>0</tvExp>
       <tvExpOptDlg>0</tvExpOptDlg>
       <bDave2>0</bDave2>
-      <PathWithFileName>.\Code\main\main.c</PathWithFileName>
+      <PathWithFileName>.\Code\Main\main.c</PathWithFileName>
       <FilenameWithoutPath>main.c</FilenameWithoutPath>
       <RteFlg>0</RteFlg>
       <bShared>0</bShared>
@@ -307,7 +307,7 @@
   </Group>
 
   <Group>
-    <GroupName>lib\ST</GroupName>
+    <GroupName>Lib\ST</GroupName>
     <tvExp>1</tvExp>
     <tvExpOptDlg>0</tvExpOptDlg>
     <cbSel>0</cbSel>
@@ -319,7 +319,7 @@
       <tvExp>0</tvExp>
       <tvExpOptDlg>0</tvExpOptDlg>
       <bDave2>0</bDave2>
-      <PathWithFileName>.\Code\lib\STM32Cube_FW_F1\Drivers\CMSIS\Device\ST\STM32F1xx\Source\Templates\system_stm32f1xx.c</PathWithFileName>
+      <PathWithFileName>.\Code\Lib\STM32Cube_FW_F1\Drivers\CMSIS\Device\ST\STM32F1xx\Source\Templates\system_stm32f1xx.c</PathWithFileName>
       <FilenameWithoutPath>system_stm32f1xx.c</FilenameWithoutPath>
       <RteFlg>0</RteFlg>
       <bShared>0</bShared>
@@ -331,7 +331,7 @@
       <tvExp>0</tvExp>
       <tvExpOptDlg>0</tvExpOptDlg>
       <bDave2>0</bDave2>
-      <PathWithFileName>.\Code\lib\STM32Cube_FW_F1\Drivers\CMSIS\Device\ST\STM32F1xx\Source\Templates\arm\startup_stm32f103xe.s</PathWithFileName>
+      <PathWithFileName>.\Code\Lib\STM32Cube_FW_F1\Drivers\CMSIS\Device\ST\STM32F1xx\Source\Templates\arm\startup_stm32f103xe.s</PathWithFileName>
       <FilenameWithoutPath>startup_stm32f103xe.s</FilenameWithoutPath>
       <RteFlg>0</RteFlg>
       <bShared>0</bShared>
@@ -339,7 +339,7 @@
   </Group>
 
   <Group>
-    <GroupName>lib\HAL</GroupName>
+    <GroupName>Lib\HAL</GroupName>
     <tvExp>0</tvExp>
     <tvExpOptDlg>0</tvExpOptDlg>
     <cbSel>0</cbSel>
@@ -351,7 +351,7 @@
       <tvExp>0</tvExp>
       <tvExpOptDlg>0</tvExpOptDlg>
       <bDave2>0</bDave2>
-      <PathWithFileName>.\Code\lib\STM32Cube_FW_F1\Drivers\STM32F1xx_HAL_Driver\Src\stm32f1xx_hal.c</PathWithFileName>
+      <PathWithFileName>.\Code\Lib\STM32Cube_FW_F1\Drivers\STM32F1xx_HAL_Driver\Src\stm32f1xx_hal.c</PathWithFileName>
       <FilenameWithoutPath>stm32f1xx_hal.c</FilenameWithoutPath>
       <RteFlg>0</RteFlg>
       <bShared>0</bShared>
@@ -363,7 +363,7 @@
       <tvExp>0</tvExp>
       <tvExpOptDlg>0</tvExpOptDlg>
       <bDave2>0</bDave2>
-      <PathWithFileName>.\Code\lib\STM32Cube_FW_F1\Drivers\STM32F1xx_HAL_Driver\Src\stm32f1xx_hal_rcc.c</PathWithFileName>
+      <PathWithFileName>.\Code\Lib\STM32Cube_FW_F1\Drivers\STM32F1xx_HAL_Driver\Src\stm32f1xx_hal_rcc.c</PathWithFileName>
       <FilenameWithoutPath>stm32f1xx_hal_rcc.c</FilenameWithoutPath>
       <RteFlg>0</RteFlg>
       <bShared>0</bShared>
@@ -375,7 +375,7 @@
       <tvExp>0</tvExp>
       <tvExpOptDlg>0</tvExpOptDlg>
       <bDave2>0</bDave2>
-      <PathWithFileName>.\Code\lib\STM32Cube_FW_F1\Drivers\STM32F1xx_HAL_Driver\Src\stm32f1xx_hal_rcc_ex.c</PathWithFileName>
+      <PathWithFileName>.\Code\Lib\STM32Cube_FW_F1\Drivers\STM32F1xx_HAL_Driver\Src\stm32f1xx_hal_rcc_ex.c</PathWithFileName>
       <FilenameWithoutPath>stm32f1xx_hal_rcc_ex.c</FilenameWithoutPath>
       <RteFlg>0</RteFlg>
       <bShared>0</bShared>
@@ -387,7 +387,7 @@
       <tvExp>0</tvExp>
       <tvExpOptDlg>0</tvExpOptDlg>
       <bDave2>0</bDave2>
-      <PathWithFileName>.\Code\lib\STM32Cube_FW_F1\Drivers\STM32F1xx_HAL_Driver\Src\stm32f1xx_hal_cortex.c</PathWithFileName>
+      <PathWithFileName>.\Code\Lib\STM32Cube_FW_F1\Drivers\STM32F1xx_HAL_Driver\Src\stm32f1xx_hal_cortex.c</PathWithFileName>
       <FilenameWithoutPath>stm32f1xx_hal_cortex.c</FilenameWithoutPath>
       <RteFlg>0</RteFlg>
       <bShared>0</bShared>
@@ -399,7 +399,7 @@
       <tvExp>0</tvExp>
       <tvExpOptDlg>0</tvExpOptDlg>
       <bDave2>0</bDave2>
-      <PathWithFileName>.\Code\lib\STM32Cube_FW_F1\Drivers\STM32F1xx_HAL_Driver\Src\stm32f1xx_hal_gpio.c</PathWithFileName>
+      <PathWithFileName>.\Code\Lib\STM32Cube_FW_F1\Drivers\STM32F1xx_HAL_Driver\Src\stm32f1xx_hal_gpio.c</PathWithFileName>
       <FilenameWithoutPath>stm32f1xx_hal_gpio.c</FilenameWithoutPath>
       <RteFlg>0</RteFlg>
       <bShared>0</bShared>
@@ -411,7 +411,7 @@
       <tvExp>0</tvExp>
       <tvExpOptDlg>0</tvExpOptDlg>
       <bDave2>0</bDave2>
-      <PathWithFileName>.\Code\lib\STM32Cube_FW_F1\Drivers\STM32F1xx_HAL_Driver\Src\stm32f1xx_hal_gpio_ex.c</PathWithFileName>
+      <PathWithFileName>.\Code\Lib\STM32Cube_FW_F1\Drivers\STM32F1xx_HAL_Driver\Src\stm32f1xx_hal_gpio_ex.c</PathWithFileName>
       <FilenameWithoutPath>stm32f1xx_hal_gpio_ex.c</FilenameWithoutPath>
       <RteFlg>0</RteFlg>
       <bShared>0</bShared>
@@ -423,7 +423,7 @@
       <tvExp>0</tvExp>
       <tvExpOptDlg>0</tvExpOptDlg>
       <bDave2>0</bDave2>
-      <PathWithFileName>.\Code\lib\STM32Cube_FW_F1\Drivers\STM32F1xx_HAL_Driver\Src\stm32f1xx_hal_exti.c</PathWithFileName>
+      <PathWithFileName>.\Code\Lib\STM32Cube_FW_F1\Drivers\STM32F1xx_HAL_Driver\Src\stm32f1xx_hal_exti.c</PathWithFileName>
       <FilenameWithoutPath>stm32f1xx_hal_exti.c</FilenameWithoutPath>
       <RteFlg>0</RteFlg>
       <bShared>0</bShared>
@@ -435,7 +435,7 @@
       <tvExp>0</tvExp>
       <tvExpOptDlg>0</tvExpOptDlg>
       <bDave2>0</bDave2>
-      <PathWithFileName>.\Code\lib\STM32Cube_FW_F1\Drivers\STM32F1xx_HAL_Driver\Src\stm32f1xx_hal_tim.c</PathWithFileName>
+      <PathWithFileName>.\Code\Lib\STM32Cube_FW_F1\Drivers\STM32F1xx_HAL_Driver\Src\stm32f1xx_hal_tim.c</PathWithFileName>
       <FilenameWithoutPath>stm32f1xx_hal_tim.c</FilenameWithoutPath>
       <RteFlg>0</RteFlg>
       <bShared>0</bShared>
@@ -447,7 +447,7 @@
       <tvExp>0</tvExp>
       <tvExpOptDlg>0</tvExpOptDlg>
       <bDave2>0</bDave2>
-      <PathWithFileName>.\Code\lib\STM32Cube_FW_F1\Drivers\STM32F1xx_HAL_Driver\Src\stm32f1xx_hal_dma.c</PathWithFileName>
+      <PathWithFileName>.\Code\Lib\STM32Cube_FW_F1\Drivers\STM32F1xx_HAL_Driver\Src\stm32f1xx_hal_dma.c</PathWithFileName>
       <FilenameWithoutPath>stm32f1xx_hal_dma.c</FilenameWithoutPath>
       <RteFlg>0</RteFlg>
       <bShared>0</bShared>
@@ -459,7 +459,7 @@
       <tvExp>0</tvExp>
       <tvExpOptDlg>0</tvExpOptDlg>
       <bDave2>0</bDave2>
-      <PathWithFileName>.\Code\lib\STM32Cube_FW_F1\Drivers\STM32F1xx_HAL_Driver\Src\stm32f1xx_hal_tim_ex.c</PathWithFileName>
+      <PathWithFileName>.\Code\Lib\STM32Cube_FW_F1\Drivers\STM32F1xx_HAL_Driver\Src\stm32f1xx_hal_tim_ex.c</PathWithFileName>
       <FilenameWithoutPath>stm32f1xx_hal_tim_ex.c</FilenameWithoutPath>
       <RteFlg>0</RteFlg>
       <bShared>0</bShared>
@@ -467,7 +467,7 @@
   </Group>
 
   <Group>
-    <GroupName>lib\XCOS</GroupName>
+    <GroupName>Lib\XCOS</GroupName>
     <tvExp>1</tvExp>
     <tvExpOptDlg>0</tvExpOptDlg>
     <cbSel>0</cbSel>
@@ -479,7 +479,7 @@
       <tvExp>0</tvExp>
       <tvExpOptDlg>0</tvExpOptDlg>
       <bDave2>0</bDave2>
-      <PathWithFileName>..\..\code\XC_List.c</PathWithFileName>
+      <PathWithFileName>..\..\Code\XC_List.c</PathWithFileName>
       <FilenameWithoutPath>XC_List.c</FilenameWithoutPath>
       <RteFlg>0</RteFlg>
       <bShared>0</bShared>
@@ -491,7 +491,7 @@
       <tvExp>0</tvExp>
       <tvExpOptDlg>0</tvExpOptDlg>
       <bDave2>0</bDave2>
-      <PathWithFileName>..\..\code\XC_Sch.c</PathWithFileName>
+      <PathWithFileName>..\..\Code\XC_Sch.c</PathWithFileName>
       <FilenameWithoutPath>XC_Sch.c</FilenameWithoutPath>
       <RteFlg>0</RteFlg>
       <bShared>0</bShared>
@@ -503,7 +503,7 @@
       <tvExp>0</tvExp>
       <tvExpOptDlg>0</tvExpOptDlg>
       <bDave2>0</bDave2>
-      <PathWithFileName>..\..\code\XC_Task.c</PathWithFileName>
+      <PathWithFileName>..\..\Code\XC_Task.c</PathWithFileName>
       <FilenameWithoutPath>XC_Task.c</FilenameWithoutPath>
       <RteFlg>0</RteFlg>
       <bShared>0</bShared>
@@ -515,7 +515,7 @@
       <tvExp>0</tvExp>
       <tvExpOptDlg>0</tvExpOptDlg>
       <bDave2>0</bDave2>
-      <PathWithFileName>..\..\code\XC_Time.c</PathWithFileName>
+      <PathWithFileName>..\..\Code\XC_Time.c</PathWithFileName>
       <FilenameWithoutPath>XC_Time.c</FilenameWithoutPath>
       <RteFlg>0</RteFlg>
       <bShared>0</bShared>

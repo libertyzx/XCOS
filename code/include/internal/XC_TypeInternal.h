@@ -17,8 +17,8 @@
 #ifndef _XC_TypeInternal_h_
 #define _XC_TypeInternal_h_
 //=== 头文件
+#include "Internal/XC_List.h"
 #include "XC_Config.h"
-#include "internal/XC_List.h"
 
 /*
  ************************************************************************************************************|
@@ -28,9 +28,9 @@
 
 /** 协程底层实现("ANSI-C"和"GNU-C"区分) */
 #ifdef __GNUC__
-#include "internal/XC_CorGNU.h" //运行"GNU-C"库
+#include "Internal/XC_CorGNU.h" //运行"GNU-C"库
 #else
-#include "internal/XC_CorANSI.h" //运行"ANSI-C"库
+#include "Internal/XC_CorANSI.h" //运行"ANSI-C"库
 #endif
 
 /*
@@ -43,7 +43,7 @@
 /**
  * @brief   [用户]XCOS句柄
  * @details
- *  用于记录XCOS实例的数据,一个工程中开源有多个XCOS实例,用此句柄区分; \n
+ *  用于记录XCOS实例的数据,一个工程中开源有多个XCOS实例,用此句柄区分;
  *  字节数说明(32bit): 8*4+4*2+4+4 = 48Byte
  */
 struct XCOS_t {
@@ -67,17 +67,17 @@ struct XCOS_t {
      * @param[in]   phXCOS      [XC_OSHandle_t]框架句柄
      * @param[in]   IdleTick    [XC_Tick_t]空闲的Tick值(空闲多少个Tick)
      * @details
-     *  在此回调函数中处理空闲相关事宜; \n
-     *  当函数被调用时,必定没有任务是就绪的,框架是空闲的; \n
-     *  若是在空闲时休眠系统,则需配置系统在"IdleTick"后唤醒框架; \n
-     *  若是系统Tick计数也停止了则需要更新Tick值: \n
-     *  - 系统Tick是定时器中断计数运行的,可以使用以下方式更新: \n
+     *  在此回调函数中处理空闲相关事宜;
+     *  当函数被调用时,必定没有任务是就绪的,框架是空闲的;
+     *  若是在空闲时休眠系统,则需配置系统在"IdleTick"后唤醒框架;
+     *  若是系统Tick计数也停止了则需要更新Tick值:
+     *  - 系统Tick是定时器中断计数运行的,可以使用以下方式更新:
      *      ```
      *      volatile XC_Tick_t Tick;
      *      Tick = XCTime_GetTick() + IdleTick;
      *      XCTime_TickSet(Tick)
      *      ```
-     *  - 系统Tick是一个计数器,则计数器等于"XCTime_GetTick() + IdleTick"; \n
+     *  - 系统Tick是一个计数器,则计数器等于"XCTime_GetTick() + IdleTick";
      */
     void (*fIdle)(struct XCOS_t*, XC_Tick_t);
 };
@@ -93,7 +93,7 @@ typedef COR_BP_t XCBP_t;
 /**
  * @brief   [用户]协程任务控制块(Task Control Block)
  * @details
- *  用于记录任务控制相关的数据,每个任务都需要一个独立的TCB; \n
+ *  用于记录任务控制相关的数据,每个任务都需要一个独立的TCB;
  *  类型占字节数(32bit): 8+4*6+4+3=39Byte,补齐占:40Byte
  */
 typedef struct XC_TaskCB_t {
@@ -113,9 +113,9 @@ typedef struct XC_TaskCB_t {
     uint8_t NotifyProcessed; // 通知触发处理
 
     /**
-     *  以下三个变量用于处理任务挂起恢复; \n
-     *  主要用于任务挂起和恢复的异步操作; \n
-     *  "StateChangeType"的值为"XC_TaskState_t"类型中的: \n
+     *  以下三个变量用于处理任务挂起恢复;
+     *  主要用于任务挂起和恢复的异步操作;
+     *  "StateChangeType"的值为"XC_TaskState_t"类型中的:
      *  - "XC_TASK_VOID"    : 未挂起
      *  - "XC_TASK_SUSPEND" : 挂起
      */
