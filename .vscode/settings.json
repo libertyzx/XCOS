@@ -18,7 +18,7 @@
         ".git": true,
         //doxygen
         "doxygen/html": true,
-        //examples
+        //Examples
         "Examples/CortexM3_Test/Debug": true,
         "Examples/CortexM3_Test/DebugConfig": true,
         "Examples/CortexM3_Test/*.uvguix.*": true,

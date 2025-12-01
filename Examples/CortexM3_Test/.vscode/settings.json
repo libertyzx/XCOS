@@ -46,7 +46,7 @@
         //其他文件
         "Bak": true,
         "bak": true,
-        "docs": true,
+        "Docs": true,
         "DebugConfig": true,
         "Win_MCU_DelCache.bat": true,
         "EventRecorderStub.scvd": true,

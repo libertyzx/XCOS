@@ -13,7 +13,7 @@ doxygen
 *.zip
 *.log
 
-#examples
+#Examples
 Examples/CortexM3_Test/Debug/*
 Examples/CortexM3_Test/DebugConfig/*
 Examples/CortexM3_Test/CortexM3_Test.uvguix.*
