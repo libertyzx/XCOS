@@ -30,11 +30,7 @@
         "Examples/CortexM3_Test/Code/lib/CMSIS_5/LICENSE.txt": true,
         "Examples/CortexM3_Test/Code/lib/STM32Cube_FW_F1/STM32Cube_FW_F1_V1.8.0.txt": true,
         //备份
-        "bak": true,
-        "Docs/bak": true,
-        "doxygen/bak": true,
-        "Code/bak": true,
-        "codeInclude//bak": true,
+        "**/bak": true,
     },
     //===以下 Doxygen 注释配置
     //除第一行和最后一行,每行注释的前缀;
