@@ -2,7 +2,7 @@
  * @file        XC_Time.c
  * @brief       时间处理
  * @author      libertyzx (libertyzx@163.com)
- * @version     2.00
+ * @version     2.0.0
  * @date        2025/10/30
  * **********************************************
  * @copyright   Copyright (c) 2024 libertyzx. All rights reserved.
@@ -11,7 +11,7 @@
  * @details     时间计数处理
  * **********************************************
  *  修改日志
- *  - 见"XC_UpdateInfo.md"的更新说明;
+ *  - 见"CHANGELOG.md"的更新说明;
  */
 //=== 头文件
 #include "XC_Time.h"

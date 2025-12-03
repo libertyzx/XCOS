@@ -2,7 +2,7 @@
  * @file        XC_CorGNU.h
  * @brief       协程库(GNU-C实现)
  * @author      libertyzx (libertyzx@163.com)
- * @version     0.4
+ * @version     0.4.0
  * @date        2025/09/24
  * **********************************************
  * @copyright   Copyright (c) 2018 libertyzx. All rights reserved.

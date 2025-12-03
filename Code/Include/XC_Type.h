@@ -2,7 +2,7 @@
  * @file        XC_Type.h
  * @brief       框架的类型
  * @author      libertyzx (libertyzx@163.com)
- * @version     2.00
+ * @version     2.0.0
  * @date        2025/11/26
  * **********************************************
  * @copyright   Copyright (c) 2024 libertyzx. All rights reserved.
@@ -13,7 +13,7 @@
  *  注意:"XC_Tick_t"类型特殊(可配置),在"XC_Config.h"中定义;
  * **********************************************
  *  修改日志
- *  - 见"XC_UpdateInfo.md"的更新说明;
+ *  - 见"CHANGELOG.md"的更新说明;
  */
 //=== 防重复定义
 #ifndef _XC_Type_h_

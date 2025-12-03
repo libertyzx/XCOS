@@ -2,7 +2,7 @@
  * @file        XC_TypeInternal.h.h
  * @brief       内部类型
  * @author      libertyzx (libertyzx@163.com)
- * @version     2.00
+ * @version     2.0.0
  * @date        2025/11/26
  * **********************************************
  * @copyright   Copyright (c) 2024 libertyzx. All rights reserved.
@@ -11,7 +11,7 @@
  * @details     存放框架内部类型的代码
  * **********************************************
  *  修改日志
- *  - 见"XC_UpdateInfo.md"的更新说明;
+ *  - 见"CHANGELOG.md"的更新说明;
  */
 //=== 防重复定义
 #ifndef _XC_TypeInternal_h_

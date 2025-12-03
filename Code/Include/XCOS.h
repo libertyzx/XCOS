@@ -2,7 +2,7 @@
  * @file        XCOS.h
  * @brief       框架包含
  * @author      libertyzx (libertyzx@163.com)
- * @version     2.00
+ * @version     2.0.0
  * @date        2025/11/26
  * **********************************************
  * @copyright   Copyright (c) 2024 libertyzx. All rights reserved.
@@ -11,7 +11,7 @@
  * @details     头文件合并,使用时只要包含此文件即可;
  * **********************************************
  *  修改日志
- *  - 见"XC_UpdateInfo.md"的更新说明;
+ *  - 见"CHANGELOG.md"的更新说明;
  */
 //=== 防重复定义
 #ifndef _XCOS_h_

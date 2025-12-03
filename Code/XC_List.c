@@ -2,7 +2,7 @@
  * @file        XC_List.c
  * @brief       链表操作
  * @author      libertyzx (libertyzx@163.com)
- * @version     2.0
+ * @version     2.0.0
  * @date        2025/11/26
  * **********************************************
  * @copyright   Copyright (c) 2024 libertyzx. All rights reserved.
@@ -15,7 +15,7 @@
  *  - 非通用完整的链表操作,做过内部优化,用户不要使用;
  * **********************************************
  *  修改日志
- *  - 见"XC_UpdateInfo.md"的更新说明;
+ *  - 见"CHANGELOG.md"的更新说明;
  */
 //=== 头文件
 #include "Internal/XC_List.h"

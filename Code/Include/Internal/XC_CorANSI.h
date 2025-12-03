@@ -2,7 +2,7 @@
  * @file        XC_CorANSI.h
  * @brief       协程库(ANSI-C实现)
  * @author      libertyzx (libertyzx@163.com)
- * @version     0.03
+ * @version     0.3.0
  * @date        2023/12/21
  * **********************************************
  * @copyright   Copyright (c) 2018 libertyzx. All rights reserved.

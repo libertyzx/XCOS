@@ -131,7 +131,7 @@ void TimerISR(void)
 - [API文档](./Docs/XCOS.md) - 完整的数据类型与函数说明
 - [使用示例](./Docs/Examples.md) - 丰富的示例代码
 - [配置说明](./Docs/XC_Config.md) - 详细的配置选项说明
-- [更新日志](./Docs/XC_UpdateInfo.md) - 版本更新记录
+- [更新日志](./Docs/CHANGELOG.md) - 版本更新记录
 
 ## 🔧 文件结构
 
