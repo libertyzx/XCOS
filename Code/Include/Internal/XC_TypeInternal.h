@@ -3,7 +3,7 @@
  * @brief       内部类型
  * @author      libertyzx (libertyzx@163.com)
  * @version     2.0.0
- * @date        2025/11/26
+ * @date        2026/01/05
  * **********************************************
  * @copyright   Copyright (c) 2024 libertyzx. All rights reserved.
  * @license     This project is released under the MIT License.
@@ -38,10 +38,25 @@
  ************************************************ 我是分割线 ************************************************|
  ************************************************************************************************************|
  */
+/** 枚举类型 */
+
+/**
+ * @brief   [私有]通知唤醒状态
+ */
+typedef enum {
+    XC_NOTIFY_WAKEUP = 0, // 通知唤醒
+    XC_NOTIFY_WAIT,       // 等待通知
+} XC_NotifyState_t;
+
+/*
+ ************************************************************************************************************|
+ ************************************************ 我是分割线 ************************************************|
+ ************************************************************************************************************|
+ */
 /** 数据类型 */
 
 /**
- * @brief   [用户]XCOS句柄
+ * @brief   [内部]XCOS句柄
  * @details
  *  用于记录XCOS实例的数据,一个工程中开源有多个XCOS实例,用此句柄区分;
  *  字节数说明(32bit): 8*4+4*2+4+4 = 48Byte
@@ -53,15 +68,15 @@ struct XCOS_t {
     XCListNode_t TimeOverflowList; // 时间溢出的链表
     XCListNode_t BlockedList;      // 阻塞链表
 
-    XCListNode_t* pNextReadyNode; // 下个就绪的节点,位于就绪表
+    XCListNode_t* pPrevReadyNode; // 上个就绪的节点,位于就绪表
 
     XC_Tick_t PrevTick; // 上个Tick,用于判断Tick溢出,在时间处理中时间表更新时更新
 
-    uint8_t TaskNum; // 任务数量
-    uint8_t Lock;    // 锁(1锁定;0解锁),用于中断处理
+    uint8_t          TaskNum;       // 任务数量
+    volatile uint8_t Lock;          // 锁(1锁定;0解锁),用于中断处理
+    volatile uint8_t EventProduced; // 事件-生产者(用于通知操作触发)
+    volatile uint8_t EventConsumed; // 事件-消费者(用于通知异步操作触发后处理)
 
-    uint8_t TaskSchedTrigger;   // 任务调度触发(用于通知,挂起,恢复异步操作触发)
-    uint8_t TaskSchedProcessed; // 任务调度处理(用于通知,挂起,恢复异步操作触发后处理)
     /**
      * @brief       框架空闲处理回调
      * @param[in]   phXCOS      [XC_OSHandle_t]框架句柄
@@ -73,7 +88,7 @@ struct XCOS_t {
      *  若是系统Tick计数也停止了则需要更新Tick值:
      *  - 系统Tick是定时器中断计数运行的,可以使用以下方式更新:
      *      ```
-     *      volatile XC_Tick_t Tick;
+     *      XC_Tick_t Tick;
      *      Tick = XCTime_GetTick() + IdleTick;
      *      XCTime_TickSet(Tick)
      *      ```
@@ -91,38 +106,45 @@ struct XCOS_t {
 typedef COR_BP_t XCBP_t;
 
 /**
- * @brief   [用户]协程任务控制块(Task Control Block)
+ * @brief   [内部]协程任务控制块(Task Control Block)
  * @details
  *  用于记录任务控制相关的数据,每个任务都需要一个独立的TCB;
- *  类型占字节数(32bit): 8+4*6+4+3=39Byte,补齐占:40Byte
+ *  类型占字节数(32bit): 8+4*6+4=36Byte;
+ *  ---
+ *  基础数据(在"XCTask_BasicInit"中被初始化)
+ *      - "TaskWakeupTick"  任务下个唤醒的时间
+ *      - "BP"              协程断点
+ *      - "pNotifyData"     通知数据
+ *      - "NotifyState"     通知状态
+ *      - "NotifyProduced"  通知-生产者
+ *      - "NotifyConsumed"  通知-消费者
+ *  非基础数据
+ *      - "ListNode"    链表节点
+ *      - "phXCOS"      任务所属的框架句柄
+ *      - "fTask"       函数运行入口
+ *      - "pParam"      传递的参数
+ *      - "TaskState"   任务状态
  */
-typedef struct XC_TaskCB_t {
+struct XC_TaskCB_t {
     XCListNode_t   ListNode;            // 链表节点
     struct XCOS_t* phXCOS;              // 任务所属的框架句柄
     void (*fTask)(struct XC_TaskCB_t*); // 函数运行入口(任务入口)
-    XC_Tick_t TaskWakeTick;             // 任务下个唤醒的时间(0则一直阻塞)
     XCBP_t    BP;                       // 协程断点(Break Point)
+    XC_Tick_t TaskWakeupTick;           // 任务下个唤醒的时间(0则一直阻塞)
 
-    void* pParam;      // 传递的参数
-    void* pNotifyData; // 通知数据
-
-    uint8_t WakeType;  // 任务唤醒的类型("XC_WakeType_t"类型数据),用于判断是谁唤醒或者超时;
-    uint8_t TaskState; // 任务状态("XC_TaskState_t"类型数据);
-
-    uint8_t NotifyTrigger;   // 通知触发
-    uint8_t NotifyProcessed; // 通知触发处理
+    void*   pParam;      // 传递的参数
+    void*   pNotifyData; // 通知数据
+    uint8_t TaskState;   // 任务状态("XC_TaskState_t"类型数据)
+    uint8_t NotifyState; // 通知状态("XC_NotifyState_t"类型数据)
 
     /**
-     *  以下三个变量用于处理任务挂起恢复;
-     *  主要用于任务挂起和恢复的异步操作;
-     *  "StateChangeType"的值为"XC_TaskState_t"类型中的:
-     *  - "XC_TASK_VOID"    : 未挂起
-     *  - "XC_TASK_SUSPEND" : 挂起
+     * 框架的通知使用生产者和消费者计数实现;
+     * - 单生产者单消费者(SPSC)情况下线程是安全的;
+     * - 生产者和单消费者只在创建任务时清0;
      */
-    uint8_t StateChangeTrigger;   // 状态改变触发
-    uint8_t StateChangeProcessed; // 状态改变处理
-    uint8_t StateChangeType;      // 最后一次改变的是什么状态(XC_TASK_SUSPEND/XC_TASK_VOID)
-} XC_TaskCB_t;
+    volatile uint8_t NotifyProduced; // 通知-生产者
+    volatile uint8_t NotifyConsumed; // 通知-消费者
+};
 
 /*
  ************************************************************************************************************|

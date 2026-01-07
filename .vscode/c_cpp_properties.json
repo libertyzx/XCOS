@@ -1,8 +1,10 @@
 {
     "configurations": [
         {
-            "name": "Win32",
+            "name": "Linux",
             "includePath": [
+                "./Code/Include/*",
+                "./Code/Include/Internal/*",
                 "${workspaceFolder}/**",
                 "C:\\Software\\Keil\\MDK5\\ARM\\ARMCC\\include"
             ],
@@ -11,7 +13,8 @@
                 "UNICODE",
                 "_UNICODE",
                 "__GNUC__"
-            ]
+            ],
+            "cStandard": "c99"
         }
     ],
     "version": 4

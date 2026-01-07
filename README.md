@@ -24,8 +24,8 @@
 
 | 场景          | RAM 占用      | ROM 占用      |
 | ---           | ---           | ---           |
-| 框架核心      | 56 Bytes      | < 900 Bytes   |
-| +1个任务      | +40 Bytes     | +~200 Bytes   |
+| 框架核心      | 52 Bytes      | < 700 Bytes   |
+| +1个任务      | +36 Bytes     | +~230 Bytes   |
 | 无任务堆栈    | 共享系统堆栈  | 无额外开销    |
 
 ### ⚡ 高效协作式调度
@@ -144,9 +144,10 @@ XCOS
 |   |   |   |-- XC_CorANSI.h        # 协程底层实现("ANSI-C"是由"switch case"实现)
 |   |   |   |-- XC_CorGNU.h         # 协程底层实现("GNU-C" 是由"goto label" 实现)
 |   |   |   |-- XC_List.h           # 链表实现头文件
-|   |   |   |-- XC_Internal.h       # 框架相关的内部代码
-|   |   |   |-- XC_TypeInternal.h   # 类型相关的内部代码
+|   |   |   |-- XC_SchInternal.h    # 调度相关的内部代码
+|   |   |   |-- XC_TaskInternal.h   # 任务相关的内部代码
 |   |   |   |-- XC_TimeInternal.h   # 时间相关的内部代码
+|   |   |   |-- XC_TypeInternal.h   # 类型相关的内部代码
 |   |   |-- XC_BitPatterns.h        # 二进制数值宏定义
 |   |   |-- XC_Config.h             # 用于存放"XCOS"的配置参数
 |   |   |-- XC_Sch.h                # 调度处理头文件

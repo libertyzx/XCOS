@@ -163,12 +163,12 @@
         <Ww>
           <count>4</count>
           <WinNumber>1</WinNumber>
-          <ItemText>s_A5TaskCount</ItemText>
+          <ItemText>s_A5_ResetCount</ItemText>
         </Ww>
         <Ww>
           <count>5</count>
           <WinNumber>1</WinNumber>
-          <ItemText>s_A6TaskCount</ItemText>
+          <ItemText>s_A6_RemoveCount</ItemText>
         </Ww>
         <Ww>
           <count>6</count>
@@ -178,19 +178,19 @@
         <Ww>
           <count>7</count>
           <WinNumber>1</WinNumber>
-          <ItemText>s_A8Data</ItemText>
+          <ItemText>s_A8Data,0x0A</ItemText>
         </Ww>
         <Ww>
           <count>8</count>
           <WinNumber>1</WinNumber>
-          <ItemText>s_A9Data</ItemText>
+          <ItemText>s_A9Data,0x0A</ItemText>
         </Ww>
       </WatchWindow1>
       <WatchWindow2>
         <Ww>
           <count>0</count>
           <WinNumber>2</WinNumber>
-          <ItemText>g_SysTickCount</ItemText>
+          <ItemText>g_SysTickCount,0x0A</ItemText>
         </Ww>
         <Ww>
           <count>1</count>
@@ -200,12 +200,7 @@
         <Ww>
           <count>2</count>
           <WinNumber>2</WinNumber>
-          <ItemText>s_hTCBn</ItemText>
-        </Ww>
-        <Ww>
-          <count>3</count>
-          <WinNumber>2</WinNumber>
-          <ItemText>phTCB</ItemText>
+          <ItemText>s_hTCBn,0x0A</ItemText>
         </Ww>
       </WatchWindow2>
       <Tracepoint>
@@ -276,7 +271,7 @@
       <GroupNumber>1</GroupNumber>
       <FileNumber>1</FileNumber>
       <FileType>1</FileType>
-      <tvExp>0</tvExp>
+      <tvExp>1</tvExp>
       <tvExpOptDlg>0</tvExpOptDlg>
       <bDave2>0</bDave2>
       <PathWithFileName>.\Code\Main\main.c</PathWithFileName>

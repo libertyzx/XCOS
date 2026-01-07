@@ -3,7 +3,7 @@
  * @brief       链表操作的声明
  * @author      libertyzx (libertyzx@163.com)
  * @version     2.0.0
- * @date        2025/11/26
+ * @date        2026/01/06
  * **********************************************
  * @copyright   Copyright (c) 2024 libertyzx. All rights reserved.
  * @license     This project is released under the MIT License.
@@ -66,21 +66,21 @@ typedef struct XCListNode_t {
 /**链表节点操作 */
 
 /**
- * @brief       [内部]将新节点插入某节点之前
- * @param[in]   pListNode   [XCListNode_t*]要插入位置的节点
- * @param[in]   pNewNode    [XCListNode_t*]新节点
+ * @brief       [内部]将新节点插入某节点之后
+ * @param[in]   pListNode   要插入位置的节点
+ * @param[in]   pNewNode    新节点
  * @details     只插入节点;
  */
-void XCList_InsertNodeBefore(XCListNode_t* pListNode, XCListNode_t* pNewNode);
+void XCList_InsertNodeAfter(XCListNode_t* pListNode, XCListNode_t* pNewNode);
 
 /**
- * @brief       [内部]将节点移动到某个节点之前
- * @param[in]   pDestNode   [XCListNode_t*]目标节点
- * @param[in]   pSrcNode    [XCListNode_t*]需要移动的节点
+ * @brief       [内部]将节点移动到某个节点之后
+ * @param[in]   pDestNode   目标节点
+ * @param[in]   pSrcNode    需要移动的节点
  * @details
- *  将节点从原先链表中移除,并移动到目标节点之前;
+ *  将节点从原先链表中移除,并移动到目标节点之后;
  */
-void XCList_MoveNodeBefore(XCListNode_t* pDestNode, XCListNode_t* pSrcNode);
+void XCList_MoveNodeAfter(XCListNode_t* pDestNode, XCListNode_t* pSrcNode);
 
 /**
  * @brief       [内部]从链表中移除一个节点
@@ -125,13 +125,14 @@ void XCList_Remove(XCListNode_t* pNode);
 /**链表操作 */
 
 /**
- * @brief       [内部]将一个链表全部移动到另个链表的一个节点前
- * @param[in]   pDestNode   需要移入链表的节点(链表将移动到此节点前)
+ * @brief       [内部]将一个链表全部移动到另个链表的一个节点后
+ * @param[in]   pDestNode   需要移入链表的节点(链表将移动到此节点后)
  * @param[in]   pSrcList    需要移动的链表
- * @details  转移完节点后的链表会被清除;
+ * @details
+ *  - 转移完节点后的链表会被清除;
  *  - 注意:不要移动自己;
  */
-void XCList_MoveListToNodeBefore(XCListNode_t* pDestNode, XCListNode_t* pSrcList);
+void XCList_MoveListToNodeAfter(XCListNode_t* pDestNode, XCListNode_t* pSrcList);
 
 /************************************************ 我是分割线 ************************************************/
 /*

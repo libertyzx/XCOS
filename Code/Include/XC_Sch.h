@@ -65,7 +65,7 @@ uint8_t XCSch_GetTaskNum(XC_OSHandle_t phXCOS);
  *          若是系统Tick计数也停止了则需要更新Tick值:
  *          - 系统Tick是定时器中断计数运行的,可以使用以下方式更新:
  *              ```
- *              volatile XC_Tick_t Tick;
+ *              XC_Tick_t Tick;
  *              Tick = XCTime_GetTick() + IdleTick;
  *              XCTime_TickSet(Tick)
  *              ```

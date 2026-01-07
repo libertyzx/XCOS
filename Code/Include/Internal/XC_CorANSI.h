@@ -10,7 +10,6 @@
  * **********************************************
  * @details
  *  使用宏"__LINE__"来定义上下文断点;
- *  使用协程库后,每个文件代码行数不能超过65535;
  *  由"switch case"实现;
  * **********************************************
  *  修改日志
@@ -37,9 +36,9 @@
 
 /**
  * @brief       协程断点类型
- * @details     用于断点时当前行书(__LINE__值)
+ * @details     用于断点时保存当前行的值(__LINE__值)
  */
-typedef unsigned short COR_BP_t;
+typedef unsigned long COR_BP_t;
 
 /*
  ************************************************************************************************************|
@@ -71,7 +70,7 @@ typedef unsigned short COR_BP_t;
  */
 #define _COR_SetBP(BP) \
     (BP) = __LINE__;   \
-    case __LINE__:
+    case __LINE__:;
 
 /**
  * @brief       协程-跳出
@@ -89,7 +88,7 @@ typedef unsigned short COR_BP_t;
 #define _COR_SetBPBreak(BP) \
     (BP) = __LINE__;        \
     goto _XCCOR_GOTO_End;   \
-    case __LINE__:
+    case __LINE__:;
 
 /**
  * @brief       协程-代码结束

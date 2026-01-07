@@ -3,7 +3,7 @@
  * @brief       框架的类型
  * @author      libertyzx (libertyzx@163.com)
  * @version     2.0.0
- * @date        2025/11/26
+ * @date        2026/01/05
  * **********************************************
  * @copyright   Copyright (c) 2024 libertyzx. All rights reserved.
  * @license     This project is released under the MIT License.
@@ -32,43 +32,28 @@
  * @brief   [用户]函数返回值
  */
 typedef enum {
-    XC_FAIL = -1, // 失败
-    XC_OK   = 0,  // 成功
-    XC_CONTINUE,  // 继续
+    XC_OK = 0,   // 成功
+    XC_FAIL,     // 失败
+    XC_CONTINUE, // 继续(异步操作)
 } XC_Retuen_t;
 
 /**
- * @brief   [用户]任务状态值(当前协程状态)
+ * @brief   [用户]任务状态值
  */
 typedef enum {
-    XC_TASK_VOID = 0, // 空,被移除后的状态
-    XC_TASK_RUN,      // 运行
-    XC_TASK_READY,    // 就绪(注册后的状态)
-    XC_TASK_SUSPEND,  // [阻塞]挂起
-    /** 延时和等待通知会在代码中比较,所以要放在最后 */
-    XC_TASK_DELAY,       // [阻塞]延时
-    XC_TASK_WAIT_NOTIFY, // [阻塞]等待通知
+    XC_TASK_VOID = 0, // 空(任务创建前或被移除后的状态)
+    XC_TASK_RUN,      // 运行(正在运行的任务)
+    XC_TASK_READY,    // 就绪(在就绪表中的任务状态,任务注册后为就绪)
+    XC_TASK_BLOCKED,  // 阻塞(延时,等待通知后的状态)
+    XC_TASK_SUSPEND,  // 挂起
 } XC_TaskState_t;
-
-/**
- * @brief   [用户]唤醒状态
- * @details
- *  注意,这里"XC_WAKE_NOTIFY"做了特殊化,固定0;
- *  因为在调用通知唤醒状态时会判断"XC_WAKE_NOTIFY",
- *  此配置为0时,编译器编译"Cortex-M*"编译优化小于"-O3"时可减少存储占用;
- */
-typedef enum {
-    XC_WAKE_NONE   = 1, // 无唤醒
-    XC_WAKE_TIME   = 2, // 时间到达唤醒
-    XC_WAKE_NOTIFY = 0, // 通知到达唤醒
-    XC_WAKE_RESUME = 3, // 任务挂起后恢复
-} XC_WakeType_t;
 
 /*
  ************************************************************************************************************|
  ************************************************ 我是分割线 ************************************************|
  ************************************************************************************************************|
  */
+
 /** 基础类型 */
 
 /**
@@ -94,7 +79,6 @@ typedef struct {
  * @brief   [用户]XCOS框架实例
  * @details
  *  用于记录XCOS实例的数据,一个工程中开源有多个XCOS实例,用此类型区分;
- *  字节数说明(32bit): 48Byte
  */
 typedef struct XCOS_t XCOS_t;
 
@@ -113,7 +97,6 @@ typedef XCOS_t* XC_OSHandle_t;
  * @brief   [用户]协程任务控制块(Task Control Block)的实例
  * @details
  *  用于记录任务控制相关的数据,每个任务都需要一个独立的TCB;
- *  类型占字节数(32bit):40Byte
  */
 typedef struct XC_TaskCB_t XC_TaskCB_t;
 
