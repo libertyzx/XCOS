@@ -3,8 +3,8 @@
         {
             "name": "Linux",
             "includePath": [
-                "./Code/Include/*",
-                "./Code/Include/Internal/*",
+                "./Code/Inc/*",
+                "./Code/Inc/Internal/*",
                 "${workspaceFolder}/**",
                 "C:\\Software\\Keil\\MDK5\\ARM\\ARMCC\\include"
             ],

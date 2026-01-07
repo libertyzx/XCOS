@@ -139,7 +139,7 @@ void TimerISR(void)
 XCOS
 |-- .vscode/
 |-- Code/                           # 源码文件
-|   |-- Include/                    # 头文件
+|   |-- Inc/                        # 头文件
 |   |   |-- Internal/               # 内部头文件
 |   |   |   |-- XC_CorANSI.h        # 协程底层实现("ANSI-C"是由"switch case"实现)
 |   |   |   |-- XC_CorGNU.h         # 协程底层实现("GNU-C" 是由"goto label" 实现)
