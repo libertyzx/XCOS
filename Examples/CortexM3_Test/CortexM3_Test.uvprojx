@@ -339,7 +339,7 @@
               <MiscControls></MiscControls>
               <Define>USE_HAL_DRIVER,STM32F103xE</Define>
               <Undefine></Undefine>
-              <IncludePath>.\Code\lib\CMSIS_5\CMSIS\Core\Include;.\Code\lib\STM32Cube_FW_F1\Drivers\CMSIS\Device\ST\STM32F1xx\Include;.\Code\lib\STM32Cube_FW_F1\Drivers\STM32F1xx_HAL_Driver\Inc;.\Code\MCU;.\Code\main;.\Code\User;..\..\code\Inc</IncludePath>
+              <IncludePath>.\Code\lib\CMSIS_5\CMSIS\Core\Include;.\Code\lib\STM32Cube_FW_F1\Drivers\CMSIS\Device\ST\STM32F1xx\Include;.\Code\lib\STM32Cube_FW_F1\Drivers\STM32F1xx_HAL_Driver\Inc;.\Code\MCU;.\Code\Main;.\Code\User;..\..\Code\Inc</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>

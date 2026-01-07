@@ -54,16 +54,12 @@
         "JLinkLog.txt": true,
         "trace.dat": true,
         "RTE": true,
-        //源码
-        "Code/Config/BAK": true,
-        "Code/Include/BAK": true,
-        "Code/MCU/bak": true,
-        "Code/Main/bak": true,
-        "Code/User/bak": true,
         //其他
         "Code/lib/CMSIS_5/CMSIS_5-5.9.1-dev.txt": true,
         "Code/lib/CMSIS_5/LICENSE.txt": true,
         "Code/lib/STM32Cube_FW_F1/STM32Cube_FW_F1_V1.8.0.txt": true,
+        "**/BAK": true,
+        "**/bak": true,
     },
     "C_Cpp.default.compilerPath": "",
     "[dockercompose]": {
