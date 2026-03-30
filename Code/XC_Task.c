@@ -435,15 +435,21 @@ XC_Retuen_t XCTask_SendNotify(XC_TaskHandle_t phTCB, void* pNotifyData)
 
     if(phTCB->NotifyState != XC_NOTIFY_WAIT) {
         /** 不是等待通知状态 */
-        phTCB->NotifyProduced++; // 通知-生产者
+        if((phTCB->NotifyProduced + 1) != phTCB->NotifyConsumed) {
+            phTCB->NotifyProduced++; // 通知-生产者,生产者未满则+1
+        }
         return (XC_CONTINUE);
     }
 
     /** 必须是等待通知唤醒 */
     if(XCSch_GetLockState(phTCB->phXCOS)) {
         /** 调度运行中-异步,只会在中断中出现 */
-        phTCB->NotifyProduced++;        // 通知-生产者
-        phTCB->phXCOS->EventProduced++; // 异步调度触发
+        if((phTCB->NotifyProduced + 1) != phTCB->NotifyConsumed) {
+            phTCB->NotifyProduced++; // 通知-生产者,生产者未满则+1
+        }
+        if((phTCB->phXCOS->EventProduced + 1) == phTCB->phXCOS->EventConsumed) {
+            phTCB->phXCOS->EventProduced++; // 异步调度触发,生产者未满则+1
+        }
         return (XC_CONTINUE);
     }
 

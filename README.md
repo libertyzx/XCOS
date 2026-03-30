@@ -81,11 +81,15 @@ XC_TaskCB_t s_hTCB0 = {0};
  */
 void Task(XC_TaskHandle_t phTCB)
 {
+    /***/
     XC_Enter(phTCB);        // 进入协程块
+    /***/
     while(1) {
         XC_DelayMs(20);     // 阻塞延时20ms
     }
+    /***/
     XC_Leave();             // 离开协程块
+    /***/
 }
 
 /**

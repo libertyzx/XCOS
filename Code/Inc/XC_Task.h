@@ -186,7 +186,7 @@ XC_Retuen_t XCTask_SendNotify(XC_TaskHandle_t phTCB, void* pNotifyData);
  * @retval      XC_TASK_SUSPEND :       挂起
  * @details     获取任务运行的状态;
  */
-#define XCTask_GetState(_phTCB_)       ((_phTCB_)->TaskState)
+#define XCTask_GetState(_phTCB_)       ((XC_TaskState_t)((_phTCB_)->TaskState))
 
 /*
  ************************************************************************************************************|
@@ -355,6 +355,19 @@ XC_Retuen_t XCTask_SendNotify(XC_TaskHandle_t phTCB, void* pNotifyData);
 #define XC_WaitForNotifyMs(_msTimeout) XC_WaitForNotify(XCTime_MsToTicks(_msTimeout))
 
 /**
+ * @brief       [用户]清除通知
+ * @param[in]   phTCB       [XC_TaskHandle_t]任务控制块
+ * @details
+ *  **必须在协程块中使用;**
+ *  用于清除通知;
+ *  可在"等待通知"前调用,防止通知提前到达;
+ */
+#define XC_ClrNotify()                                         \
+    {                                                          \
+        _phXCTCB_->NotifyConsumed = _phXCTCB_->NotifyProduced; \
+    }
+
+/**
  * @brief       [用户][协程]检查通知唤醒是否超时
  * @return      boot
  * @retval      0 : 没有超时
@@ -364,7 +377,7 @@ XC_Retuen_t XCTask_SendNotify(XC_TaskHandle_t phTCB, void* pNotifyData);
  *  用于判断任务通知阻塞唤醒后是否超时;
  *  > 通知函数:XC_WaitForNotify;
  */
-#define XC_CheckNotifyWakeupTimeout()  (_phXCTCB_->NotifyState != XC_NOTIFY_WAKEUP)
+#define XC_CheckNotifyWakeupTimeout() (_phXCTCB_->NotifyState != XC_NOTIFY_WAKEUP)
 
 /**
  * @brief       [用户][协程]获取通知的数据(void*)
@@ -373,7 +386,7 @@ XC_Retuen_t XCTask_SendNotify(XC_TaskHandle_t phTCB, void* pNotifyData);
  *  **必须在协程块中使用;**
  *  被通知唤醒后获取通知传递的数据;
  */
-#define XC_GetNotifyData()             (_phXCTCB_->pNotifyData)
+#define XC_GetNotifyData()            (_phXCTCB_->pNotifyData)
 
 /*
  ************************************************************************************************************|

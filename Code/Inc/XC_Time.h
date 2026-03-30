@@ -41,6 +41,15 @@
  */
 #define XCTime_GetTick()     (XC_SYS_TICK_COUNT)
 
+/**
+ * @brief       [用户]获取系统运行的时间(ms)
+ * @return      XC_Tick_t    返回当前系统运行的ms值;
+ * @details
+ *  获取系统当前运行时间;
+ *  注意是32位值,在ms计数的情况下最长记录时间是约是49天;
+ */
+#define XCTime_GetMs()       (XCTime_TicksToMs(XCTime_GetTick()))
+
 /************************************************ 我是分割线 ************************************************/
 
 /**
@@ -91,8 +100,8 @@
  *      if(XCTime_CheckTimeout(Lc, 1000)){
  *          //等待>=1000个Tick后会运行这里;
  *      }
- *      Cache32 = XCTime_GetRemain(Lc,1000);     //从Lc开始,离1000个Tick还差多少个Tick
- *      Cache32 = XCTime_GetElapsed(Lc,1000);        //从Lc开始,到1000个Tick已经运行了多少Tick
+ *      Cache32 = XCTime_GetRemain(Lc,1000);    //从Lc开始,离1000个Tick还差多少个Tick
+ *      Cache32 = XCTime_GetElapsed(Lc,1000);   //从Lc开始,到1000个Tick已经运行了多少Tick
  *      if(XCTime_CheckTimeoutMs(Lc, 700){
  *          //等待>=700ms后会运行这里;
  *      }
