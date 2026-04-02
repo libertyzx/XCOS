@@ -447,7 +447,7 @@ XC_Retuen_t XCTask_SendNotify(XC_TaskHandle_t phTCB, void* pNotifyData)
         if((phTCB->NotifyProduced + 1) != phTCB->NotifyConsumed) {
             phTCB->NotifyProduced++; // 通知-生产者,生产者未满则+1
         }
-        if((phTCB->phXCOS->EventProduced + 1) == phTCB->phXCOS->EventConsumed) {
+        if((phTCB->phXCOS->EventProduced + 1) != phTCB->phXCOS->EventConsumed) {
             phTCB->phXCOS->EventProduced++; // 异步调度触发,生产者未满则+1
         }
         return (XC_CONTINUE);
