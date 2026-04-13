@@ -210,8 +210,13 @@ void XCTask_HandleWaitNotify(XC_TaskHandle_t phTCB, uint32_t TickCount)
  */
 void XCTask_HandleDelay(XC_TaskHandle_t phTCB, uint32_t TickCount)
 {
-    phTCB->TaskState = XC_TASK_BLOCKED;      // 任务状态:阻塞
-    XCTask_HandleBlocking(phTCB, TickCount); // 处理阻塞
+    if(TickCount == 0) {
+        phTCB->TaskState = XC_TASK_READY; // 任务状态:就绪
+    }
+    else {
+        phTCB->TaskState = XC_TASK_BLOCKED;      // 任务状态:阻塞
+        XCTask_HandleBlocking(phTCB, TickCount); // 处理阻塞
+    }
 }
 
 /*
