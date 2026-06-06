@@ -1,107 +1,196 @@
-# XCubicOS
-## 1.介绍
-一个精简的协程系统调度框架;
+# XCubicOS (XCOS)
 
-## 2.简介
-- 纯C语言实现,可裸机或嵌入RTOS等支持C语言的环境;
-- 低存储,内存占用
-  - ram=56Byte, rom<900Byte(-O0,无任务);
-  - 1个任务内存固定占40Byte;
-- 协作式任务调度,无优先级概念;
-- 无任务堆栈概念,所有任务共用系统堆栈;
-- 没有上下文切换,框架无需任何中断支撑,没有临界段和中断开关;
-- 框架目前已实现:阻塞延时,任务通知,任务挂起恢复,二值信号量;
-  > - 二值信号量可在中断中调用唤醒任务;
-  > - 任务通知.任务挂起/恢复不可在中断中调用;
+<div align="center">
 
-## 3.实现
-协程实现方式见我的CSDN:
-[c语言协程](https://blog.csdn.net/libertyzx/article/details/126186870)
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
+![Version](https://img.shields.io/badge/version-2.0.0-green.svg)
+![C Language](https://img.shields.io/badge/language-C-orange.svg)
+![Platform](https://img.shields.io/badge/platform-Embedded-lightgrey.svg)
 
-## 4.使用说明
-加入工程
-> - 将"src"文件中所有".c"文件加入工程,并将"src/include"添加到工程包含(include paths)即可;
-> - 使用时只需包含"XCOS.h"文件;
+**专为资源受限嵌入式环境设计的轻量级协程调度框架**
 
-### 4.1. XCOS的配置
+[特性](#-特性) • [快速开始](#-快速开始) • [文档](#-文档) • [文件结构](#-文件结构)
 
-> - 配置数据在"XC_Cnf.h"文件中定义;
+</div>
 
-XCOS的配置参数如下:
+## ✨ 特性
 
-| 类型名 | 配置类型 | 说明 |
-| --- | --- | --- |
-| XCuint_t | 宏 | XCOS基础数据类型,默认32位(uint32_t) |
-| _XC_Cnf_TaskMaxNum | 宏 | 定义最大允许任务数(默认100)不建议修改 |
-| _XC_SysTickPerScond | 宏 | 系统每秒滴答数(滴答计数频率,默认1ms) |
-| _XC_SysTickCount | 宏 | 系统滴答计数 |
+### 🎯 极简设计
+- **纯C语言实现** - 兼容ANSI-C和GNU-C标准
+- **零依赖** - 可运行于裸机系统或任何支持C语言的RTOS环境
+- **跨平台** - 无需特定硬件支持, 移植简单
 
-**"_XC_SysTickPerScond"系统每秒滴答数(滴答计数频率)说明**
-- 单位Hz,是系统最小的时间单位;
-- 默认值是"1000"也就是1ms;
-- 最大值是1000000Hz;对应时间是1us;
+### 💾 超低资源占用
 
-**"_XC_SysTickCount"系统滴答计数说明**
-- 滴答计数是一个累加值,累加时间必须和"_XC_SysTickPerScond"时间一致;
-- 此值会在操作中被读取(只读),作为时间计算的依据;
-- "_XC_CreateSysTickCount"用于创建一个全局计数变量;
-- "XC_AccSysTickCount()"用户计数中断中调用,计数+1;
+| 场景          | RAM 占用      | ROM 占用      |
+| ---           | ---           | ---           |
+| 框架核心      | 52 Bytes      | < 700 Bytes   |
+| +1个任务      | +36 Bytes     | +~230 Bytes   |
+| 无任务堆栈    | 共享系统堆栈  | 无额外开销    |
 
-**系统滴答计数可用2种方式实现:**
+### ⚡ 高效协作式调度
+- **纯协作式调度** - 无优先级抢占, 简化设计
+- **零中断依赖** - 无需调度器中断, 无中断开关操作
+- **快速上下文切换** - 无堆栈切换, 极速任务调度
 
-***方式1:中断累加形式(默认);***
-- 用一个变量在定时器中累加,每一个滴答时间则+1;
-- 宏"_XC_SysTickCount"指向此变量即可;
-> 用户需要处理:
-> 1. 在工程.c文件中调用"_XC_CreateSysTickCount()",以定义一个全局变量(本质是定义一个"volatile uint32_t"类型的全局变量"g_SysTickCount");
-> 2. 创建一个计数定时器,定时器按"_XC_SysTickPerScond"周期计数;
-> 3. 在定时器服务中调用"XC_AccSysTickCount()"(本质是"g_SysTickCount"累加);
+### 🛠️ 功能丰富
+- ✅ 阻塞式精确延时
+- ✅ 轻量级任务通知机制
+- ✅ 任务挂起与恢复管理
+- ✅ 软件定时器支持
+- ✅ 空闲任务回调
 
-***方式2:计数器形式;***
-- 因为协程并不需要中断来切换上下文,所以为了使效率最高可以用一个计数器来做系统滴答计数;
-- 宏"_XC_SysTickCount"作为一个计数器的函数的返回值(或其本身寄存器值);
-> 用户需要处理:
-> 1. 创建定时器,按"_XC_SysTickPerScond"计数;
-> 2. 将"_XC_SysTickCount"宏指向定时器的计数值;
->
-> - *注1*: 这里定时器尽量使用32位变量;
-> - *注2*: 宏"_XC_SysTickCount"会频繁只读调用,注意寄存器读取效率;
+## 📋 设计约束
 
-### 4.2. 调用说明
+### ⏱️ 实时性说明
+- **非实时系统** - 任务响应时间依赖开发者代码风格
+- **异步操作** - 中断中的任务操作为异步响应
+- **执行建议** - 建议任务函数执行时间控制在毫秒级别
 
-- 句柄类型,常量,函数表见[XCOS](./docs/XCOS.md)说明;
-- 详细见[例子](./docs/examples.md)说明;
+### 🔧 使用规范
+- **变量管理** - 任务局部变量在协程让出后不保存, 需使用全局/静态变量
+- **API调用** - 阻塞API必须在协程块内调用
+- **编译建议** - 推荐GNU编译器以获得最佳性能
 
-## 5.文件说明
+## 🚀 快速开始
 
-| 文件夹 | 文件 | 说明 |
-| :--- | --- |  --- |
-| ./src | - | 核心源码文件夹 |
-| ./src | XC_List.c | 链表实现 |
-| ./src | [XC_Sch.c](./docs/XCOS.md) | 调度处理 |
-| ./src | [XC_Task.c](./docs/XCOS.md) | 任务处理 |
-| ./src | [XC_Sem.c](./docs/XCOS.md) | 信号量实现 |
-| ./src | [XC_Time.c](./docs/XC_Time.md) | 时间戳,日历,秒转换计算处理 |
-| ./src/include | - | 源码".h"文件,需包含 |
-| ./src/include | BinData.h | 二进制数值宏定义 |
-| ./src/include | COR_ANSI.h | 协程底层实现("ANSI-C"是由"switch case"实现) |
-| ./src/include | COR_GNU.h | 协程底层实现("GNU-C" 是由"goto label" 实现) |
-| ./src/include | CortexMx.h | 对应CortexMx使用的宏定义 |
-| ./src/include | [XC_Type.h](./docs/XC_Type.md) | 通用数据类型定义 |
-| ./src/include | [XC_Time.h](./docs/XC_Time.md) | 时间处理-头文件 |
-| ./src/include | [XC_TimeCompatibility.h](./docs/XC_Time.md) | 时间处理,兼容性代码 |
-| ./src/include | [XC_TimeCompile.h](./docs/XC_Time.md) | 时间处理,编译相关代码 |
-| ./src/include | [XC_TimeCount.h](./docs/XC_Time.md) | 时间处理,计数处理相关代码 |
-| ./src/include | [XC_MacroFunc.h](./docs/XC_MacroFunc.md) | 通用函数宏实现 |
-| ./src/include | [XC_BitFlag.h](./docs/XC_BitFlag.md) | 位标志的实现 |
-| ./src/include | XC_Cnf.h | 用于存放"XCOS"的配置参数 |
-| ./src/include | [XC_CPU.h](./docs/XC_Type.md) | 不同平台的数据类型,关键字统一 |
-| ./src/include | XC_List.h | 链表实现 |
-| ./src/include | [XC_Sch.h](./docs/XCOS.md) | 调度处理 |
-| ./src/include | [XC_Sem.h](./docs/XCOS.md) | 信号量实现 |
-| ./src/include | [XC_Task.h](./docs/XCOS.md) | 任务处理 |
-| ./src/include | XCBase.h | 兼容"XCBase"库 |
-| ./src/include | XCOS.h | 总包含 |
+### 1. 工程集成
 
-## 6.更新说明
-见文件["XC_UpdateInfo.md"](./docs/XC_UpdateInfo.md)
+将项目添加到您的工程中:
+
+1. 将 `Code` 目录下所有 `.c` 文件加入工程
+2. 将 `Code/Inc` 添加到工程包含路径
+3. 使用时只需包含主头文件:
+
+```c
+#include "XCOS.h"
+```
+
+### 2. 基础使用示例
+
+```c
+#include "XCOS.h"
+
+// 框架实例和任务控制块
+XCOS_t s_hXCOS0 = {0};
+XC_TaskCB_t s_hTCB0 = {0};
+
+/**
+ * @brief   用户任务函数
+ * @param   phTCB 任务句柄
+ */
+void Task(XC_TaskHandle_t phTCB)
+{
+    /***/
+    XC_Enter(phTCB);        // 进入协程块
+    /***/
+    while(1) {
+        XC_DelayMs(20);     // 阻塞延时20ms
+    }
+    /***/
+    XC_Leave();             // 离开协程块
+    /***/
+}
+
+/**
+ * @brief   空闲处理回调
+ * @param   phXCOS   框架句柄
+ * @param   IdleTick 空闲Tick计数
+ */
+void IdleCallback(XC_OSHandle_t phXCOS, XC_Tick_t IdleTick)
+{
+    __WFI(); // 进入低功耗模式
+}
+
+/**
+ * @brief   主函数
+ * @return  不返回
+ */
+int main(void)
+{
+    // 硬件初始化(配置1ms定时器)
+    // XCOS框架初始化
+    XCSch_Init(&s_hXCOS0);
+    XCSch_SetIdleCallback(&s_hXCOS0, IdleCallback);
+    XCTask_Reg(&s_hTCB0, Task, NULL);
+    XCSch_Start(&s_hXCOS0);
+    return(0);
+}
+
+/**
+ * @brief   定时器中断服务函数
+ */
+void TimerISR(void)
+{
+    XCTime_TickInc();   // 系统Tick递增
+}
+```
+
+### 3. 配置说明
+
+默认配置已优化, 开箱即用; 如需自定义配置, 请参考 [配置文档](./Docs/XC_Config.md) ;
+
+## 📚 文档
+
+- [API文档](./Docs/XCOS.md) - 完整的数据类型与函数说明
+- [使用示例](./Docs/Examples.md) - 丰富的示例代码
+- [配置说明](./Docs/XC_Config.md) - 详细的配置选项说明
+- [更新日志](./Docs/CHANGELOG.md) - 版本更新记录
+
+## 🔧 文件结构
+
+```dir
+XCOS
+|-- .vscode/
+|-- Code/                           # 源码文件
+|   |-- Inc/                        # 头文件
+|   |   |-- Internal/               # 内部头文件
+|   |   |   |-- XC_CorANSI.h        # 协程底层实现("ANSI-C"是由"switch case"实现)
+|   |   |   |-- XC_CorGNU.h         # 协程底层实现("GNU-C" 是由"goto label" 实现)
+|   |   |   |-- XC_List.h           # 链表实现头文件
+|   |   |   |-- XC_SchInternal.h    # 调度相关的内部代码
+|   |   |   |-- XC_TaskInternal.h   # 任务相关的内部代码
+|   |   |   |-- XC_TimeInternal.h   # 时间相关的内部代码
+|   |   |   |-- XC_TypeInternal.h   # 类型相关的内部代码
+|   |   |-- XC_BitPatterns.h        # 二进制数值宏定义
+|   |   |-- XC_Config.h             # 用于存放"XCOS"的配置参数
+|   |   |-- XC_Sch.h                # 调度处理头文件
+|   |   |-- XC_Task.h               # 任务处理头文件
+|   |   |-- XC_Time.h               # 时间处理头文件
+|   |   |-- XC_Type.h               # 框架中所有用户类型
+|   |   |-- XCOS.h                  # 总头文件,包含版本信息
+|   |-- XC_List.c                   # 内部链表实现
+|   |-- XC_Sch.c                    # 调度处理
+|   |-- XC_Task.c                   # 任务处理
+|   |-- XC_Time.c                   # 时间处理
+|-- Docs/                           # 文档
+|-- Examples/                       # 示例
+|-- .clang-format                   # 格式化配置
+|-- .gitignore
+|-- LICENSE
+|-- README.md
+```
+
+## 🔬 技术实现
+
+协程实现原理详见技术博客:
+
+📖 [C语言协程实现详解](https://blog.csdn.net/libertyzx/article/details/126186870)
+
+## 🎯 适用场景
+- ✅ 8/16/32位微控制器
+- ✅ 内存受限的嵌入式设备
+- ✅ 对功耗敏感的低功耗应用
+- ✅ 需要简单任务管理的裸机系统
+- ✅ 作为现有RTOS的轻量级补充
+
+## 📄 许可证
+本项目采用 MIT 许可证 - 详见 [LICENSE](./LICENSE) 文件;
+
+---
+
+<div align="center">
+
+如果您觉得这个项目有帮助, 请给它一个 ⭐️
+
+</div>

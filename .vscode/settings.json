@@ -1,0 +1,136 @@
+{
+    "files.associations": {
+        "xc_sch.h": "c",
+        "xc_type.h": "c",
+        "xc_timecount.h": "c",
+        "XC_CorGNU.h": "c",
+        "XC_CorANSI.h": "c",
+        "stdint.h": "c",
+        "xc_internal.h": "c",
+        "xc_typeinternal.h": "c",
+        "xc_list.h": "c",
+        "xc_time.h": "c",
+        "xc_task.h": "c"
+    },
+    //忽略的文件
+    "files.exclude": {
+        //git
+        ".git": true,
+        //doxygen
+        "doxygen/html": true,
+        //Examples
+        "Examples/CortexM3_Test/Debug": true,
+        "Examples/CortexM3_Test/DebugConfig": true,
+        "Examples/CortexM3_Test/*.uvguix.*": true,
+        "Examples/CortexM3_Test/*.uvoptx": true,
+        "Examples/CortexM3_Test/*.uvprojx": true,
+        "Examples/CortexM3_Test/*.scvd": true,
+        //源码
+        "Examples/CortexM3_Test/Code/lib/CMSIS_5/CMSIS_5-5.9.1-dev.txt": true,
+        "Examples/CortexM3_Test/Code/lib/CMSIS_5/LICENSE.txt": true,
+        "Examples/CortexM3_Test/Code/lib/STM32Cube_FW_F1/STM32Cube_FW_F1_V1.8.0.txt": true,
+        //备份
+        "**/bak": true,
+    },
+    //===以下 Doxygen 注释配置
+    //除第一行和最后一行,每行注释的前缀;
+    "doxdocgen.c.commentPrefix": " * ",
+    // Smart text snippet for factory methods/functions.
+    "doxdocgen.c.factoryMethodText": "Create a {name} object",
+    //生成注释的第一行,若是空则不生成;
+    "doxdocgen.c.firstLine": "/**",
+    // Smart text snippet for getters.
+    "doxdocgen.c.getterText": "Get the {name} object",
+    //生成注释的最后行,若是空则不生成;
+    "doxdocgen.c.lastLine": " */",
+    // Smart text snippet for setters.
+    "doxdocgen.c.setterText": "Set the {name} object",
+    // Doxygen comment trigger. This character sequence triggers generation of Doxygen comments.
+    "doxdocgen.c.triggerSequence": "/**",
+    // Smart text snippet for constructors.
+    "doxdocgen.cpp.ctorText": "Construct a new {name} object",
+    // Smart text snippet for destructors.
+    "doxdocgen.cpp.dtorText": "Destroy the {name} object",
+    // The template of the template parameter Doxygen line(s) that are generated. If empty it won't get generated at all.
+    "doxdocgen.cpp.tparamTemplate": "@tparam {param} ",
+    //一些全局配置
+    "doxdocgen.generic.authorName": "libertyzx", //替换{author},作者名称;
+    "doxdocgen.generic.authorEmail": "libertyzx@163.com", //替换{email},电子邮件;
+    "doxdocgen.generic.dateFormat": "YYYY/MM/DD", //替换{date},日期格式
+    //文件头注释
+    "doxdocgen.file.fileOrder": [
+        "file", //文件
+        "brief", //简介
+        "author", //作者
+        "version", //版本
+        "date", //日期
+        //"empty",        //空行
+        "copyright", //版权
+        //"empty",        //空行
+        "custom" //自定义
+    ],
+    //参数
+    "doxdocgen.file.fileTemplate": "@file        {name}", //文件参数"file",文件名参数;
+    "doxdocgen.generic.briefTemplate": "@brief       {text}", //全局参数"brief",简介说明;
+    "doxdocgen.file.versionTag": "@version     0.1", //文件参数"version",版本号参数;
+    "doxdocgen.generic.authorTag": "@author      {author} ({email})", //全局参数"author",作者参数,可用模板:{author},{email};
+    "doxdocgen.generic.dateTemplate": "@date        {date}", //全局参数"date",日期
+    //文件参数"copyright",版权信息,可以使用模板:{year}
+    "doxdocgen.file.copyrightTag": [
+        "**********************************************",
+        "@copyright   Copyright (c) {year} libertyzx. All rights reserved.",
+        "@license     This project is released under the MIT License."
+    ],
+    //参数"custom",附加文件文档,可以使用模板:{year},{date},{author},{email},{file};必须指定前缀;
+    "doxdocgen.file.customTag": [
+        "**********************************************",
+        "@details     这里详细说明",
+        "**********************************************",
+        " 修改日志",
+        " - {date}",
+        "     - 初始编写",
+    ],
+    //如果启用了此功能，bool返回值将分为true和false返回参数。
+    "doxdocgen.generic.boolReturnsTrueFalse": true,
+    //决定是否要为某些命令获取智能文本。
+    "doxdocgen.generic.generateSmartText": true,
+    //返回时是否包含类型信息。
+    "doxdocgen.generic.includeTypeAtReturn": true,
+    //向下查询多少行来获取注释的需要的声明参数的结尾,设想小可增加注释生成速度,但是生成可能不完整;
+    "doxdocgen.generic.linesToGet": 20,
+    //通用注释(函数,结构体,枚举)
+    "doxdocgen.generic.order": [
+        "brief", //简介
+        "tparam",
+        "param", //参数
+        "return", //返回
+        "custom", //自定义
+    ],
+    //参数"custom",通用函数注释,自定义说明,可以使用模板:{year},{date},{author},{email},{file};
+    "doxdocgen.generic.customTags": [
+        "@details     说明"
+    ],
+    "doxdocgen.generic.paramTemplate": "@param[in]   {param} ", //全局参数"param",按列生成参数列表,如果参数为空不会生成此参数;
+    "doxdocgen.generic.returnTemplate": "@return      {type} ", //全局参数"return",生成返回类型,若是返回为空则不会生成此参数;
+    //决定放入参数"{name}"的值是否根据大小写分割;[true/false]
+    "doxdocgen.generic.splitCasingSmartText": true,
+    // Array of keywords that should be removed from the input prior to parsing.
+    "doxdocgen.generic.filteredKeywords": [],
+    //将参数"{author}"替换为git配置中的"user.name";[true/false]
+    "doxdocgen.generic.useGitUserName": false,
+    //将参数"{email}"替换为git配置中的"user.email";[true/false]
+    "doxdocgen.generic.useGitUserEmail": false,
+    // Provide intellisense and snippet for doxygen commands
+    "doxdocgen.generic.commandSuggestion": true,
+    // Add `\\` in doxygen command suggestion for better readbility (need to enable commandSuggestion)
+    "doxdocgen.generic.commandSuggestionAddPrefix": false,
+    //===Doxygen 注释配置结束
+    //=== clangFormat格式化相关
+    "C_Cpp.formatting": "clangFormat",
+    "editor.formatOnSave": true,
+    "editor.detectIndentation": false,
+    //=== clangFormat格式化相关结束
+    "[c]": {
+        "editor.defaultFormatter": "ms-vscode.cpptools"
+    },
+}

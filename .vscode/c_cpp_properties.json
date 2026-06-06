@@ -1,0 +1,21 @@
+{
+    "configurations": [
+        {
+            "name": "Linux",
+            "includePath": [
+                "./Code/Inc/*",
+                "./Code/Inc/Internal/*",
+                "${workspaceFolder}/**",
+                "C:\\Software\\Keil\\MDK5\\ARM\\ARMCC\\include"
+            ],
+            "defines": [
+                "_DEBUG",
+                "UNICODE",
+                "_UNICODE",
+                "__GNUC__"
+            ],
+            "cStandard": "c99"
+        }
+    ],
+    "version": 4
+}

@@ -1,7 +1,8 @@
 ####GIT忽略文件####
 
 #忽略文件夹
-src/bak/*
+**/bak
+doxygen
 
 #文件类型
 *.7z
@@ -9,9 +10,9 @@ src/bak/*
 *.zip
 *.log
 
-#examples
-examples/CortexM3_Test/Debug/*
-examples/CortexM3_Test/DebugConfig/*
-examples/CortexM3_Test/CortexM3_Test.uvguix.*
-examples/CortexM3_Test/.vscode/uv4.log.lock
-examples/CortexM3_Test/EventRecorderStub.scvd
+#Examples
+Examples/CortexM3_Test/Debug/*
+Examples/CortexM3_Test/DebugConfig/*
+Examples/CortexM3_Test/CortexM3_Test.uvguix.*
+Examples/CortexM3_Test/.vscode/uv4.log.lock
+Examples/CortexM3_Test/EventRecorderStub.scvd
