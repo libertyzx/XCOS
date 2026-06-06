@@ -83,8 +83,8 @@ void XCTask_HandleRemove(XC_TaskHandle_t phTCB)
     XCTask_RemoveTaskNode(phTCB);    // 移除任务节点
     XCSch_Unlock(phTCB->phXCOS);     // 解锁
     XCTask_BasicInit(phTCB);         // 基本数据初始化
-    phTCB->phXCOS = NULL;            // 清除任务的所属框架句柄
     phTCB->phXCOS->TaskNum--;        // 任务数-1
+    phTCB->phXCOS = NULL;            // 清除任务的所属框架句柄
 }
 
 /**

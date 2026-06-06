@@ -132,10 +132,10 @@ struct XC_TaskCB_t {
     XCBP_t    BP;                       // 协程断点(Break Point)
     XC_Tick_t TaskWakeupTick;           // 任务下个唤醒的时间(0则一直阻塞)
 
-    void*   pParam;      // 传递的参数
-    void*   pNotifyData; // 通知数据
-    uint8_t TaskState;   // 任务状态("XC_TaskState_t"类型数据)
-    uint8_t NotifyState; // 通知状态("XC_NotifyState_t"类型数据)
+    void*            pParam;      // 传递的参数
+    void*            pNotifyData; // 通知数据
+    volatile uint8_t TaskState;   // 任务状态("XC_TaskState_t"类型数据)
+    volatile uint8_t NotifyState; // 通知状态("XC_NotifyState_t"类型数据)
 
     /**
      * 框架的通知使用生产者和消费者计数实现;
