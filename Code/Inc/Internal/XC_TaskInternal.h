@@ -33,7 +33,7 @@
  * @param[in]   TickCount   阻塞的超时时间(单位:Tick)
  * @details     用于协程内部"等待通知"处理;
  */
-void XCTask_HandleWaitNotify(XC_TaskHandle_t phTCB, uint32_t TickCount);
+void XC_Task_HandleWaitNotify(XC_TaskHandle_t phTCB, uint32_t TickCount);
 
 /**
  * @brief       [内部]延时处理
@@ -41,28 +41,28 @@ void XCTask_HandleWaitNotify(XC_TaskHandle_t phTCB, uint32_t TickCount);
  * @param[in]   TickCount   阻塞的超时时间(单位:Tick)
  * @details     用于协程内部"延时"处理;
  */
-void XCTask_HandleDelay(XC_TaskHandle_t phTCB, uint32_t TickCount);
+void XC_Task_HandleDelay(XC_TaskHandle_t phTCB, uint32_t TickCount);
 
 /**
  * @brief       [内部]挂起处理
  * @param[in]   phTCB       任务句柄
  * @details     用于协程内部"挂起自身"和"挂起任务"使用;
  */
-void XCTask_HandleSuspend(XC_TaskHandle_t phTCB);
+void XC_Task_HandleSuspend(XC_TaskHandle_t phTCB);
 
 /**
  * @brief       [内部]复位处理
  * @param[in]   phTCB       任务句柄
  * @details     用于协程内部"复位自身"和"复位任务"使用;
  */
-void XCTask_HandleReset(XC_TaskHandle_t phTCB);
+void XC_Task_HandleReset(XC_TaskHandle_t phTCB);
 
 /**
  * @brief       [内部]移除处理
  * @param[in]   phTCB 协程控制块
  * @details     用于协程内部"移除自身"和"任务移除"使用;
  */
-void XCTask_HandleRemove(XC_TaskHandle_t phTCB);
+void XC_Task_HandleRemove(XC_TaskHandle_t phTCB);
 
 /*
  ************************************************************************************************************|
@@ -76,14 +76,14 @@ void XCTask_HandleRemove(XC_TaskHandle_t phTCB);
  * @param[in]   phTCB   [XC_TaskHandle_t]协程控制块
  * @details     将任务移动上个就绪节点后,确保最后调用;
  */
-#define XCTask_MoveTaskToReadyList(_phTCB)   XCList_MoveNodeAfter((_phTCB)->phXCOS->pPrevReadyNode, &(_phTCB)->ListNode)
+#define XC_Task_MoveToReadyList(_phTCB)   XC_List_MoveNodeAfter((_phTCB)->phXCOS->pPrevReadyNode, &(_phTCB)->ListNode)
 
 /**
  * @brief       [内部]将任务移动到阻塞表
  * @param[in]   phTCB   [XC_TaskHandle_t]协程控制块
  * @details     将任务移动到阻塞表头
  */
-#define XCTask_MoveTaskToBlockedList(_phTCB) XCList_MoveNodeAfter(&(_phTCB)->phXCOS->BlockedList, &(_phTCB)->ListNode)
+#define XC_Task_MoveToBlockedList(_phTCB) XC_List_MoveNodeAfter(&(_phTCB)->phXCOS->BlockedList, &(_phTCB)->ListNode)
 
 /**
  * @brief       [内部]移除任务节点
@@ -91,9 +91,16 @@ void XCTask_HandleRemove(XC_TaskHandle_t phTCB);
  * @return      void
  * @details     从XCOS中删除TCB节点;
  */
-#define XCTask_RemoveTaskNode(_phTCB)        XCList_Remove(&(_phTCB)->ListNode)
+#define XC_Task_RemoveNode(_phTCB)        XC_List_Remove(&(_phTCB)->ListNode)
 
 /************************************************ 我是分割线 ************************************************/
+//=== 向后兼容:保留旧版函数名(已弃用,建议迁移到 XC_Task_ 前缀)
+#define XCTask_HandleWaitNotify           XC_Task_HandleWaitNotify
+#define XCTask_HandleDelay                XC_Task_HandleDelay
+#define XCTask_HandleSuspend              XC_Task_HandleSuspend
+#define XCTask_HandleReset                XC_Task_HandleReset
+#define XCTask_HandleRemove               XC_Task_HandleRemove
+
 /*
  ************************************************************************************************************|
  ************************************************ 我是分割线 ************************************************|

@@ -33,7 +33,7 @@
  * @param[in]   pNewNode    新节点
  * @details     只插入节点;
  */
-void XCList_InsertNodeAfter(XCListNode_t* pListNode, XCListNode_t* pNewNode)
+void XC_List_InsertNodeAfter(XCListNode_t* pListNode, XCListNode_t* pNewNode)
 {
     pNewNode->pNext        = pListNode->pNext;
     pNewNode->pNext->pPrev = pNewNode;
@@ -48,7 +48,7 @@ void XCList_InsertNodeAfter(XCListNode_t* pListNode, XCListNode_t* pNewNode)
  * @details
  *  将节点从原先链表中移除,并移动到目标节点之后;
  */
-void XCList_MoveNodeAfter(XCListNode_t* pDestNode, XCListNode_t* pSrcNode)
+void XC_List_MoveNodeAfter(XCListNode_t* pDestNode, XCListNode_t* pSrcNode)
 {
     // 链接前后两个节点来删除节点
     pSrcNode->pNext->pPrev = pSrcNode->pPrev;
@@ -66,13 +66,13 @@ void XCList_MoveNodeAfter(XCListNode_t* pDestNode, XCListNode_t* pSrcNode)
  * @param[in]   pNode   需要删除的节点
  * @details     只处理链表节点部分,不影响节点挂载的其他数据;
  */
-void XCList_Remove(XCListNode_t* pNode)
+void XC_List_Remove(XCListNode_t* pNode)
 {
     /* 链接前后两个节点来删除节点*/
     pNode->pNext->pPrev = pNode->pPrev;
     pNode->pPrev->pNext = pNode->pNext;
     /* 初始化删除的节点*/
-    XCList_InitNode(pNode);
+    XC_List_InitNode(pNode);
 }
 
 /************************************************ 我是分割线 ************************************************/
@@ -117,14 +117,14 @@ void XCList_Remove(XCListNode_t* pNode)
  *  | Y3,P=Y2,N=X3 |              |
  *  | X3,P=Y3,N=XR |              |
  */
-void XCList_MoveListToNodeAfter(XCListNode_t* pDestNode, XCListNode_t* pSrcList)
+void XC_List_MoveListToNodeAfter(XCListNode_t* pDestNode, XCListNode_t* pSrcList)
 {
     pSrcList->pPrev->pNext  = pDestNode->pNext; //[1]链表上的下,链接到,节点下;[YR->P(Y3)->N = X2->N(X3)]
     pDestNode->pNext->pPrev = pSrcList->pPrev;  //[2]节点下的上,链接到,链表上;[X2->N(X3)->P = YR->P(Y3)]
     pDestNode->pNext        = pSrcList->pNext;  //[3]节点下,链接到,链表下;[X2->N = YR->N(Y1)]
     pSrcList->pNext->pPrev  = pDestNode;        //[4]链表下的上,链接到,节点;[YR->N(Y1)->P = X2]
 
-    XCList_Init(pSrcList); //[5]节点移动完成后清除链表
+    XC_List_Init(pSrcList); //[5]节点移动完成后清除链表
 }
 
 /************************************************ 我是分割线 ************************************************/

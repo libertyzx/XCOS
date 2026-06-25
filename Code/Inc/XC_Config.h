@@ -53,7 +53,7 @@
  *  默认:100
  */
 #ifndef XC_CFG_MAX_TASKS
-#define XC_CFG_MAX_TASKS (100)
+#define XC_CFG_MAX_TASKS (100U)
 #endif
 
 /************************************************ 我是分割线 ************************************************/
@@ -66,7 +66,7 @@
  *  一般设置1000,对应时间为1ms;
  */
 #ifndef XC_CFG_TICKS_PER_SEC
-#define XC_CFG_TICKS_PER_SEC (1000)
+#define XC_CFG_TICKS_PER_SEC (1000U)
 #endif
 
 /************************************************ 我是分割线 ************************************************/

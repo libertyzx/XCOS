@@ -31,14 +31,14 @@
  * @param[in]   phXCOS  框架句柄
  * @details     在创建好"XCOS"句柄后,调用此函数初始化框架;
  */
-void XCSch_Init(XC_OSHandle_t phXCOS);
+void XC_Sch_Init(XC_OSHandle_t phXCOS);
 
 /**
  * @brief       [用户]调度器启动(阻塞)
  * @param[in]   phXCOS  框架句柄
  * @details     阻塞的运行调度器,调用此函数后不会返回;
  */
-void XCSch_Start(XC_OSHandle_t phXCOS);
+void XC_Sch_Start(XC_OSHandle_t phXCOS);
 
 /**
  * @brief       [用户]获取任务数
@@ -46,7 +46,7 @@ void XCSch_Start(XC_OSHandle_t phXCOS);
  * @return      uint8_t 返回任务数量
  * @details     当前框架中有多少任务;
  */
-uint8_t XCSch_GetTaskNum(XC_OSHandle_t phXCOS);
+uint8_t XC_Sch_GetTaskNum(XC_OSHandle_t phXCOS);
 
 /************************************************ 我是分割线 ************************************************/
 
@@ -71,9 +71,15 @@ uint8_t XCSch_GetTaskNum(XC_OSHandle_t phXCOS);
  *              ```
  *          - 系统Tick是一个计数器,则计数器等于"XCTime_GetTick() + IdleTick";
  */
-void XCSch_SetIdleCallback(XC_OSHandle_t phXCOS, void (*fIdle)(XC_OSHandle_t, XC_Tick_t));
+void XC_Sch_SetIdleCallback(XC_OSHandle_t phXCOS, void (*fIdle)(XC_OSHandle_t, XC_Tick_t));
 
 /************************************************ 我是分割线 ************************************************/
+//=== 向后兼容:保留旧版函数名(已弃用,建议迁移到 XC_Sch_ 前缀)
+#define XCSch_Init            XC_Sch_Init
+#define XCSch_Start           XC_Sch_Start
+#define XCSch_GetTaskNum      XC_Sch_GetTaskNum
+#define XCSch_SetIdleCallback XC_Sch_SetIdleCallback
+
 /*
  ************************************************************************************************************|
  ************************************************ 我是分割线 ************************************************|

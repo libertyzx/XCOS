@@ -55,6 +55,7 @@
 #include "XC_Config.h"      //配置
 #include "XC_Type.h"        //类型
 
+#include "XC_Cor.h"  //协程处理
 #include "XC_Sch.h"  //调度处理
 #include "XC_Task.h" //任务处理
 #include "XC_Time.h" //时间处理

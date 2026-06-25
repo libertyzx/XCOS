@@ -35,7 +35,7 @@ typedef enum {
     XC_OK = 0,   // 成功
     XC_FAIL,     // 失败
     XC_CONTINUE, // 继续(异步操作)
-} XC_Retuen_t;
+} XC_Return_t;
 
 /**
  * @brief   [用户]任务状态值

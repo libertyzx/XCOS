@@ -30,9 +30,9 @@
  * @details
  *  主要用来锁定任务切换(包括链表操作,状态切换),防止中断调用时资源竞争;
  */
-#define XCSch_Lock(_phXCOS)                   \
-    {                                         \
-        ((XC_OSHandle_t)(_phXCOS))->Lock = 1; \
+#define XC_Sch_Lock(_phXCOS)                   \
+    {                                          \
+        ((XC_OSHandle_t)(_phXCOS))->Lock = 1U; \
     }
 
 /**
@@ -41,9 +41,9 @@
  * @details
  *  主要用来锁定任务切换(包括链表操作,状态切换),防止中断调用时资源竞争;
  */
-#define XCSch_Unlock(_phXCOS)                 \
-    {                                         \
-        ((XC_OSHandle_t)(_phXCOS))->Lock = 0; \
+#define XC_Sch_Unlock(_phXCOS)                 \
+    {                                          \
+        ((XC_OSHandle_t)(_phXCOS))->Lock = 0U; \
     }
 
 /**
@@ -55,9 +55,14 @@
  * @details
  *  主要用来锁定任务切换(包括链表操作,状态切换),防止中断调用时资源竞争;
  */
-#define XCSch_GetLockState(_phXCOS) (((XC_OSHandle_t)(_phXCOS))->Lock)
+#define XC_Sch_GetLockState(_phXCOS) (((XC_OSHandle_t)(_phXCOS))->Lock)
 
 /************************************************ 我是分割线 ************************************************/
+//=== 向后兼容:保留旧版宏名(已弃用,建议迁移到 XC_Sch_ 前缀)
+#define XCSch_Lock                   XC_Sch_Lock
+#define XCSch_Unlock                 XC_Sch_Unlock
+#define XCSch_GetLockState           XC_Sch_GetLockState
+
 /*
  ************************************************************************************************************|
  ************************************************ 我是分割线 ************************************************|
