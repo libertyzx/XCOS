@@ -1,6 +1,6 @@
 /**
  * @file        XC_Sch.c
- * @brief       µ÷¶ÈÆ÷ÊµÏÖ
+ * @brief       è°ƒåº¦å™¨å®ç°
  * @author      libertyzx (libertyzx@163.com)
  * @version     2.0.0
  * @date        2026/01/07
@@ -8,12 +8,12 @@
  * @copyright   Copyright (c) 2024 libertyzx. All rights reserved.
  * @license     This project is released under the MIT License.
  * **********************************************
- * @details     ÓÃÓÚµ÷¶ÈÈÎÎñµÄµ÷¶ÈÆ÷ÊµÏÖ;
+ * @details     ç”¨äºè°ƒåº¦ä»»åŠ¡çš„è°ƒåº¦å™¨å®ç°;
  * **********************************************
- *  ĞŞ¸ÄÈÕÖ¾
- *  - ¼û"CHANGELOG.md"µÄ¸üĞÂËµÃ÷;
+ *  ä¿®æ”¹æ—¥å¿—
+ *  - è§"CHANGELOG.md"çš„æ›´æ–°è¯´æ˜;
  */
-//=== Í·ÎÄ¼ş
+//=== å¤´æ–‡ä»¶
 #include "Internal/XC_List.h"
 #include "Internal/XC_SchInternal.h"
 #include "Internal/XC_TaskInternal.h"
@@ -21,34 +21,34 @@
 
 /*
  ************************************************************************************************************|
- ************************************************ ÎÒÊÇ·Ö¸îÏß ************************************************|
+ ************************************************ æˆ‘æ˜¯åˆ†å‰²çº¿ ************************************************|
  ************************************************************************************************************|
  */
-/** Ë½ÓĞºê */
+/** ç§æœ‰å® */
 
 /**
- * @brief   [Ë½ÓĞ]»ñÈ¡ÏÂ¸öÈÎÎñ»½ĞÑµÄÊ±¼ä
- * @return  XC_Tick_t    ÏÂ¸ö»½ĞÑµÄTickÖµ;
- * @details ÏÂ¸öÈÎÎñ»½ĞÑµÄÊ±¼äÎª:Ê±¼ä±íÊ×½Úµã»½ĞÑÊ±¼ä;
+ * @brief   [ç§æœ‰]è·å–ä¸‹ä¸ªä»»åŠ¡å”¤é†’çš„æ—¶é—´
+ * @return  XC_Tick_t    ä¸‹ä¸ªå”¤é†’çš„Tickå€¼;
+ * @details ä¸‹ä¸ªä»»åŠ¡å”¤é†’çš„æ—¶é—´ä¸º:æ—¶é—´è¡¨é¦–èŠ‚ç‚¹å”¤é†’æ—¶é—´;
  */
 #define XCSch_GetNextTaskWakeupTick() (((XC_TaskHandle_t)(XCList_GetListStartNode(&phXCOS->TimeList)))->TaskWakeupTick)
 
 /*
  ************************************************************************************************************|
- ************************************************ ÎÒÊÇ·Ö¸îÏß ************************************************|
+ ************************************************ æˆ‘æ˜¯åˆ†å‰²çº¿ ************************************************|
  ************************************************************************************************************|
  */
-/**µ÷¶È´¦Àí*/
+/**è°ƒåº¦å¤„ç†*/
 
 /**
- * @brief       [Ë½ÓĞ]Ê±¼äµ÷¶È
- * @param[in]   phXCOS  ¿ò¼Ü¾ä±ú
+ * @brief       [ç§æœ‰]æ—¶é—´è°ƒåº¦
+ * @param[in]   phXCOS  æ¡†æ¶å¥æŸ„
  * @details
- *  Ê±¼äµ÷¶È´¦Àí:
- *  - ´¦ÀíÏµÍ³TickÒç³öºóµÄÈÎÎñµ÷¶È(Ê±¼ä±íÒÆ¶¯µ½¾ÍĞ÷±í,Òç³ö±íÒÆ¶¯µ½Ê±¼ä±í);
- *  - ´¦ÀíÈÎÎñÊ±¼äµ½´ïºóµÄÈÎÎñµ÷¶È(µ½´ïÈÎÎñÒÆ¶¯µ½¾ÍĞ÷±í);
- *  ×¢Òâ:
- *  > ´Ëº¯ÊıÖ»´¦ÀíÔÚÊ±¼ä±íºÍÒç³öÊ±¼ä±íµÄÈÎÎñµÄµ÷¶È;
+ *  æ—¶é—´è°ƒåº¦å¤„ç†:
+ *  - å¤„ç†ç³»ç»ŸTickæº¢å‡ºåçš„ä»»åŠ¡è°ƒåº¦(æ—¶é—´è¡¨ç§»åŠ¨åˆ°å°±ç»ªè¡¨,æº¢å‡ºè¡¨ç§»åŠ¨åˆ°æ—¶é—´è¡¨);
+ *  - å¤„ç†ä»»åŠ¡æ—¶é—´åˆ°è¾¾åçš„ä»»åŠ¡è°ƒåº¦(åˆ°è¾¾ä»»åŠ¡ç§»åŠ¨åˆ°å°±ç»ªè¡¨);
+ *  æ³¨æ„:
+ *  > æ­¤å‡½æ•°åªå¤„ç†åœ¨æ—¶é—´è¡¨å’Œæº¢å‡ºæ—¶é—´è¡¨çš„ä»»åŠ¡çš„è°ƒåº¦;
  */
 static void XCSch_TimeSched(XC_OSHandle_t phXCOS)
 {
@@ -58,71 +58,71 @@ static void XCSch_TimeSched(XC_OSHandle_t phXCOS)
     XCListNode_t*   pTimeList;
 
     pTimeList = &phXCOS->TimeList;
-    Tick      = XCTime_GetTick(); // µÃµ½µ±Ç°ÏµÍ³Tick
-    XCSch_Lock(phXCOS);           // Ëø
+    Tick      = XCTime_GetTick(); // å¾—åˆ°å½“å‰ç³»ç»ŸTick
+    XCSch_Lock(phXCOS);           // é”
     /**
-     *  TickÊ±¼äÒç³ö´¦Àí
-     *  ±È½Ï±£´æµÄTick("PrevTick")ºÍµ±Ç°µÄTickÖµ,±£´æµÄÖµ´óÓÚµ±Ç°µÄÖµ,Ôò±íÊ¾¼ÆÊıÒç³ö
-     *  Òç³öºó´¦ÀíÈçÏÂ:
-     *  - ±éÀúÊ±¼ä±í("TimeList"),¸ü¸Ä½Úµã×´Ì¬,²¢½«½ÚµãÒÆ¶¯µ½¾ÍĞ÷±í("ReadyList");
-     *  - ½«Ê±¼äÒç³ö±í("TimeOverflowList")µÄËùÓĞ½ÚµãÒÆ¶¯µ½Ê±¼ä±í("TimeList");
-     *  - ´ÓÊ±¼ä±íµÃµ½×îĞÂµÄÏÂ¸ö»½ĞÑÊ±¼ä(Ê±¼ä±íÊ×½Úµã);
+     *  Tickæ—¶é—´æº¢å‡ºå¤„ç†
+     *  æ¯”è¾ƒä¿å­˜çš„Tick("PrevTick")å’Œå½“å‰çš„Tickå€¼,ä¿å­˜çš„å€¼å¤§äºå½“å‰çš„å€¼,åˆ™è¡¨ç¤ºè®¡æ•°æº¢å‡º
+     *  æº¢å‡ºåå¤„ç†å¦‚ä¸‹:
+     *  - éå†æ—¶é—´è¡¨("TimeList"),æ›´æ”¹èŠ‚ç‚¹çŠ¶æ€,å¹¶å°†èŠ‚ç‚¹ç§»åŠ¨åˆ°å°±ç»ªè¡¨("ReadyList");
+     *  - å°†æ—¶é—´æº¢å‡ºè¡¨("TimeOverflowList")çš„æ‰€æœ‰èŠ‚ç‚¹ç§»åŠ¨åˆ°æ—¶é—´è¡¨("TimeList");
+     *  - ä»æ—¶é—´è¡¨å¾—åˆ°æœ€æ–°çš„ä¸‹ä¸ªå”¤é†’æ—¶é—´(æ—¶é—´è¡¨é¦–èŠ‚ç‚¹);
      */
-    if(phXCOS->PrevTick > Tick) { // ±£´æµÄTick´óÓÚµ±Ç°Tick,Ê±¼äÒç³ö,ĞèÒª´¦Àí
-        // Ê±¼ä±í´¦Àí
-        if(XCList_ListValid(pTimeList)) { // Ê±¼ä±íÓĞ½Úµã
-            // ËùÓĞ½ÚµãÒÆ¶¯µ½¾ÍĞ÷±í;
-            pIterator = XCList_GetListStartNode(pTimeList); // µÃµ½Ê±¼äÁ´±í³õÊ¼½Úµã
+    if(phXCOS->PrevTick > Tick) { // ä¿å­˜çš„Tickå¤§äºå½“å‰Tick,æ—¶é—´æº¢å‡º,éœ€è¦å¤„ç†
+        // æ—¶é—´è¡¨å¤„ç†
+        if(XCList_ListValid(pTimeList)) { // æ—¶é—´è¡¨æœ‰èŠ‚ç‚¹
+            // æ‰€æœ‰èŠ‚ç‚¹ç§»åŠ¨åˆ°å°±ç»ªè¡¨;
+            pIterator = XCList_GetListStartNode(pTimeList); // å¾—åˆ°æ—¶é—´é“¾è¡¨åˆå§‹èŠ‚ç‚¹
             do {
-                ((XC_TaskHandle_t)pIterator)->TaskState = XC_TASK_READY;    // ÈÎÎñ×´Ì¬:¾ÍĞ÷
-                pIterator                               = pIterator->pNext; // Ö¸ÏòÏÂ¸ö½Úµã
-            } while(!XCList_ReachEndNode(pTimeList, pIterator)); // µ½´ï½áÎ²Ôò½áÊø
-            XCList_MoveListToNodeAfter(phXCOS->pPrevReadyNode, pTimeList); // Ê±¼ä±íËùÓĞ½ÚµãÒÆ¶¯µ½¾ÍĞ÷±í
+                ((XC_TaskHandle_t)pIterator)->TaskState = XC_TASK_READY;    // ä»»åŠ¡çŠ¶æ€:å°±ç»ª
+                pIterator                               = pIterator->pNext; // æŒ‡å‘ä¸‹ä¸ªèŠ‚ç‚¹
+            } while(!XCList_ReachEndNode(pTimeList, pIterator)); // åˆ°è¾¾ç»“å°¾åˆ™ç»“æŸ
+            XCList_MoveListToNodeAfter(phXCOS->pPrevReadyNode, pTimeList); // æ—¶é—´è¡¨æ‰€æœ‰èŠ‚ç‚¹ç§»åŠ¨åˆ°å°±ç»ªè¡¨
         }
-        // Ê±¼äÒç³ö±í´¦Àí(Òç³ö±íÈ«²¿½ÚµãÒÆ¶¯Ê±¼ä±í)
-        if(XCList_ListValid(&phXCOS->TimeOverflowList)) {                     // Ê±¼äÒç³ö±íÓĞ½Úµã
-            XCList_MoveListToNodeAfter(pTimeList, &phXCOS->TimeOverflowList); // Ê±¼äÒç³ö±íËùÓĞ½ÚµãÒÆ¶¯µ½Ê±¼ä±í
+        // æ—¶é—´æº¢å‡ºè¡¨å¤„ç†(æº¢å‡ºè¡¨å…¨éƒ¨èŠ‚ç‚¹ç§»åŠ¨æ—¶é—´è¡¨)
+        if(XCList_ListValid(&phXCOS->TimeOverflowList)) {                     // æ—¶é—´æº¢å‡ºè¡¨æœ‰èŠ‚ç‚¹
+            XCList_MoveListToNodeAfter(pTimeList, &phXCOS->TimeOverflowList); // æ—¶é—´æº¢å‡ºè¡¨æ‰€æœ‰èŠ‚ç‚¹ç§»åŠ¨åˆ°æ—¶é—´è¡¨
         }
-        phXCOS->PrevTick = Tick; // ¸üĞÂ±£´æTick
+        phXCOS->PrevTick = Tick; // æ›´æ–°ä¿å­˜Tick
     }
 
     /**
-     *  Ê±¼ä±í´¦Àí
-     *  Ê±¼ä±í("TimeList")ÓĞ½Úµã,ÇÒÏÂ¸ö»½ĞÑÈÎÎñµÄÊ±¼äµ½´ï,Ôòµ÷ÓÃ;
-     *  ĞèÒªÒÔÏÂ²Ù×÷;
-     *  - ±éÀúÊ±¼ä±í("TimeList"),»½ĞÑÊ±¼äµ½´ïµÄÈÎÎñ¶¼ÒÆ¶¯µ½¾ÍĞ÷±í("ReadyList");
-     *  ×¢Òâ:
-     *      - ±ØĞëÏÈ´¦Àí"TickÊ±¼äÒç³ö´¦Àí";
-     *      - ±ØĞëÏÈÁí´æÈÎÎñTCB²¢Á¢¿Ì½«µü´úÆ÷ÒÆ¶¯ÖÁÏÂ¸ö½Úµã,
-     *          ÒòÎªµ±Ç°½Úµã»áÒÆ¶¯µ½¾ÍĞ÷±í,ÈôÊÇÖ±½ÓÒÆ¶¯µü´úÆ÷,Á´±íÖ¸Ïò¾Í»á´íÎó;
+     *  æ—¶é—´è¡¨å¤„ç†
+     *  æ—¶é—´è¡¨("TimeList")æœ‰èŠ‚ç‚¹,ä¸”ä¸‹ä¸ªå”¤é†’ä»»åŠ¡çš„æ—¶é—´åˆ°è¾¾,åˆ™è°ƒç”¨;
+     *  éœ€è¦ä»¥ä¸‹æ“ä½œ;
+     *  - éå†æ—¶é—´è¡¨("TimeList"),å”¤é†’æ—¶é—´åˆ°è¾¾çš„ä»»åŠ¡éƒ½ç§»åŠ¨åˆ°å°±ç»ªè¡¨("ReadyList");
+     *  æ³¨æ„:
+     *      - å¿…é¡»å…ˆå¤„ç†"Tickæ—¶é—´æº¢å‡ºå¤„ç†";
+     *      - å¿…é¡»å…ˆå¦å­˜ä»»åŠ¡TCBå¹¶ç«‹åˆ»å°†è¿­ä»£å™¨ç§»åŠ¨è‡³ä¸‹ä¸ªèŠ‚ç‚¹,
+     *          å› ä¸ºå½“å‰èŠ‚ç‚¹ä¼šç§»åŠ¨åˆ°å°±ç»ªè¡¨,è‹¥æ˜¯ç›´æ¥ç§»åŠ¨è¿­ä»£å™¨,é“¾è¡¨æŒ‡å‘å°±ä¼šé”™è¯¯;
      */
-    if((XCList_ListValid(pTimeList)) && (Tick >= XCSch_GetNextTaskWakeupTick())) { // Ê±¼ä±íÓĞĞ§ && ÈÎÎñ»½ĞÑÊ±¼äÒÑ¾­µ½´ï
-        /**ÂÖÑ¯Á´±í,½«Ê±¼äµ½´ïµÄ½Úµã¶¼ÒÆ¶¯µ½¾ÍĞ÷±í */
-        pIterator = XCList_GetListStartNode(pTimeList);               // µÃµ½Ê±¼äÁ´±í³õÊ¼½Úµã
-        while(Tick >= ((XC_TaskHandle_t)pIterator)->TaskWakeupTick) { // »½ĞÑÊ±¼äµ½´ï
-            phTCB     = (XC_TaskHandle_t)pIterator;                   // µÃµ½µ±Ç°ÈÎÎñµÄTCB
-            pIterator = pIterator->pNext;                             // Ö¸ÏòÏÂ¸öÈÎÎñ(±ØĞëÔÚ²Ù×÷Á´±íÇ°)
-            XCTask_MoveTaskToReadyList(phTCB);                        // »½ĞÑÈÎÎñ,ÒÆµ½¾ÍĞ÷±í
-            phTCB->TaskState = XC_TASK_READY;                         // ÈÎÎñ×´Ì¬:¾ÍĞ÷
-            // ÂÖÑ¯½áÊøÅĞ¶Ï
-            if(XCList_ReachEndNode(pTimeList, pIterator)) { // µ½´ï½áÎ²
-                break;                                      // ½áÊøÂÖÑ¯
+    if((XCList_ListValid(pTimeList)) && (Tick >= XCSch_GetNextTaskWakeupTick())) { // æ—¶é—´è¡¨æœ‰æ•ˆ && ä»»åŠ¡å”¤é†’æ—¶é—´å·²ç»åˆ°è¾¾
+        /**è½®è¯¢é“¾è¡¨,å°†æ—¶é—´åˆ°è¾¾çš„èŠ‚ç‚¹éƒ½ç§»åŠ¨åˆ°å°±ç»ªè¡¨ */
+        pIterator = XCList_GetListStartNode(pTimeList);               // å¾—åˆ°æ—¶é—´é“¾è¡¨åˆå§‹èŠ‚ç‚¹
+        while(Tick >= ((XC_TaskHandle_t)pIterator)->TaskWakeupTick) { // å”¤é†’æ—¶é—´åˆ°è¾¾
+            phTCB     = (XC_TaskHandle_t)pIterator;                   // å¾—åˆ°å½“å‰ä»»åŠ¡çš„TCB
+            pIterator = pIterator->pNext;                             // æŒ‡å‘ä¸‹ä¸ªä»»åŠ¡(å¿…é¡»åœ¨æ“ä½œé“¾è¡¨å‰)
+            XCTask_MoveTaskToReadyList(phTCB);                        // å”¤é†’ä»»åŠ¡,ç§»åˆ°å°±ç»ªè¡¨
+            phTCB->TaskState = XC_TASK_READY;                         // ä»»åŠ¡çŠ¶æ€:å°±ç»ª
+            // è½®è¯¢ç»“æŸåˆ¤æ–­
+            if(XCList_ReachEndNode(pTimeList, pIterator)) { // åˆ°è¾¾ç»“å°¾
+                break;                                      // ç»“æŸè½®è¯¢
             }
         }
-        phXCOS->PrevTick = Tick; // ¸üĞÂ±£´æTick
+        phXCOS->PrevTick = Tick; // æ›´æ–°ä¿å­˜Tick
     }
-    XCSch_Unlock(phXCOS); // ½âËø
+    XCSch_Unlock(phXCOS); // è§£é”
 }
 
 /**
- * @brief       [Ë½ÓĞ]ÊÂ¼şµ÷¶È
- * @param[in]   phXCOS  ¿ò¼Ü¾ä±ú
+ * @brief       [ç§æœ‰]äº‹ä»¶è°ƒåº¦
+ * @param[in]   phXCOS  æ¡†æ¶å¥æŸ„
  * @details
- *  ´Ëº¯ÊıÓÃÓÚ:
- *      - ÈÎÎñ»½ĞÑ"XCTask_SendNotify"º¯Êı´¥·¢;
- *  ×¢Òâ:
- *      - ÔÚµ÷ÓÃ´Ëº¯ÊıÇ°±ØĞëÏÈÅĞ¶Ï"phXCOS->EventProduced != phXCOS->EventConsumed";
- *      - ´Ëº¯ÊıµÄÊµÏÖÖ÷ÒªÊÇÑ­»·ËÑË÷Á´±í(Ê±¼ä±í,Òç³ö±í,×èÈû±í),ÅĞ¶ÏÊÇ·ñÓĞĞèÒª´¦ÀíµÄÈÎÎñ:
+ *  æ­¤å‡½æ•°ç”¨äº:
+ *      - ä»»åŠ¡å”¤é†’"XCTask_SendNotify"å‡½æ•°è§¦å‘;
+ *  æ³¨æ„:
+ *      - åœ¨è°ƒç”¨æ­¤å‡½æ•°å‰å¿…é¡»å…ˆåˆ¤æ–­"phXCOS->EventProduced != phXCOS->EventConsumed";
+ *      - æ­¤å‡½æ•°çš„å®ç°ä¸»è¦æ˜¯å¾ªç¯æœç´¢é“¾è¡¨(æ—¶é—´è¡¨,æº¢å‡ºè¡¨,é˜»å¡è¡¨),åˆ¤æ–­æ˜¯å¦æœ‰éœ€è¦å¤„ç†çš„ä»»åŠ¡:
  */
 static void XCSch_EventSched(XC_OSHandle_t phXCOS)
 {
@@ -132,60 +132,60 @@ static void XCSch_EventSched(XC_OSHandle_t phXCOS)
 
 #define WAKEUP_NOTIFY(pCList)                                                                                                                                        \
     {                                                                                                                                                                \
-        pList     = pCList;                          /*»º´æÁ´±í*/                                                                                                    \
-        pIterator = XCList_GetListStartNode(pList);  /*µÃµ½Á´±í³õÊ¼½Úµã*/                                                                                            \
-        if(!XCList_ReachEndNode(pList, pIterator)) { /*ÅĞ¶ÏÊÇ·ñÓĞ½Úµã*/                                                                                              \
+        pList     = pCList;                          /*ç¼“å­˜é“¾è¡¨*/                                                                                                    \
+        pIterator = XCList_GetListStartNode(pList);  /*å¾—åˆ°é“¾è¡¨åˆå§‹èŠ‚ç‚¹*/                                                                                            \
+        if(!XCList_ReachEndNode(pList, pIterator)) { /*åˆ¤æ–­æ˜¯å¦æœ‰èŠ‚ç‚¹*/                                                                                              \
             do {                                                                                                                                                     \
-                if((((XC_TaskHandle_t)(pIterator))->NotifyState == XC_NOTIFY_WAIT) &&                                    /*ÊÇµÈ´ı»½ĞÑ*/                              \
-                   (((XC_TaskHandle_t)(pIterator))->NotifyProduced != ((XC_TaskHandle_t)(pIterator))->NotifyConsumed)) { /*ĞèÒªÏû·Ñ*/                                \
-                    /*ÊÇµÈ´ı»½ĞÑ && ĞèÒªÏû·Ñ*/                                                                                                                       \
-                    ((XC_TaskHandle_t)(pIterator))->NotifyConsumed = ((XC_TaskHandle_t)(pIterator))->NotifyProduced; /*¸üĞÂ×´Ì¬¸Ä±ä´¦Àí(ÒÑ¾­»½ĞÑ,¿ÉÒÔ²»ÓÃÁÙÊ±±äÁ¿)*/ \
-                    phTCB                                          = (XC_TaskHandle_t)(pIterator);                   /*µÃµ½µ±Ç°ÈÎÎñTCB*/                             \
-                    pIterator                                      = pIterator->pNext;                               /*Ö¸ÏòÏÂ¸ö½Úµã(±ØĞëÔÚ²Ù×÷Ç°Ö¸ÏòÏÂ¸ö½Úµã)*/      \
-                    /** Í¨Öª»½ĞÑ */                                                                                                                                  \
-                    XCTask_MoveTaskToReadyList(phTCB);     /*ÈÎÎñÒÆ¶¯µ½¾ÍĞ÷±í*/                                                                                      \
-                    phTCB->NotifyState = XC_NOTIFY_WAKEUP; /*Í¨Öª×´Ì¬:Í¨Öª»½ĞÑ*/                                                                                     \
-                    phTCB->TaskState   = XC_TASK_READY;    /*ÈÎÎñ×´Ì¬:¾ÍĞ÷*/                                                                                         \
+                if((((XC_TaskHandle_t)(pIterator))->NotifyState == XC_NOTIFY_WAIT) &&                                    /*æ˜¯ç­‰å¾…å”¤é†’*/                              \
+                   (((XC_TaskHandle_t)(pIterator))->NotifyProduced != ((XC_TaskHandle_t)(pIterator))->NotifyConsumed)) { /*éœ€è¦æ¶ˆè´¹*/                                \
+                    /*æ˜¯ç­‰å¾…å”¤é†’ && éœ€è¦æ¶ˆè´¹*/                                                                                                                       \
+                    ((XC_TaskHandle_t)(pIterator))->NotifyConsumed = ((XC_TaskHandle_t)(pIterator))->NotifyProduced; /*æ›´æ–°çŠ¶æ€æ”¹å˜å¤„ç†(å·²ç»å”¤é†’,å¯ä»¥ä¸ç”¨ä¸´æ—¶å˜é‡)*/ \
+                    phTCB                                          = (XC_TaskHandle_t)(pIterator);                   /*å¾—åˆ°å½“å‰ä»»åŠ¡TCB*/                             \
+                    pIterator                                      = pIterator->pNext;                               /*æŒ‡å‘ä¸‹ä¸ªèŠ‚ç‚¹(å¿…é¡»åœ¨æ“ä½œå‰æŒ‡å‘ä¸‹ä¸ªèŠ‚ç‚¹)*/      \
+                    /** é€šçŸ¥å”¤é†’ */                                                                                                                                  \
+                    XCTask_MoveTaskToReadyList(phTCB);     /*ä»»åŠ¡ç§»åŠ¨åˆ°å°±ç»ªè¡¨*/                                                                                      \
+                    phTCB->NotifyState = XC_NOTIFY_WAKEUP; /*é€šçŸ¥çŠ¶æ€:é€šçŸ¥å”¤é†’*/                                                                                     \
+                    phTCB->TaskState   = XC_TASK_READY;    /*ä»»åŠ¡çŠ¶æ€:å°±ç»ª*/                                                                                         \
                 }                                                                                                                                                    \
                 else {                                                                                                                                               \
-                    pIterator = pIterator->pNext; /*Ö¸ÏòÏÂ¸ö½Úµã*/                                                                                                   \
+                    pIterator = pIterator->pNext; /*æŒ‡å‘ä¸‹ä¸ªèŠ‚ç‚¹*/                                                                                                   \
                 }                                                                                                                                                    \
             } while(!XCList_ReachEndNode(pList, pIterator));                                                                                                         \
         }                                                                                                                                                            \
     }
 
-    XCSch_Lock(phXCOS);                       // Ëø
-    WAKEUP_NOTIFY(&phXCOS->TimeList);         // "TimeList"ÑÓÊ±/³¬Ê±/µÈ´ıµÄÁ´±í
-    WAKEUP_NOTIFY(&phXCOS->TimeOverflowList); // "TimeOverflowList"Ê±¼äÒç³öµÄÁ´±í
-    WAKEUP_NOTIFY(&phXCOS->BlockedList);      // "BlockedList"×èÈûÁ´±í
-    XCSch_Unlock(phXCOS);                     // ½âËø
+    XCSch_Lock(phXCOS);                       // é”
+    WAKEUP_NOTIFY(&phXCOS->TimeList);         // "TimeList"å»¶æ—¶/è¶…æ—¶/ç­‰å¾…çš„é“¾è¡¨
+    WAKEUP_NOTIFY(&phXCOS->TimeOverflowList); // "TimeOverflowList"æ—¶é—´æº¢å‡ºçš„é“¾è¡¨
+    WAKEUP_NOTIFY(&phXCOS->BlockedList);      // "BlockedList"é˜»å¡é“¾è¡¨
+    XCSch_Unlock(phXCOS);                     // è§£é”
 }
 
 /*
  ************************************************************************************************************|
- ************************************************ ÎÒÊÇ·Ö¸îÏß ************************************************|
+ ************************************************ æˆ‘æ˜¯åˆ†å‰²çº¿ ************************************************|
  ************************************************************************************************************|
  */
-/** ÓÃ»§º¯Êı */
+/** ç”¨æˆ·å‡½æ•° */
 
 /**
- * @brief       [ÓÃ»§]µ÷¶ÈÆ÷³õÊ¼»¯
- * @param[in]   phXCOS  ¿ò¼Ü¾ä±ú
+ * @brief       [ç”¨æˆ·]è°ƒåº¦å™¨åˆå§‹åŒ–
+ * @param[in]   phXCOS  æ¡†æ¶å¥æŸ„
  * @details
- *  ÓÃÓÚ³õÊ¼»¯¿ò¼ÜµÄµ÷¶ÈÆ÷;
- *  ÈÎÎñÆô¶¯Ä¬ÈÏ¾ÍÊÇµ÷¶ÈËø¶¨×´Ì¬;
+ *  ç”¨äºåˆå§‹åŒ–æ¡†æ¶çš„è°ƒåº¦å™¨;
+ *  ä»»åŠ¡å¯åŠ¨é»˜è®¤å°±æ˜¯è°ƒåº¦é”å®šçŠ¶æ€;
  */
 void XCSch_Init(XC_OSHandle_t phXCOS)
 {
-    /** ³õÊ¼µÚÒ»²½ÎªËø,·ÀÖ¹³öÏÖÒÔÎªÖĞ¶Ïµ÷¶ÈµÄÇé¿ö; */
-    phXCOS->Lock = 1; // Ëø(1Ëø,0½âËø),ÓÃÓÚÖĞ¶Ï´¦Àí
+    /** åˆå§‹ç¬¬ä¸€æ­¥ä¸ºé”,é˜²æ­¢å‡ºç°ä»¥ä¸ºä¸­æ–­è°ƒåº¦çš„æƒ…å†µ; */
+    phXCOS->Lock = 1; // é”(1é”,0è§£é”),ç”¨äºä¸­æ–­å¤„ç†
 
-    phXCOS->pPrevReadyNode = &phXCOS->ReadyList; // ÉÏ¸ö¾ÍĞ÷½ÚµãÖ¸Ïò¾ÍĞ÷±í¸ù
-    phXCOS->PrevTick       = 0;                  // ±£´æÉÏ¸öTickÖµ
-    phXCOS->TaskNum        = 0;                  // ÈÎÎñÊıÁ¿
-    phXCOS->EventProduced  = 0;                  // ÈÎÎñµ÷¶È´¥·¢(ÓÃÓÚÍ¨Öª,¹ÒÆğ,»Ö¸´Òì²½²Ù×÷´¥·¢)
-    phXCOS->EventConsumed  = 0;                  // ÈÎÎñµ÷¶È´¦Àí(ÓÃÓÚÍ¨Öª,¹ÒÆğ,»Ö¸´Òì²½²Ù×÷´¥·¢ºó´¦Àí)
-    phXCOS->fIdle          = NULL;               // ¿ò¼Ü¿ÕÏĞ´¦Àí
+    phXCOS->pPrevReadyNode = &phXCOS->ReadyList; // ä¸Šä¸ªå°±ç»ªèŠ‚ç‚¹æŒ‡å‘å°±ç»ªè¡¨æ ¹
+    phXCOS->PrevTick       = 0;                  // ä¿å­˜ä¸Šä¸ªTickå€¼
+    phXCOS->TaskNum        = 0;                  // ä»»åŠ¡æ•°é‡
+    phXCOS->EventProduced  = 0;                  // ä»»åŠ¡è°ƒåº¦è§¦å‘(ç”¨äºé€šçŸ¥,æŒ‚èµ·,æ¢å¤å¼‚æ­¥æ“ä½œè§¦å‘)
+    phXCOS->EventConsumed  = 0;                  // ä»»åŠ¡è°ƒåº¦å¤„ç†(ç”¨äºé€šçŸ¥,æŒ‚èµ·,æ¢å¤å¼‚æ­¥æ“ä½œè§¦å‘åå¤„ç†)
+    phXCOS->fIdle          = NULL;               // æ¡†æ¶ç©ºé—²å¤„ç†
 
     XCList_Init(&phXCOS->ReadyList);
     XCList_Init(&phXCOS->TimeList);
@@ -194,11 +194,11 @@ void XCSch_Init(XC_OSHandle_t phXCOS)
 }
 
 /**
- * @brief       [ÓÃ»§]µ÷¶ÈÆ÷Æô¶¯
- * @param[in]   phXCOS  ¿ò¼Ü¾ä±ú
+ * @brief       [ç”¨æˆ·]è°ƒåº¦å™¨å¯åŠ¨
+ * @param[in]   phXCOS  æ¡†æ¶å¥æŸ„
  * @details
- *  ´Ëº¯ÊıÎŞ·µ»Ø,×èÈûÔËĞĞ;
- *  ×¢Òâ:×èÈûÏÂÒªÊÇÓĞ¿´ÃÅ¹·,¼ÇµÃÔÚÈÎÎñÖĞÎ¹¹·;
+ *  æ­¤å‡½æ•°æ— è¿”å›,é˜»å¡è¿è¡Œ;
+ *  æ³¨æ„:é˜»å¡ä¸‹è¦æ˜¯æœ‰çœ‹é—¨ç‹—,è®°å¾—åœ¨ä»»åŠ¡ä¸­å–‚ç‹—;
  */
 void XCSch_Start(XC_OSHandle_t phXCOS)
 {
@@ -207,73 +207,73 @@ void XCSch_Start(XC_OSHandle_t phXCOS)
     XC_TaskHandle_t phTCB;
     XC_Tick_t       Tick;
 
-    pIterator = XCList_GetListStartNode(&phXCOS->ReadyList); // µü´úÆ÷³õÊ¼Ö¸Ïò¾ÍĞ÷±íÊ×½Úµã;
+    pIterator = XCList_GetListStartNode(&phXCOS->ReadyList); // è¿­ä»£å™¨åˆå§‹æŒ‡å‘å°±ç»ªè¡¨é¦–èŠ‚ç‚¹;
     while(1) {
-        if(XCList_ListValid(&phXCOS->ReadyList)) {                   // ¾ÍĞ÷±íÓĞ½Úµã,´¦Àí
-            if(XCList_ReachEndNode(&phXCOS->ReadyList, pIterator)) { // µ½´ï½áÎ²(ÊÇ¸ù½Úµã)
-                pIterator = pIterator->pNext;                        // ÔÙ´ÎÏòÏÂ¸üĞÂ¾ÍĞ÷½Úµã
+        if(XCList_ListValid(&phXCOS->ReadyList)) {                   // å°±ç»ªè¡¨æœ‰èŠ‚ç‚¹,å¤„ç†
+            if(XCList_ReachEndNode(&phXCOS->ReadyList, pIterator)) { // åˆ°è¾¾ç»“å°¾(æ˜¯æ ¹èŠ‚ç‚¹)
+                pIterator = pIterator->pNext;                        // å†æ¬¡å‘ä¸‹æ›´æ–°å°±ç»ªèŠ‚ç‚¹
             }
-            phXCOS->pPrevReadyNode = pIterator->pPrev;             // µÃµ½ÉÏ¸ö¾ÍĞ÷½Úµã
-            phTCB                  = (XC_TaskHandle_t)(pIterator); // µÃµ½ÈÎÎñTCB
-            pIterator              = pIterator->pNext;             // ÏòÏÂ¸üĞÂ¾ÍĞ÷½Úµã
-            phTCB->TaskState       = XC_TASK_RUN;                  // ÈÎÎñ×´Ì¬:ÔËĞĞ
-            phTCB->fTask(phTCB);                                   // ÔËĞĞÈÎÎñ
+            phXCOS->pPrevReadyNode = pIterator->pPrev;             // å¾—åˆ°ä¸Šä¸ªå°±ç»ªèŠ‚ç‚¹
+            phTCB                  = (XC_TaskHandle_t)(pIterator); // å¾—åˆ°ä»»åŠ¡TCB
+            pIterator              = pIterator->pNext;             // å‘ä¸‹æ›´æ–°å°±ç»ªèŠ‚ç‚¹
+            phTCB->TaskState       = XC_TASK_RUN;                  // ä»»åŠ¡çŠ¶æ€:è¿è¡Œ
+            phTCB->fTask(phTCB);                                   // è¿è¡Œä»»åŠ¡
         }
 
-        XCSch_TimeSched(phXCOS); // Ê±¼äµ÷¶È´¦Àí
+        XCSch_TimeSched(phXCOS); // æ—¶é—´è°ƒåº¦å¤„ç†
 
-        // ÈÎÎñÒì²½µ÷¶È´¦Àí
+        // ä»»åŠ¡å¼‚æ­¥è°ƒåº¦å¤„ç†
         Trigger = phXCOS->EventProduced;
         if(Trigger != phXCOS->EventConsumed) {
             phXCOS->EventConsumed = Trigger;
             XCSch_EventSched(phXCOS);
         }
 
-        // ÅĞ¶Ï¾ÍĞ÷±íÊÇ·ñÓĞÈÎÎñ(¿ÕÏĞ´¦Àí)
+        // åˆ¤æ–­å°±ç»ªè¡¨æ˜¯å¦æœ‰ä»»åŠ¡(ç©ºé—²å¤„ç†)
         if((XCList_ListValid(&phXCOS->ReadyList) == 0) && (phXCOS->fIdle != NULL)) {
-            /** ¾ÍĞ÷±íÃ»ÓĞ½Úµã && ÓĞ¿ÕÏĞ´¦Àíº¯Êı*/
+            /** å°±ç»ªè¡¨æ²¡æœ‰èŠ‚ç‚¹ && æœ‰ç©ºé—²å¤„ç†å‡½æ•°*/
             /**
-             *  Ö÷ÒªÅĞ¶ÏÊ±¼ä±íºÍÒç³ö±íÊÇ·ñÓĞĞ§(1ÓĞĞ§,0ÎŞĞ§):
-             *  - Ê±¼ä±í1,Òç³ö±í0: È¡Êı¾İ"XCSch_GetNextTaskWakeupTick()"(Ê±¼ä±íÊ×½Úµã);
-             *  - Ê±¼ä±í1,Òç³ö±í1: È¡Êı¾İ"XCSch_GetNextTaskWakeupTick()"(Ê±¼ä±íÊ×½Úµã);
-             *  - Ê±¼ä±í0,Òç³ö±í1: È¡Òç³ö±íÊ×½Úµã»½ĞÑÊ±¼ä;
-             *  - Ê±¼ä±í0,Òç³ö±í0: ÏµÍ³ĞİÃß;
+             *  ä¸»è¦åˆ¤æ–­æ—¶é—´è¡¨å’Œæº¢å‡ºè¡¨æ˜¯å¦æœ‰æ•ˆ(1æœ‰æ•ˆ,0æ— æ•ˆ):
+             *  - æ—¶é—´è¡¨1,æº¢å‡ºè¡¨0: å–æ•°æ®"XCSch_GetNextTaskWakeupTick()"(æ—¶é—´è¡¨é¦–èŠ‚ç‚¹);
+             *  - æ—¶é—´è¡¨1,æº¢å‡ºè¡¨1: å–æ•°æ®"XCSch_GetNextTaskWakeupTick()"(æ—¶é—´è¡¨é¦–èŠ‚ç‚¹);
+             *  - æ—¶é—´è¡¨0,æº¢å‡ºè¡¨1: å–æº¢å‡ºè¡¨é¦–èŠ‚ç‚¹å”¤é†’æ—¶é—´;
+             *  - æ—¶é—´è¡¨0,æº¢å‡ºè¡¨0: ç³»ç»Ÿä¼‘çœ ;
              */
-            Tick = XCTime_GetTick();                  // µÃµ½µ±Ç°Tick
-            if(XCList_ListValid(&phXCOS->TimeList)) { // Ê±¼ä±íÓĞ½Úµã
+            Tick = XCTime_GetTick();                  // å¾—åˆ°å½“å‰Tick
+            if(XCList_ListValid(&phXCOS->TimeList)) { // æ—¶é—´è¡¨æœ‰èŠ‚ç‚¹
                 Tick = XCSch_GetNextTaskWakeupTick() - Tick;
             }
-            else if(XCList_ListValid(&phXCOS->TimeOverflowList)) { // Òç³ö±íÓĞ½Úµã
+            else if(XCList_ListValid(&phXCOS->TimeOverflowList)) { // æº¢å‡ºè¡¨æœ‰èŠ‚ç‚¹
                 Tick = ((XC_TaskHandle_t)(XCList_GetListStartNode(&phXCOS->TimeOverflowList)))->TaskWakeupTick - Tick;
             }
-            else {         // Ê±¼ä±í,Òç³ö±í¶¼Ã»ÓĞ½Úµã;
-                Tick = ~0; // °´×î´óÊ±¼äĞİÃß
+            else {         // æ—¶é—´è¡¨,æº¢å‡ºè¡¨éƒ½æ²¡æœ‰èŠ‚ç‚¹;
+                Tick = ~0; // æŒ‰æœ€å¤§æ—¶é—´ä¼‘çœ 
             }
-            phXCOS->fIdle(phXCOS, Tick); // ¿ò¼Ü¿ÕÏĞ´¦Àí
+            phXCOS->fIdle(phXCOS, Tick); // æ¡†æ¶ç©ºé—²å¤„ç†
         }
     }
 }
 
 /**
- * @brief       [ÓÃ»§]»ñÈ¡ÈÎÎñÊı
- * @param[in]   phXCOS  ¿ò¼Ü¾ä±ú
- * @return      uint8_t ·µ»ØÈÎÎñÊıÁ¿
- * @details     Ö±½Ó»ñÈ¡¿ò¼Ü¾ä±úÖĞµÄÈÎÎñÊı×Ö¶Î;
+ * @brief       [ç”¨æˆ·]è·å–ä»»åŠ¡æ•°
+ * @param[in]   phXCOS  æ¡†æ¶å¥æŸ„
+ * @return      uint8_t è¿”å›ä»»åŠ¡æ•°é‡
+ * @details     ç›´æ¥è·å–æ¡†æ¶å¥æŸ„ä¸­çš„ä»»åŠ¡æ•°å­—æ®µ;
  */
 uint8_t XCSch_GetTaskNum(XC_OSHandle_t phXCOS)
 {
     return (phXCOS->TaskNum);
 }
 
-/************************************************ ÎÒÊÇ·Ö¸îÏß ************************************************/
+/************************************************ æˆ‘æ˜¯åˆ†å‰²çº¿ ************************************************/
 
 /**
- * @brief       [ÓÃ»§]ÉèÖÃ¿ÕÏĞ´¦Àí»Øµ÷
- * @param[in]   phXCOS  ¿ò¼Ü¾ä±ú
- * @param[in]   fIdle  ¿ò¼Ü¿ÕÏĞ´¦Àí»Øµ÷
+ * @brief       [ç”¨æˆ·]è®¾ç½®ç©ºé—²å¤„ç†å›è°ƒ
+ * @param[in]   phXCOS  æ¡†æ¶å¥æŸ„
+ * @param[in]   fIdle  æ¡†æ¶ç©ºé—²å¤„ç†å›è°ƒ
  * @details
- *  ÓÃÓÚÉèÖÃ¿ò¼Ü¿ÕÏĞ´¦Àí»Øµ÷;
- *  ÈôÊÇĞèÒªÇå³ı»Øµ÷Ôò"fIdle"ÖµÎªNULL¼´¿É;
+ *  ç”¨äºè®¾ç½®æ¡†æ¶ç©ºé—²å¤„ç†å›è°ƒ;
+ *  è‹¥æ˜¯éœ€è¦æ¸…é™¤å›è°ƒåˆ™"fIdle"å€¼ä¸ºNULLå³å¯;
  */
 void XCSch_SetIdleCallback(XC_OSHandle_t phXCOS, void (*fIdle)(XC_OSHandle_t, XC_Tick_t))
 {
@@ -282,6 +282,6 @@ void XCSch_SetIdleCallback(XC_OSHandle_t phXCOS, void (*fIdle)(XC_OSHandle_t, XC
 
 /*
  ************************************************************************************************************|
- ************************************************ ÎÒÊÇ·Ö¸îÏß ************************************************|
+ ************************************************ æˆ‘æ˜¯åˆ†å‰²çº¿ ************************************************|
  ************************************************************************************************************|
  */

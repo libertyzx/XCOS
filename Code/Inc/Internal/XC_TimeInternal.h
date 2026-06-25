@@ -1,6 +1,6 @@
 /**
  * @file        XC_TimeInternal.h
- * @brief       ÄÚ²¿Ê±¼ä´¦Àí
+ * @brief       å†…éƒ¨æ—¶é—´å¤„ç†
  * @author      libertyzx (libertyzx@163.com)
  * @version     2.0.0
  * @date        2025/11/26
@@ -8,73 +8,73 @@
  * @copyright   Copyright (c) 2024 libertyzx. All rights reserved.
  * @license     This project is released under the MIT License.
  * **********************************************
- * @details     ´æ·Å¿ò¼ÜÄÚ²¿Ê±¼ä´¦ÀíµÄÏà¹Ø´úÂë
+ * @details     å­˜æ”¾æ¡†æ¶å†…éƒ¨æ—¶é—´å¤„ç†çš„ç›¸å…³ä»£ç 
  * **********************************************
- *  ĞŞ¸ÄÈÕÖ¾
- *  - ¼û"CHANGELOG.md"µÄ¸üĞÂËµÃ÷;
+ *  ä¿®æ”¹æ—¥å¿—
+ *  - è§"CHANGELOG.md"çš„æ›´æ–°è¯´æ˜;
  */
-//=== ·ÀÖØ¸´¶¨Òå
+//=== é˜²é‡å¤å®šä¹‰
 #ifndef _XC_TimeInternal_h_
 #define _XC_TimeInternal_h_
-//=== Í·ÎÄ¼ş
+//=== å¤´æ–‡ä»¶
 #include "XC_Config.h"
 
 /*
  ************************************************************************************************************|
- ************************************************ ÎÒÊÇ·Ö¸îÏß ************************************************|
+ ************************************************ æˆ‘æ˜¯åˆ†å‰²çº¿ ************************************************|
  ************************************************************************************************************|
  */
 /**
- * µÎ´ğ¼ÆÊıÆµÂÊ×ª»»
- * "XC_CFG_TICKS_PER_SEC"ÔÚ"XC_Config.h"ÎÄ¼ş¶¨Òå;
+ * æ»´ç­”è®¡æ•°é¢‘ç‡è½¬æ¢
+ * "XC_CFG_TICKS_PER_SEC"åœ¨"XC_Config.h"æ–‡ä»¶å®šä¹‰;
  */
 
 /**
- * (XC_CFG_TICKS_PER_SEC <= 1000),±íÊ¾Ê±»ùµ¥Î»ÊÇ1msµ½1000ms
+ * (XC_CFG_TICKS_PER_SEC <= 1000),è¡¨ç¤ºæ—¶åŸºå•ä½æ˜¯1msåˆ°1000ms
  */
 #if (XC_CFG_TICKS_PER_SEC <= 1000)
 
-#define _XC_TICK_PERIOD_MS    (1000 / XC_CFG_TICKS_PER_SEC) // ÏµÍ³µÎ´ğ¼ÆÊıÊ±»ù(µ¥Î»:ms)
-#define _XC_TICK_PERIOD_US    (_XC_TICK_PERIOD_MS * 1000)   // ÏµÍ³µÎ´ğ¼ÆÊıÊ±»ù(µ¥Î»:us)
+#define _XC_TICK_PERIOD_MS    (1000 / XC_CFG_TICKS_PER_SEC) // ç³»ç»Ÿæ»´ç­”è®¡æ•°æ—¶åŸº(å•ä½:ms)
+#define _XC_TICK_PERIOD_US    (_XC_TICK_PERIOD_MS * 1000)   // ç³»ç»Ÿæ»´ç­”è®¡æ•°æ—¶åŸº(å•ä½:us)
 
 /**
- *  ½«Ê±¼ä×ª»»³ÉTick(1¸öÊ±¼äÊÇ¶àÉÙTick)
- *  ×¢Òâ:Ê¹ÓÃ"XCTime_UsToTicks"Ê±,Ê±¼äÎó²î»á·Ç³£´ó,tickÊÇms¼¶µÄ,usÊ±¼ä´¦Àí°´1¸ötick´¦Àí;
+ *  å°†æ—¶é—´è½¬æ¢æˆTick(1ä¸ªæ—¶é—´æ˜¯å¤šå°‘Tick)
+ *  æ³¨æ„:ä½¿ç”¨"XCTime_UsToTicks"æ—¶,æ—¶é—´è¯¯å·®ä¼šéå¸¸å¤§,tickæ˜¯msçº§çš„,usæ—¶é—´å¤„ç†æŒ‰1ä¸ªtickå¤„ç†;
  */
-#define XCTime_UsToTicks(_t)  (((_t) + _XC_TICK_PERIOD_MS * 1000 - 1) / (_XC_TICK_PERIOD_MS * 1000)) /*(t)us ×ª»»³ÉTick*/
-#define XCTime_MsToTicks(_t)  (((_t) + _XC_TICK_PERIOD_MS - 1) / _XC_TICK_PERIOD_MS)                 /*(t)ms ×ª»»³ÉTick*/
-#define XCTime_SecToTicks(_t) ((_t) * XC_CFG_TICKS_PER_SEC)                                          /*(t)s  ×ª»»³ÉTick*/
+#define XCTime_UsToTicks(_t)  (((_t) + _XC_TICK_PERIOD_MS * 1000 - 1) / (_XC_TICK_PERIOD_MS * 1000)) /*(t)us è½¬æ¢æˆTick*/
+#define XCTime_MsToTicks(_t)  (((_t) + _XC_TICK_PERIOD_MS - 1) / _XC_TICK_PERIOD_MS)                 /*(t)ms è½¬æ¢æˆTick*/
+#define XCTime_SecToTicks(_t) ((_t) * XC_CFG_TICKS_PER_SEC)                                          /*(t)s  è½¬æ¢æˆTick*/
 
-/**½«Tick×ª»»³ÉÊ±¼ä(1¸ötickµÈÓÚ¶àÉÙ¸öÊ±¼ä)*/
-#define XCTime_TicksToUs(_c)  ((_c) * _XC_TICK_PERIOD_MS * 1000) /*(c)×ª»»³Éus*/
-#define XCTime_TicksToMs(_c)  ((_c) * _XC_TICK_PERIOD_MS)        /*(c)×ª»»³Éms*/
-#define XCTime_TicksToSec(_c) ((_c) / XC_CFG_TICKS_PER_SEC)      /*(c)×ª»»³És*/
+/**å°†Tickè½¬æ¢æˆæ—¶é—´(1ä¸ªtickç­‰äºå¤šå°‘ä¸ªæ—¶é—´)*/
+#define XCTime_TicksToUs(_c)  ((_c) * _XC_TICK_PERIOD_MS * 1000) /*(c)è½¬æ¢æˆus*/
+#define XCTime_TicksToMs(_c)  ((_c) * _XC_TICK_PERIOD_MS)        /*(c)è½¬æ¢æˆms*/
+#define XCTime_TicksToSec(_c) ((_c) / XC_CFG_TICKS_PER_SEC)      /*(c)è½¬æ¢æˆs*/
 
 /**
- *  (XC_CFG_TICKS_PER_SEC <= 1000000),±íÊ¾Ê±»ùµ¥Î»ÊÇ1usµ½999us
+ *  (XC_CFG_TICKS_PER_SEC <= 1000000),è¡¨ç¤ºæ—¶åŸºå•ä½æ˜¯1usåˆ°999us
  */
 #elif (XC_CFG_TICKS_PER_SEC <= 1000000)
 
-#define _XC_TICK_PERIOD_US    (1000000 / XC_CFG_TICKS_PER_SEC)                       // ÏµÍ³µÎ´ğ¼ÆÊıÊ±»ù(µ¥Î»:us)
+#define _XC_TICK_PERIOD_US    (1000000 / XC_CFG_TICKS_PER_SEC)                       // ç³»ç»Ÿæ»´ç­”è®¡æ•°æ—¶åŸº(å•ä½:us)
 
-/*½«Ê±¼ä×ª»»³ÉTick(1¸öÊ±¼äÊÇ¶àÉÙTick)*/
-#define XCTime_UsToTicks(_t)  (((_t) + _XC_TICK_PERIOD_US - 1) / _XC_TICK_PERIOD_US) /*(t)us ×ª»»³ÉTick*/
-#define XCTime_MsToTicks(_t)  ((_t) * XC_CFG_TICKS_PER_SEC)                          /*(t)ms ×ª»»³ÉTick*/
-#define XCTime_SecToTicks(_t) (XCTime_MsToTicks(_t) * 1000)                          /*(t)s  ×ª»»³ÉTick*/
+/*å°†æ—¶é—´è½¬æ¢æˆTick(1ä¸ªæ—¶é—´æ˜¯å¤šå°‘Tick)*/
+#define XCTime_UsToTicks(_t)  (((_t) + _XC_TICK_PERIOD_US - 1) / _XC_TICK_PERIOD_US) /*(t)us è½¬æ¢æˆTick*/
+#define XCTime_MsToTicks(_t)  ((_t) * XC_CFG_TICKS_PER_SEC)                          /*(t)ms è½¬æ¢æˆTick*/
+#define XCTime_SecToTicks(_t) (XCTime_MsToTicks(_t) * 1000)                          /*(t)s  è½¬æ¢æˆTick*/
 
-/**½«Tick×ª»»³ÉÊ±¼ä(1¸ötickµÈÓÚ¶àÉÙ¸öÊ±¼ä)*/
-#define XCTime_TicksToUs(_c)  ((_c) * _XC_TICK_PERIOD_US)                            /*(c)×ª»»³Éus*/
-#define XCTime_TicksToMs(_c)  ((_c) / XC_CFG_TICKS_PER_SEC)                          /*(c)×ª»»³Éms*/
-#define XCTime_TicksToSec(_c) (XCTime_TicksToMs(_c) / 1000)                          /*(c)×ª»»³És*/
+/**å°†Tickè½¬æ¢æˆæ—¶é—´(1ä¸ªtickç­‰äºå¤šå°‘ä¸ªæ—¶é—´)*/
+#define XCTime_TicksToUs(_c)  ((_c) * _XC_TICK_PERIOD_US)                            /*(c)è½¬æ¢æˆus*/
+#define XCTime_TicksToMs(_c)  ((_c) / XC_CFG_TICKS_PER_SEC)                          /*(c)è½¬æ¢æˆms*/
+#define XCTime_TicksToSec(_c) (XCTime_TicksToMs(_c) / 1000)                          /*(c)è½¬æ¢æˆs*/
 
 #else
-#error "ÏµÍ³Ã¿ÃëµÎ´ğÊı[XC_CFG_TICKS_PER_SECd]ÉèÖÃ´íÎó!"
+#error "ç³»ç»Ÿæ¯ç§’æ»´ç­”æ•°[XC_CFG_TICKS_PER_SECd]è®¾ç½®é”™è¯¯!"
 #endif
 
 /*
  ************************************************************************************************************|
- ************************************************ ÎÒÊÇ·Ö¸îÏß ************************************************|
+ ************************************************ æˆ‘æ˜¯åˆ†å‰²çº¿ ************************************************|
  ************************************************************************************************************|
  */
-//=== ÎÄ¼ş½áÊø
+//=== æ–‡ä»¶ç»“æŸ
 #endif
