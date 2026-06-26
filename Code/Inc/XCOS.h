@@ -14,8 +14,8 @@
  *  - 见"CHANGELOG.md"的更新说明;
  */
 //=== 防重复定义
-#ifndef _XCOS_h_
-#define _XCOS_h_
+#ifndef XCOS_h
+#define XCOS_h
 
 /************************************************ 我是分割线 ************************************************/
 
@@ -27,26 +27,26 @@
  * - 次版本号 (MINOR): 向下兼容的功能性新增
  * - 修订号   (PATCH): 向下兼容的问题修正
  */
-#define XCOS_VER_MAJOR  (2) // 主版本号
-#define XCOS_VER_MINOR  (0) // 次版本号
-#define XCOS_VER_PATCH  (0) // 修订号
+#define XCOS_VER_MAJOR  (2U) // 主版本号
+#define XCOS_VER_MINOR  (1U) // 次版本号
+#define XCOS_VER_PATCH  (0U) // 修订号
 
 /**
  * 辅助版本信息
  * "XCOS_VER_STRING":字符串版本;
  * "XCOS_VER_NUMBER":版本数值,24位数值,格式:版本号-次版本号-修订号;
  */
-#define XCOS_VER_STRING "2.0.0"                                                           // 字符串版本
-#define XCOS_VER_NUMBER ((XCOS_VER_MAJOR << 16) | (XCOS_VER_MINOR << 8) | XCOS_VER_PATCH) // 版本数值
+#define XCOS_VER_STRING "2.1.0"                                                             // 字符串版本
+#define XCOS_VER_NUMBER ((XCOS_VER_MAJOR << 16U) | (XCOS_VER_MINOR << 8U) | XCOS_VER_PATCH) // 版本数值
 
 /**
- * @brief XCOS框架存在性标识
+ * @brief XCOS框架API兼容性性标识
  * @details
  * - 此宏必须存在，用于标识XCOS框架的可用性
  * - 指向主版本号，便于版本兼容性检查
  * - 用户代码可通过检查此宏确认框架是否被正确包含
  */
-#define _XCOS_          (XCOS_VER_MAJOR)
+#define XCOS_API_LEVEL  (XCOS_VER_MAJOR)
 
 /************************************************ 我是分割线 ************************************************/
 //=== 头文件

@@ -16,8 +16,8 @@
  *  - 见"CHANGELOG.md"的更新说明;
  */
 //=== 防重复定义
-#ifndef _XC_Task_H_
-#define _XC_Task_H_
+#ifndef XC_Task_h
+#define XC_Task_h
 //=== 头文件
 #include "Internal/XC_TaskInternal.h"
 
@@ -134,33 +134,33 @@ XC_Return_t XC_Task_SendNotify(XC_TaskHandle_t phTCB, void* pNotifyData);
  *  用于清除通知;
  *  可在"等待通知"前调用,防止通知提前到达;
  */
-#define XC_Task_ClrNotify(_phTCB_)                             \
-    {                                                          \
-        (_phTCB_)->NotifyConsumed = (_phTCB_)->NotifyProduced; \
-    }
+#define XC_Task_ClrNotify(phTCB)                           \
+    do {                                                   \
+        (phTCB)->NotifyConsumed = (phTCB)->NotifyProduced; \
+    } while(0)
 
 /**
  * @brief       [用户]更新通知数据(void*)
- * @param[in]   _phTCB_         [XC_TaskHandle_t]任务控制块
+ * @param[in]   phTCB         [XC_TaskHandle_t]任务控制块
  * @param[in]   _pNotifyData    [void*]通知数据
  * @details
  *  在不使用任务通知的时候,可以用通知数据来传递数据;
  *  此函数用于更新(写)通知数据;
  */
-#define XC_Task_UpdateNotifyData(_phTCB_, _pNotifyData) \
-    {                                                   \
-        (_phTCB_)->pNotifyData = (_pNotifyData);        \
-    }
+#define XC_Task_UpdateNotifyData(phTCB, _pNotifyData) \
+    do {                                              \
+        (phTCB)->pNotifyData = (_pNotifyData);        \
+    } while(0)
 
 /**
  * @brief       [用户]读取通知数据(void*)
- * @param[in]   _phTCB_  [XC_TaskHandle_t]任务控制块
+ * @param[in]   phTCB  [XC_TaskHandle_t]任务控制块
  * @return      void*   返回通知数据
  * @details
  *  在不使用任务通知的时候,可以用通知数据来传递数据;
  *  此函数用于读取通知数据;
  */
-#define XC_Task_ReadNotifyData(_phTCB_) ((_phTCB_)->pNotifyData)
+#define XC_Task_ReadNotifyData(phTCB) ((phTCB)->pNotifyData)
 
 /************************************************ 我是分割线 ************************************************/
 /** 函数宏-[用户]参数 | 状态 */
@@ -173,11 +173,11 @@ XC_Return_t XC_Task_SendNotify(XC_TaskHandle_t phTCB, void* pNotifyData);
  *  > 注意: 因为协程内上下文切换局部变量是不保存的,
  *  > 所以若是要使用传递的参数需要再"XC_Enter"前将参数赋值给变量;
  */
-#define XC_Task_GetParam(_phTCB_)       ((_phTCB_)->pParam)
+#define XC_Task_GetParam(phTCB)       ((phTCB)->pParam)
 
 /**
  * @brief       [用户]获取任务运行状态
- * @param[in]   _phTCB_  [XC_TaskHandle_t]任务控制块
+ * @param[in]   phTCB  [XC_TaskHandle_t]任务控制块
  * @return      XC_TaskState_t
  * @retval      XC_TASK_VOID :          空(任务创建前或被移除后的状态)
  * @retval      XC_TASK_RUN :           运行(正在运行的任务)
@@ -186,23 +186,23 @@ XC_Return_t XC_Task_SendNotify(XC_TaskHandle_t phTCB, void* pNotifyData);
  * @retval      XC_TASK_SUSPEND :       挂起
  * @details     获取任务运行的状态;
  */
-#define XC_Task_GetState(_phTCB_)       ((XC_TaskState_t)((_phTCB_)->TaskState))
+#define XC_Task_GetState(phTCB)       ((XC_TaskState_t)((phTCB)->TaskState))
 
 /************************************************ 我是分割线 ************************************************/
 //=== 向后兼容:保留旧版函数/宏名(已弃用,建议迁移到 XC_Task_ 前缀)
-#define XCTask_Reg                      XC_Task_Reg
-#define XCTask_Remove                   XC_Task_Remove
-#define XCTask_SetEntry                 XC_Task_SetEntry
-#define XCTask_Add                      XC_Task_Add
-#define XCTask_Reset                    XC_Task_Reset
-#define XCTask_Suspend                  XC_Task_Suspend
-#define XCTask_Resume                   XC_Task_Resume
-#define XCTask_SendNotify               XC_Task_SendNotify
-#define XCTask_ClrNotify                XC_Task_ClrNotify
-#define XCTask_UpdateNotifyData         XC_Task_UpdateNotifyData
-#define XCTask_ReadNotifyData           XC_Task_ReadNotifyData
-#define XCTask_GetParam                 XC_Task_GetParam
-#define XCTask_GetState                 XC_Task_GetState
+#define XCTask_Reg                    XC_Task_Reg
+#define XCTask_Remove                 XC_Task_Remove
+#define XCTask_SetEntry               XC_Task_SetEntry
+#define XCTask_Add                    XC_Task_Add
+#define XCTask_Reset                  XC_Task_Reset
+#define XCTask_Suspend                XC_Task_Suspend
+#define XCTask_Resume                 XC_Task_Resume
+#define XCTask_SendNotify             XC_Task_SendNotify
+#define XCTask_ClrNotify              XC_Task_ClrNotify
+#define XCTask_UpdateNotifyData       XC_Task_UpdateNotifyData
+#define XCTask_ReadNotifyData         XC_Task_ReadNotifyData
+#define XCTask_GetParam               XC_Task_GetParam
+#define XCTask_GetState               XC_Task_GetState
 
 //=== 文件结束
 #endif

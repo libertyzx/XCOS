@@ -14,8 +14,8 @@
  *  - 见"CHANGELOG.md"的更新说明;
  */
 //=== 防重复定义
-#ifndef _XC_Config_H_
-#define _XC_Config_H_
+#ifndef XC_Config_h
+#define XC_Config_h
 //=== 头文件
 #include <stddef.h>
 #include <stdint.h>
@@ -96,7 +96,7 @@
  */
 #ifndef XC_SYS_TICK_COUNT
 
-#define _XC_SysTickIntIncMode_            // [默认]以中断递增的模式形式
+#define XC_SYS_TICK_INT_INC_MODE          // [默认]以中断递增的模式形式
 extern volatile XC_Tick_t g_SysTickCount; // 外部声明全局滴答时间计数
 #define XC_SYS_TICK_COUNT g_SysTickCount  // 调用滴答时间计数
 

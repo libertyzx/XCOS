@@ -24,7 +24,7 @@
 /** 全局变量 */
 
 // 是中断累加模式,则定义一个全局变量
-#ifdef _XC_SysTickIntIncMode_
+#ifdef XC_SYS_TICK_INT_INC_MODE
 volatile XC_Tick_t g_SysTickCount = 0U; // 用户系统Tick
 #endif
 

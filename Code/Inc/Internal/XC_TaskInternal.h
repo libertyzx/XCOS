@@ -14,8 +14,8 @@
  *  - 见"CHANGELOG.md"的更新说明;
  */
 //=== 防重复定义
-#ifndef _XC_TaskInternal_H_
-#define _XC_TaskInternal_H_
+#ifndef XC_TaskInternal_h
+#define XC_TaskInternal_h
 //=== 头文件
 #include "Internal/XC_List.h"
 #include "XC_Type.h"
@@ -76,14 +76,14 @@ void XC_Task_HandleRemove(XC_TaskHandle_t phTCB);
  * @param[in]   phTCB   [XC_TaskHandle_t]协程控制块
  * @details     将任务移动上个就绪节点后,确保最后调用;
  */
-#define XC_Task_MoveToReadyList(_phTCB)   XC_List_MoveNodeAfter((_phTCB)->phXCOS->pPrevReadyNode, &(_phTCB)->ListNode)
+#define XC_Task_MoveToReadyList(phTCB)   XC_List_MoveNodeAfter((phTCB)->phXCOS->pPrevReadyNode, &(phTCB)->ListNode)
 
 /**
  * @brief       [内部]将任务移动到阻塞表
  * @param[in]   phTCB   [XC_TaskHandle_t]协程控制块
  * @details     将任务移动到阻塞表头
  */
-#define XC_Task_MoveToBlockedList(_phTCB) XC_List_MoveNodeAfter(&(_phTCB)->phXCOS->BlockedList, &(_phTCB)->ListNode)
+#define XC_Task_MoveToBlockedList(phTCB) XC_List_MoveNodeAfter(&(phTCB)->phXCOS->BlockedList, &(phTCB)->ListNode)
 
 /**
  * @brief       [内部]移除任务节点
@@ -91,15 +91,15 @@ void XC_Task_HandleRemove(XC_TaskHandle_t phTCB);
  * @return      void
  * @details     从XCOS中删除TCB节点;
  */
-#define XC_Task_RemoveNode(_phTCB)        XC_List_Remove(&(_phTCB)->ListNode)
+#define XC_Task_RemoveNode(phTCB)        XC_List_Remove(&(phTCB)->ListNode)
 
 /************************************************ 我是分割线 ************************************************/
 //=== 向后兼容:保留旧版函数名(已弃用,建议迁移到 XC_Task_ 前缀)
-#define XCTask_HandleWaitNotify           XC_Task_HandleWaitNotify
-#define XCTask_HandleDelay                XC_Task_HandleDelay
-#define XCTask_HandleSuspend              XC_Task_HandleSuspend
-#define XCTask_HandleReset                XC_Task_HandleReset
-#define XCTask_HandleRemove               XC_Task_HandleRemove
+#define XCTask_HandleWaitNotify          XC_Task_HandleWaitNotify
+#define XCTask_HandleDelay               XC_Task_HandleDelay
+#define XCTask_HandleSuspend             XC_Task_HandleSuspend
+#define XCTask_HandleReset               XC_Task_HandleReset
+#define XCTask_HandleRemove              XC_Task_HandleRemove
 
 /*
  ************************************************************************************************************|

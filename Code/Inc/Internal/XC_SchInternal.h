@@ -14,8 +14,8 @@
  *  - 见"CHANGELOG.md"的更新说明;
  */
 //=== 防重复定义
-#ifndef _XC_SchInternal_h_
-#define _XC_SchInternal_h_
+#ifndef XC_SchInternal_h
+#define XC_SchInternal_h
 
 /*
  ************************************************************************************************************|
@@ -26,42 +26,42 @@
 
 /**
  * @brief       [内部]锁
- * @param[in]   _phXCOS [XC_OSHandle_t]框架句柄(会强制转换"XCOS句柄指针"类型)
+ * @param[in]   phXCOS [XC_OSHandle_t]框架句柄(会强制转换"XCOS句柄指针"类型)
  * @details
  *  主要用来锁定任务切换(包括链表操作,状态切换),防止中断调用时资源竞争;
  */
-#define XC_Sch_Lock(_phXCOS)                   \
-    {                                          \
-        ((XC_OSHandle_t)(_phXCOS))->Lock = 1U; \
-    }
+#define XC_Sch_Lock(phXCOS)                   \
+    do {                                      \
+        ((XC_OSHandle_t)(phXCOS))->Lock = 1U; \
+    } while(0)
 
 /**
  * @brief       [内部]解锁
- * @param[in]   _phXCOS [XC_OSHandle_t]框架句柄(会强制转换"XCOS句柄指针"类型)
+ * @param[in]   phXCOS [XC_OSHandle_t]框架句柄(会强制转换"XCOS句柄指针"类型)
  * @details
  *  主要用来锁定任务切换(包括链表操作,状态切换),防止中断调用时资源竞争;
  */
-#define XC_Sch_Unlock(_phXCOS)                 \
-    {                                          \
-        ((XC_OSHandle_t)(_phXCOS))->Lock = 0U; \
-    }
+#define XC_Sch_Unlock(phXCOS)                 \
+    do {                                      \
+        ((XC_OSHandle_t)(phXCOS))->Lock = 0U; \
+    } while(0)
 
 /**
  * @brief       [内部]获取锁的状态
- * @param[in]   _phXCOS [XC_OSHandle_t]框架句柄 (会强制转换"XCOS句柄指针"类型)
+ * @param[in]   phXCOS [XC_OSHandle_t]框架句柄 (会强制转换"XCOS句柄指针"类型)
  * @return      uint8_t
  * @retval      0 : 解锁
  * @retval      1 : 锁定
  * @details
  *  主要用来锁定任务切换(包括链表操作,状态切换),防止中断调用时资源竞争;
  */
-#define XC_Sch_GetLockState(_phXCOS) (((XC_OSHandle_t)(_phXCOS))->Lock)
+#define XC_Sch_GetLockState(phXCOS) (((XC_OSHandle_t)(phXCOS))->Lock)
 
 /************************************************ 我是分割线 ************************************************/
 //=== 向后兼容:保留旧版宏名(已弃用,建议迁移到 XC_Sch_ 前缀)
-#define XCSch_Lock                   XC_Sch_Lock
-#define XCSch_Unlock                 XC_Sch_Unlock
-#define XCSch_GetLockState           XC_Sch_GetLockState
+#define XCSch_Lock                  XC_Sch_Lock
+#define XCSch_Unlock                XC_Sch_Unlock
+#define XCSch_GetLockState          XC_Sch_GetLockState
 
 /*
  ************************************************************************************************************|

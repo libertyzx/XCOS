@@ -126,21 +126,18 @@ static void XC_Sch_TimeSched(XC_OSHandle_t phXCOS)
  */
 static void XC_Sch_EventSched(XC_OSHandle_t phXCOS)
 {
-    XCListNode_t*   pList;
-    XCListNode_t*   pIterator;
-    XC_TaskHandle_t phTCB;
 
 #define WAKEUP_NOTIFY(pCList)                                                                                                                                        \
     {                                                                                                                                                                \
-        pList     = pCList;                           /*缓存链表*/                                                                                                   \
-        pIterator = XC_List_GetListStartNode(pList);  /*得到链表初始节点*/                                                                                           \
-        if(!XC_List_ReachEndNode(pList, pIterator)) { /*判断是否有节点*/                                                                                             \
+        XCListNode_t* pList     = pCList;                          /*缓存链表*/                                                                                      \
+        XCListNode_t* pIterator = XC_List_GetListStartNode(pList); /*得到链表初始节点*/                                                                              \
+        if(!XC_List_ReachEndNode(pList, pIterator)) {              /*判断是否有节点*/                                                                                \
             do {                                                                                                                                                     \
                 if((((XC_TaskHandle_t)(pIterator))->NotifyState == XC_NOTIFY_WAIT) &&                                    /*是等待唤醒*/                              \
                    (((XC_TaskHandle_t)(pIterator))->NotifyProduced != ((XC_TaskHandle_t)(pIterator))->NotifyConsumed)) { /*需要消费*/                                \
                     /*是等待唤醒 && 需要消费*/                                                                                                                       \
                     ((XC_TaskHandle_t)(pIterator))->NotifyConsumed = ((XC_TaskHandle_t)(pIterator))->NotifyProduced; /*更新状态改变处理(已经唤醒,可以不用临时变量)*/ \
-                    phTCB                                          = (XC_TaskHandle_t)(pIterator);                   /*得到当前任务TCB*/                             \
+                    XC_TaskHandle_t phTCB                          = (XC_TaskHandle_t)(pIterator);                   /*得到当前任务TCB*/                             \
                     pIterator                                      = pIterator->pNext;                               /*指向下个节点(必须在操作前指向下个节点)*/      \
                     /** 通知唤醒 */                                                                                                                                  \
                     XC_Task_MoveToReadyList(phTCB);        /*任务移动到就绪表*/                                                                                      \

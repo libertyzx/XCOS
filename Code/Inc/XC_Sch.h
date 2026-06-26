@@ -14,8 +14,8 @@
  *  - 见"CHANGELOG.md"的更新说明;
  */
 //=== 防重复定义
-#ifndef _XC_Sch_H_
-#define _XC_Sch_H_
+#ifndef XC_Sch_h
+#define XC_Sch_h
 //=== 头文件
 #include "XC_Type.h"
 

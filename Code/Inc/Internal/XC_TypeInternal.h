@@ -14,8 +14,8 @@
  *  - 见"CHANGELOG.md"的更新说明;
  */
 //=== 防重复定义
-#ifndef _XC_TypeInternal_h_
-#define _XC_TypeInternal_h_
+#ifndef XC_TypeInternal_h
+#define XC_TypeInternal_h
 //=== 头文件
 #include "Internal/XC_List.h"
 #include "XC_Config.h"

@@ -14,8 +14,8 @@
  *  - 见"CHANGELOG.md"的更新说明;
  */
 //=== 防重复定义
-#ifndef _XC_Time_H_
-#define _XC_Time_H_
+#ifndef XC_Time_h
+#define XC_Time_h
 //=== 头文件
 #include "Internal/XC_TimeInternal.h"
 #include "XC_Type.h"
@@ -57,16 +57,16 @@
  *  在"XC_SYS_TICK_COUNT"配置为默认状态下有效;
  */
 
-#ifdef _XC_SysTickIntIncMode_
+#ifdef XC_SYS_TICK_INT_INC_MODE
 
 /**
  * @brief   [用户]递增系统Tick
  * @details 在中断中调用,XC_CFG_TICKS_PER_SECond"频率计数;
  */
 #define XC_Time_TickInc() \
-    {                     \
+    do {                  \
         g_SysTickCount++; \
-    }
+    } while(0)
 
 /**
  * @brief   [用户]设置系统Tick
@@ -75,9 +75,9 @@
  *  特殊情况下使用,如休眠唤醒后重新设置系统滴答时间计数;
  */
 #define XC_Time_TickSet(_Tick)    \
-    {                             \
+    do {                          \
         g_SysTickCount = (_Tick); \
-    }
+    } while(0)
 
 #endif
 

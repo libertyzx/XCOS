@@ -15,8 +15,8 @@
  *  - 见"CHANGELOG.md"的更新说明;
  */
 //=== 防重复定义
-#ifndef _XC_List_H_
-#define _XC_List_H_
+#ifndef XC_List_h
+#define XC_List_h
 
 /*
  ************************************************************************************************************|
@@ -49,18 +49,18 @@ typedef struct XCListNode_t {
  * @param[in]   pNode   [XCListNode_t*]需要初始化的节点
  * @details     初始化节点时使用,指向自己,优化为宏;
  */
-#define XC_List_InitNode(_pNode)    \
-    {                               \
-        (_pNode)->pNext = (_pNode); \
-        (_pNode)->pPrev = (_pNode); \
-    }
+#define XC_List_InitNode(pNode)   \
+    do {                          \
+        (pNode)->pNext = (pNode); \
+        (pNode)->pPrev = (pNode); \
+    } while(0)
 
 /**
  * @brief       [内部]初始化链表
  * @param[in]   pList   需要初始化的链表
  * @details     初始化链表时使用
  */
-#define XC_List_Init(_pList) XC_List_InitNode(_pList)
+#define XC_List_Init(pList) XC_List_InitNode(pList)
 
 /************************************************ 我是分割线 ************************************************/
 /**链表节点操作 */
@@ -94,32 +94,32 @@ void XC_List_Remove(XCListNode_t* pNode);
 
 /**
  * @brief       [内部]链表是否有效
- * @param[in]   _pList [XCListNode_t*]链表指针
+ * @param[in]   pList [XCListNode_t*]链表指针
  * @return      boot
  * @retval      0 : 没有节点
  * @retval      1 : 有节点
  * @details     判断一个链表的是否有效(是否有节点)
  */
-#define XC_List_ListValid(_pList)            ((_pList) != ((_pList)->pNext))
+#define XC_List_ListValid(pList)           ((pList) != ((pList)->pNext))
 
 /**
  * @brief       [内部]节点是否到达结尾节点
- * @param[in]   _pList  [XCListNode_t*]链表指针
- * @param[in]   _pNode  [XCListNode_t*]节点指针
+ * @param[in]   pList  [XCListNode_t*]链表指针
+ * @param[in]   pNode  [XCListNode_t*]节点指针
  * @return      boot
  * @retval      0 : 没有到达结尾节点
  * @retval      1 : 到达结尾节点(节点和链表根地址相同)
  * @details     用于遍历链表时,判断遍历的节点是否到达根节点(既是否结束遍历)
  */
-#define XC_List_ReachEndNode(_pList, _pNode) ((_pList) == (_pNode))
+#define XC_List_ReachEndNode(pList, pNode) ((pList) == (pNode))
 
 /**
- * @brief       [内部]获取链表的开始节点
- * @param[in]   _pList  [XCListNode_t*]链表地址
+ * @brief       [internal]获取链表的开始节点
+ * @param[in]   pList  [XCListNode_t*]链表地址
  * @return      XCListNode_t*   返回节点地址
  * @details     得到当前链表的开始地址
  */
-#define XC_List_GetListStartNode(_pList)     ((_pList)->pNext)
+#define XC_List_GetListStartNode(pList)    ((pList)->pNext)
 
 /************************************************ 我是分割线 ************************************************/
 /**链表操作 */
@@ -136,11 +136,11 @@ void XC_List_MoveListToNodeAfter(XCListNode_t* pDestNode, XCListNode_t* pSrcList
 
 /************************************************ 我是分割线 ************************************************/
 //=== 向后兼容:保留旧版宏名(已弃用,建议迁移到 XC_List_ 前缀)
-#define XCList_InitNode(_pNode)             XC_List_InitNode(_pNode)
-#define XCList_Init(_pList)                 XC_List_Init(_pList)
-#define XCList_ListValid(_pList)            XC_List_ListValid(_pList)
-#define XCList_ReachEndNode(_pList, _pNode) XC_List_ReachEndNode(_pList, _pNode)
-#define XCList_GetListStartNode(_pList)     XC_List_GetListStartNode(_pList)
+#define XCList_InitNode(pNode)            XC_List_InitNode(pNode)
+#define XCList_Init(pList)                XC_List_Init(pList)
+#define XCList_ListValid(pList)           XC_List_ListValid(pList)
+#define XCList_ReachEndNode(pList, pNode) XC_List_ReachEndNode(pList, pNode)
+#define XCList_GetListStartNode(pList)    XC_List_GetListStartNode(pList)
 
 /*
  ************************************************************************************************************|

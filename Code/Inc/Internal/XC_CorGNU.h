@@ -21,17 +21,17 @@
  *  - 2022/08/15
  *      - 版本:0.2
  *      - 修改断点在断点标号前加'_',为了防止数字开头的文件,导致标号不符合c语言规范;
- *      - "_COR_End"添加goto结束断点;
+ *      - "COR_End"添加goto结束断点;
  *  - 2023/12/21
  *      - 版本:0.3
- *      - 增加"_COR_Break"直接跳出协程;
+ *      - 增加"COR_Break"直接跳出协程;
  *  - 2024/03/23
  *      - 版本:0.4
  *      - 删除宏中的"do{}while(0)"操作;
  */
 //=== 防重复定义
-#ifndef _XC_CorGNU_h_
-#define _XC_CorGNU_h_
+#ifndef XC_CorGNU_h
+#define XC_CorGNU_h
 
 /*
  ************************************************************************************************************|
@@ -62,22 +62,22 @@ typedef void* COR_BP_t;
  * @details
  *  使用了"##"字符连接符,所以展开需要2次才能得到标签;
  */
-#define _COR_BP2(S1, S2) _##S1##S2
-#define _COR_BP(S1, S2)  _COR_BP2(S1, S2)
+#define COR_BP2(S1, S2) S1##S2
+#define COR_BP(S1, S2)  COR_BP2(S1, S2)
 
 /**
  * @brief       协程-断点初始化
  * @param[in]   BP  [COR_BP_t]协程断点
  * @details     初始化断点;
  */
-#define _COR_Init(BP)    ((BP) = NULL)
+#define COR_Init(BP)    ((BP) = NULL)
 
 /**
  * @brief       协程-代码开头
  * @param[in]   BP  [COR_BP_t]协程断点
  * @details     协程块的开始(状态机的开始);
  */
-#define _COR_Start(BP)   \
+#define COR_Start(BP)    \
     {                    \
         if(BP != NULL) { \
             goto* BP;    \
@@ -89,11 +89,11 @@ typedef void* COR_BP_t;
  * @param[in]   BP  [COR_BP_t]协程断点
  * @details     保存当前行的标签地址;
  */
-#define _COR_SetBP(BP)                        \
-    {                                         \
-        /*保存并设置断点(函数名+行号)*/       \
-        (BP) = &&_COR_BP(__func__, __LINE__); \
-        _COR_BP(__func__, __LINE__) :;        \
+#define COR_SetBP(BP)                        \
+    {                                        \
+        /*保存并设置断点(函数名+行号)*/      \
+        (BP) = &&COR_BP(__func__, __LINE__); \
+        COR_BP(__func__, __LINE__) :;        \
     }
 
 /**
@@ -101,28 +101,28 @@ typedef void* COR_BP_t;
  * @param[in]   BP  [COR_BP_t]协程断点
  * @details     直接跳出协程
  */
-#define _COR_Break(BP) \
-    goto _XCCOR_GOTO_End;
+#define COR_Break(BP) \
+    goto COR_GOTO_END;
 
 /**
  * @brief       协程-设置断点并跳出
  * @param[in]   BP  [COR_BP_t]协程断点
  * @details     保存当前行的标签地址,然后跳出;
  */
-#define _COR_SetBPBreak(BP)                     \
+#define COR_SetBPBreak(BP)                      \
     {                                           \
         /*保存并设置断点(函数名+行号)然后跳出*/ \
-        (BP) = &&_COR_BP(__func__, __LINE__);   \
-        goto _XCCOR_GOTO_End;                   \
-        _COR_BP(__func__, __LINE__) :;          \
+        (BP) = &&COR_BP(__func__, __LINE__);    \
+        goto COR_GOTO_END;                      \
+        COR_BP(__func__, __LINE__) :;           \
     }
 
 /**
  * @brief       协程-代码结束
  * @details     协程块的结束(状态机的结尾);
  */
-#define _COR_End() \
-    _XCCOR_GOTO_End: /*结束跳转标志*/
+#define COR_End() \
+    COR_GOTO_END: /*结束跳转标志*/
 
 /*
  ************************************************************************************************************|

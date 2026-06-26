@@ -18,14 +18,14 @@
  *      - 从"SysFSM.h"V0.05 更新代码
  *  - 2022/08/15
  *      - 版本:0.02
- *      - "_COR_End"添加goto结束断点;
+ *      - "COR_End"添加goto结束断点;
  *  - 2023/12/21
- *      - 增加"_COR_Break"直接跳出协程;
+ *      - 增加"COR_Break"直接跳出协程;
  */
 /************************************************ 我是分割线 ************************************************/
 //=== 防重复定义
-#ifndef _XC_CorANSI_h_
-#define _XC_CorANSI_h_
+#ifndef XC_CorANSI_h
+#define XC_CorANSI_h
 
 /*
  ************************************************************************************************************|
@@ -52,15 +52,15 @@ typedef unsigned long COR_BP_t;
  * @param[in]   BP  [COR_BP_t]协程断点
  * @details     初始化断点;
  */
-#define _COR_Init(BP) ((BP) = 0)
+#define COR_Init(BP) ((BP) = 0UL)
 
 /**
  * @brief       协程-代码开头
  * @param[in]   BP  [COR_BP_t]协程断点
  * @details     协程块的开始(状态机的开始);
  */
-#define _COR_Start(BP) \
-    switch((BP)) {     \
+#define COR_Start(BP) \
+    switch((BP)) {    \
         case 0:
 
 /**
@@ -68,8 +68,8 @@ typedef unsigned long COR_BP_t;
  * @param[in]   BP  [COR_BP_t]协程断点
  * @details     将当前行号保存到断点中;
  */
-#define _COR_SetBP(BP) \
-    (BP) = __LINE__;   \
+#define COR_SetBP(BP)                 \
+    (BP) = (unsigned long)(__LINE__); \
     case __LINE__:;
 
 /**
@@ -77,26 +77,26 @@ typedef unsigned long COR_BP_t;
  * @param[in]   BP  [COR_BP_t]协程断点
  * @details     直接跳出协程
  */
-#define _COR_Break(BP) \
-    goto _XCCOR_GOTO_End;
+#define COR_Break(BP) \
+    goto COR_GOTO_END;
 
 /**
  * @brief       协程-设置断点并跳出
  * @param[in]   BP  [COR_BP_t]协程断点
  * @details     将当前行号保存到断点中,然后跳出;
  */
-#define _COR_SetBPBreak(BP) \
-    (BP) = __LINE__;        \
-    goto _XCCOR_GOTO_End;   \
+#define COR_SetBPBreak(BP)            \
+    (BP) = (unsigned long)(__LINE__); \
+    goto COR_GOTO_END;                \
     case __LINE__:;
 
 /**
  * @brief       协程-代码结束
  * @details     协程块的结束(状态机的结尾);
  */
-#define _COR_End() \
-    }              \
-    _XCCOR_GOTO_End: /*结束跳转标志*/
+#define COR_End() \
+    }             \
+    COR_GOTO_END: /*结束跳转标志*/
 
 /*
  ************************************************************************************************************|

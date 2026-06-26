@@ -42,7 +42,7 @@
  */
 static void XC_Task_BasicInit(XC_TaskHandle_t phTCB)
 {
-    _COR_Init(phTCB->BP);                     // 初始化断点
+    COR_Init(phTCB->BP);                      // 初始化断点
     phTCB->TaskWakeupTick = ~0U;              // 任务下个唤醒的时间(初始设置最大)
     phTCB->pNotifyData    = NULL;             // 通知数据清零
     phTCB->NotifyState    = XC_NOTIFY_WAKEUP; // 通知状态:通知唤醒(没有通知)
