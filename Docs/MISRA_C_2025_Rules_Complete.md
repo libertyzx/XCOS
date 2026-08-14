@@ -2,7 +2,7 @@
 
 > **来源**: Perforce QAC for C 2026.2 Rule Enforcement Summary + LDRA MISRA C:2025 分类统计  
 > **统计**: 201条 Rules + 22条 Directives = 223条 Guidelines（MISRA C:2023 为221条，2025新增4条Rules，净增2条）  
-> **规则分类**: Mandatory(强制) 22 / Required(必要) 139 / Advisory(建议) 39 / Disapplied(废止) 1 (Rule 15.5)  
+> **规则分类**: Mandatory(强制) 22 / Required(必要) 140 / Advisory(建议) 38 / Disapplied(废止) 1 (Rule 15.5)  
 > **可静态执行**: 201条中 Decidable 规则可由工具自动判定，Undecidable 规则需人工审查；Perforce QAC 对全部可判定规则 **100% 覆盖**  
 > **不可静态执行**: 22条 Directives（Assisted: 17条 提供辅助检查 / Unassisted: 5条 需完全人工）
 
@@ -163,13 +163,13 @@
 | Rule-11.1 | Required | Decidable | 不得在函数指针与任何其他类型之间执行转换 |
 | Rule-11.2 | Required | Decidable | 不得在不完整类型指针与任何其他类型之间执行转换 |
 | Rule-11.3 | Required | Decidable | 不得在指向对象类型的指针与指向不同对象类型的指针之间执行转换 |
-| Rule-11.4 | Required | Decidable | 不应在指向对象的指针与算术类型之间执行转换 |
+| Rule-11.4 | Required | Decidable | 不得在指向对象的指针与算术类型之间执行转换 |
 | Rule-11.5 | Advisory | Decidable | 不应将 `void` 指针转换为对象指针 |
 | Rule-11.6 | Required | Decidable | 不得在 `void` 指针与算术类型之间执行转换 |
 | Rule-11.8 | Required | Decidable | 转换不得移除指针指向类型上的 `const`、`volatile` 或 `_Atomic` 限定 |
 | Rule-11.9 | Required | Decidable | 宏 `NULL` 必须是整数空指针常量的唯一允许形式 |
 | Rule-11.10 | Required | Decidable | `_Atomic` 限定符不得应用于不完整类型 `void` |
-| **Rule-11.11🆕** | **Required** | **Decidable** | **指针不得隐式与 NULL 比较** |
+| **Rule-11.11🆕** | **Required** | **Decidable** | **指针不得隐式与 NULL 比较** ※分类分歧：LDRA 标 Advisory，Perforce+Parasoft 标 Required，本文取 2:1 Required |
 
 ## §12 表达式 (Rules 12.1-12.6)
 

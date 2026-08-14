@@ -2,8 +2,8 @@
  * @file        XC_TaskInternal.h
  * @brief       任务的实现-内部函数
  * @author      libertyzx (libertyzx@163.com)
- * @version     2.0.0
- * @date        2026/01/05
+ * @version     2.1.0
+ * @date        2026/08/14
  * **********************************************
  * @copyright   Copyright (c) 2024 libertyzx. All rights reserved.
  * @license     This project is released under the MIT License.
@@ -17,6 +17,7 @@
 #ifndef XC_TaskInternal_h
 #define XC_TaskInternal_h
 //=== 头文件
+#include "Internal/XC_Core.h"
 #include "Internal/XC_List.h"
 #include "XC_Type.h"
 
@@ -92,14 +93,6 @@ void XC_Task_HandleRemove(XC_TaskHandle_t phTCB);
  * @details     从XCOS中删除TCB节点;
  */
 #define XC_Task_RemoveNode(phTCB)        XC_List_Remove(&(phTCB)->ListNode)
-
-/************************************************ 我是分割线 ************************************************/
-//=== 向后兼容:保留旧版函数名(已弃用,建议迁移到 XC_Task_ 前缀)
-#define XCTask_HandleWaitNotify          XC_Task_HandleWaitNotify
-#define XCTask_HandleDelay               XC_Task_HandleDelay
-#define XCTask_HandleSuspend             XC_Task_HandleSuspend
-#define XCTask_HandleReset               XC_Task_HandleReset
-#define XCTask_HandleRemove              XC_Task_HandleRemove
 
 /*
  ************************************************************************************************************|

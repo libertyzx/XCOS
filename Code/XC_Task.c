@@ -2,8 +2,8 @@
  * @file        XC_Task.c
  * @brief       任务的实现
  * @author      libertyzx (libertyzx@163.com)
- * @version     2.0.0
- * @date        2026/01/07
+ * @version     2.1.0
+ * @date        2026/08/14
  * **********************************************
  * @copyright   Copyright (c) 2024 libertyzx. All rights reserved.
  * @license     This project is released under the MIT License.
@@ -15,7 +15,6 @@
  */
 //=== 头文件
 #include "Internal/XC_List.h"
-#include "Internal/XC_SchInternal.h"
 #include "Internal/XC_TaskInternal.h"
 #include "XC_Time.h"
 
@@ -60,9 +59,9 @@ static void XC_Task_BasicInit(XC_TaskHandle_t phTCB)
 static void XC_Task_AddInternal(XC_TaskHandle_t phTCB)
 {
     XC_Task_BasicInit(phTCB);                                                 // 基础初始化
-    XC_Sch_Lock(phTCB->phXCOS);                                               // 锁
+    XC_Core_Lock(phTCB->phXCOS);                                               // 锁
     XC_List_InsertNodeAfter(phTCB->phXCOS->pPrevReadyNode, &phTCB->ListNode); // 插入就续表
-    XC_Sch_Unlock(phTCB->phXCOS);                                             // 解锁
+    XC_Core_Unlock(phTCB->phXCOS);                                             // 解锁
     phTCB->TaskState = XC_TASK_READY;                                         // 任务更新状态为就绪
     phTCB->phXCOS->TaskNum++;                                                 // 任务数+1
 }
@@ -79,9 +78,9 @@ static void XC_Task_AddInternal(XC_TaskHandle_t phTCB)
 void XC_Task_HandleRemove(XC_TaskHandle_t phTCB)
 {
     phTCB->TaskState = XC_TASK_VOID; // 任务状态改为空
-    XC_Sch_Lock(phTCB->phXCOS);      // 锁
+    XC_Core_Lock(phTCB->phXCOS);      // 锁
     XC_Task_RemoveNode(phTCB);       // 移除任务节点
-    XC_Sch_Unlock(phTCB->phXCOS);    // 解锁
+    XC_Core_Unlock(phTCB->phXCOS);    // 解锁
     XC_Task_BasicInit(phTCB);        // 基本数据初始化
     phTCB->phXCOS->TaskNum--;        // 任务数-1
     phTCB->phXCOS = NULL;            // 清除任务的所属框架句柄
@@ -96,9 +95,9 @@ void XC_Task_HandleReset(XC_TaskHandle_t phTCB)
 {
     phTCB->TaskState = XC_TASK_READY; // 任务更新状态为就绪
     /**这里不判断是否在就绪表,直接移动*/
-    XC_Sch_Lock(phTCB->phXCOS);     // 锁
+    XC_Core_Lock(phTCB->phXCOS);     // 锁
     XC_Task_MoveToReadyList(phTCB); // 任务移动到就绪表
-    XC_Sch_Unlock(phTCB->phXCOS);   // 解锁
+    XC_Core_Unlock(phTCB->phXCOS);   // 解锁
     XC_Task_BasicInit(phTCB);       // 基本数据初始化
 }
 
@@ -110,9 +109,9 @@ void XC_Task_HandleReset(XC_TaskHandle_t phTCB)
 void XC_Task_HandleSuspend(XC_TaskHandle_t phTCB)
 {
     phTCB->TaskState = XC_TASK_SUSPEND; // 任务状态:挂起
-    XC_Sch_Lock(phTCB->phXCOS);         // 锁
+    XC_Core_Lock(phTCB->phXCOS);         // 锁
     XC_Task_MoveToBlockedList(phTCB);   // 将任务移动到阻塞表
-    XC_Sch_Unlock(phTCB->phXCOS);       // 解锁
+    XC_Core_Unlock(phTCB->phXCOS);       // 解锁
 }
 
 /**
@@ -137,7 +136,7 @@ static void XC_Task_HandleBlocking(XC_TaskHandle_t phTCB, uint32_t TickCount)
          *  由溢出和非溢出选择任务入溢出表或者时间表;
          */
         pList = (TickCount < Tick) ? (&phTCB->phXCOS->TimeOverflowList) : (&phTCB->phXCOS->TimeList); // 得到链表
-        XC_Sch_Lock(phTCB->phXCOS);                                                                   // 锁
+        XC_Core_Lock(phTCB->phXCOS);                                                                   // 锁
         /**
          *  插入时间表按升序排列;
          *  从根节点向下(Next)查询"任务下个唤醒的时间"(TaskWakeupTick),根据查询值从小到大排列;
@@ -156,10 +155,10 @@ static void XC_Task_HandleBlocking(XC_TaskHandle_t phTCB, uint32_t TickCount)
         XC_List_MoveNodeAfter(pIterator->pPrev, &phTCB->ListNode);
     }
     else {                                // 无时间,阻塞处理
-        XC_Sch_Lock(phTCB->phXCOS);       // 锁
+        XC_Core_Lock(phTCB->phXCOS);       // 锁
         XC_Task_MoveToBlockedList(phTCB); // 任务移动到阻塞表(任务挂起或者死等,进入阻塞表;)
     }
-    XC_Sch_Unlock(phTCB->phXCOS); // 解锁
+    XC_Core_Unlock(phTCB->phXCOS); // 解锁
 }
 
 /**
@@ -170,7 +169,7 @@ static void XC_Task_HandleBlocking(XC_TaskHandle_t phTCB, uint32_t TickCount)
  *  用于协程内部"等待通知"处理;
  *  被发送通知唤醒后通知计数会被清零;
  *  **注意**:
- *  - 此函数配合"XCTask_SendNotify"函数,需要一起协同;
+ *  - 此函数配合"XC_Task_SendNotify"函数,需要一起协同;
  */
 void XC_Task_HandleWaitNotify(XC_TaskHandle_t phTCB, uint32_t TickCount)
 {
@@ -179,7 +178,7 @@ void XC_Task_HandleWaitNotify(XC_TaskHandle_t phTCB, uint32_t TickCount)
      *  在"XC_NOTIFY_WAIT"状态前在"通知唤醒"->不进入等待通知
      *  在"XC_NOTIFY_WAIT"状态后在"通知唤醒"->异步调度触发;
      */
-    XC_Sch_Lock(phTCB->phXCOS); // 锁
+    XC_Core_Lock(phTCB->phXCOS); // 锁
     /*语句[1]前中断,"异步调度"不会触发,只增加通知生产者*/
     phTCB->NotifyState = XC_NOTIFY_WAIT; // [1]通知状态:等待通知
     /**
@@ -191,7 +190,7 @@ void XC_Task_HandleWaitNotify(XC_TaskHandle_t phTCB, uint32_t TickCount)
     if(phTCB->NotifyProduced != phTCB->NotifyConsumed) { // 出现通知
         phTCB->NotifyConsumed = phTCB->NotifyProduced;   // 清除通知
         phTCB->NotifyState    = XC_NOTIFY_WAKEUP;        // 通知状态:通知唤醒
-        XC_Sch_Unlock(phTCB->phXCOS);                    // 解锁
+        XC_Core_Unlock(phTCB->phXCOS);                    // 解锁
         phTCB->TaskState = XC_TASK_READY;                // 任务状态:就绪
     }
     else {
@@ -259,7 +258,7 @@ XC_Return_t XC_Task_Reg(XC_OSHandle_t phXCOS, XC_TaskHandle_t phTCB, void (*fTas
  * @param[in]   phTCB 协程控制块
  * @details
  *  会从链表中删除,并清空TCB数据;
- *  不可移除自身,移除自身使用"XC_Remove()"函数;
+ *  不可移除自身,移除自身使用"XC_Cor_Remove()"函数;
  */
 void XC_Task_Remove(XC_TaskHandle_t phTCB)
 {
@@ -271,8 +270,8 @@ void XC_Task_Remove(XC_TaskHandle_t phTCB)
 /************************************************ 我是分割线 ************************************************/
 /**
  * 任务分步创建相关的用户函数
- *  "XCTask_SetEntry"和"XCS_AddTask"函数需要配合使用;
- *  在"XCTask_SetEntry"设置完成后在XCTask_Addask"添加任务;
+ *  "XC_Task_SetEntry"和"XC_Task_Add"函数需要配合使用;
+ *  在"XC_Task_SetEntry"设置完成后在"XC_Task_Add"添加任务;
  *  注意:不要重复添加任务;
  */
 
@@ -283,7 +282,7 @@ void XC_Task_Remove(XC_TaskHandle_t phTCB)
  * @param[in]   pParam  传递给任务的参数
  * @details
  *  只设置任务入口和传递给任务的参数;
- *  一般配合"XCTask_Add"使用;
+ *  一般配合"XC_Task_Add"使用;
  */
 void XC_Task_SetEntry(XC_TaskHandle_t phTCB, void (*fTask)(XC_TaskHandle_t), void* pParam)
 {
@@ -300,7 +299,7 @@ void XC_Task_SetEntry(XC_TaskHandle_t phTCB, void (*fTask)(XC_TaskHandle_t), voi
  * @retval  XC_OK :      注册成功
  * @retval  XC_FAIL :    注册失败,任务太多或者任务参数错误
  * @details
- *  添加的任务必须先调用"XCTask_SetEntry";
+ *  添加的任务必须先调用"XC_Task_SetEntry";
  *  设置好任务入口和传递的参数才可添加;
  *  添加后挂载到就绪表;
  */
@@ -322,7 +321,7 @@ XC_Return_t XC_Task_Add(XC_OSHandle_t phXCOS, XC_TaskHandle_t phTCB)
  * @brief       [用户]任务复位
  * @param[in]   phTCB   协程控制块
  * @details
- *  **不可复位自身(复位自身使用"XC_Reset")**
+ *  **不可复位自身(复位自身使用"XC_Cor_Reset")**
  *  会清除所有状态(包含挂起),任务复位;
  *  任务将重置到就绪表,然后从头运行;
  *  任务TCB中除了"phXCOS","fTask","Param"其他全部重置;
@@ -343,7 +342,7 @@ void XC_Task_Reset(XC_TaskHandle_t phTCB)
  * @retval      XC_CONTINUE :    异步操作中
  * @details
  *  将任务挂起,**本次任务运行完成后暂停任务**;
- *  需要在任务中立刻挂起,可以在协程块中调用"XC_Suspend";
+ *  需要在任务中立刻挂起,可以在协程块中调用"XC_Cor_Suspend";
  *  挂起可以覆盖任务的所有阻塞状态,优先级最高;
  *  挂起后只能被挂起恢复唤醒;
  */
@@ -378,9 +377,9 @@ XC_Return_t XC_Task_Resume(XC_TaskHandle_t phTCB)
         return (XC_FAIL); // 没有被挂起
     }
 
-    XC_Sch_Lock(phTCB->phXCOS);       // 锁
+    XC_Core_Lock(phTCB->phXCOS);       // 锁
     XC_Task_MoveToReadyList(phTCB);   // 将任务移动到就绪表
-    XC_Sch_Unlock(phTCB->phXCOS);     // 解锁
+    XC_Core_Unlock(phTCB->phXCOS);     // 解锁
     phTCB->TaskState = XC_TASK_READY; // 任务状态:就绪
     return (XC_OK);
 }
@@ -415,7 +414,7 @@ XC_Return_t XC_Task_Resume(XC_TaskHandle_t phTCB)
  *  - 若是有可能出现多次调用(多生产者),需要用户加锁保护;
  *  - 此函数不包含自锁,因为是通用C语言编写,不增加编译器和平台指令,也不关中断,
  *      这表示锁将不是原子操作,在特定的时刻必定出错,所以这里不在增加锁;
- *  - 此函数配合"XCTask_HandleWaitNotify"函数,需要一起协同;
+ *  - 此函数配合"XC_Task_HandleWaitNotify"函数,需要一起协同;
  */
 XC_Return_t XC_Task_SendNotify(XC_TaskHandle_t phTCB, void* pNotifyData)
 {
@@ -447,7 +446,7 @@ XC_Return_t XC_Task_SendNotify(XC_TaskHandle_t phTCB, void* pNotifyData)
     }
 
     /** 必须是等待通知唤醒 */
-    if(XC_Sch_GetLockState(phTCB->phXCOS)) {
+    if(XC_Core_GetLockState(phTCB->phXCOS)) {
         /** 调度运行中-异步,只会在中断中出现 */
         if((phTCB->NotifyProduced + 1U) != phTCB->NotifyConsumed) {
             phTCB->NotifyProduced++; // 通知-生产者,生产者未满则+1
@@ -459,9 +458,9 @@ XC_Return_t XC_Task_SendNotify(XC_TaskHandle_t phTCB, void* pNotifyData)
     }
 
     /** 调度没有运行 */
-    XC_Sch_Lock(phTCB->phXCOS);            // 锁
+    XC_Core_Lock(phTCB->phXCOS);            // 锁
     XC_Task_MoveToReadyList(phTCB);        // 移动到就绪表
-    XC_Sch_Unlock(phTCB->phXCOS);          // 解锁
+    XC_Core_Unlock(phTCB->phXCOS);          // 解锁
     phTCB->NotifyState = XC_NOTIFY_WAKEUP; // 通知状态:通知唤醒
     phTCB->TaskState   = XC_TASK_READY;    // 任务状态:就绪
     return (XC_OK);

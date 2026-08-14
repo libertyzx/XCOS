@@ -2,8 +2,8 @@
  * @file        XC_Time.h
  * @brief       时间计数的实现
  * @author      libertyzx (libertyzx@163.com)
- * @version     2.0.0
- * @date        2025/11/21
+ * @version     2.1.0
+ * @date        2026/08/14
  * **********************************************
  * @copyright   Copyright (c) 2024 libertyzx. All rights reserved.
  * @license     This project is released under the MIT License.
@@ -124,7 +124,7 @@
  * @brief       [用户]比较Tick是否到达设定值
  * @param[in]   _Lc     上个记录的Tick
  * @param[in]   _c      需要比较的Tick个数
- * @return      boor    1:时间到达;0:时间没有到达;
+ * @return      bool    1:时间到达;0:时间没有到达;
  * @details     判断是否运行了"_c"个Tick,用于判断时间是否到达;
  */
 #define XC_Time_CheckTimeout(_Lc, _c)    ((XC_Time_GetTick() - (_Lc)) >= (_c))
@@ -133,7 +133,7 @@
  * @brief       [用户]比较时间是否到达设定值(单位:ms)
  * @param[in]   _Lc     上个记录的Tick
  * @param[in]   _t      需要比较时间
- * @return      boor    1:时间到达;0:时间没有到达;
+ * @return      bool    1:时间到达;0:时间没有到达;
  * @details     判断是否运行了"_t"个时间,用于判断时间是否到达;
  */
 #define XC_Time_CheckTimeoutMs(_Lc, _t)  (XC_Time_CheckTimeout((_Lc), XC_Time_MsToTicks(_t)))
@@ -142,7 +142,7 @@
  * @brief       [用户]比较时间是否到达设定值(单位:s)
  * @param[in]   _Lc     上个记录的Tick
  * @param[in]   _t      需要比较时间
- * @return      boor    1:时间到达;0:时间没有到达;
+ * @return      bool    1:时间到达;0:时间没有到达;
  * @details     判断是否运行了"_t"个时间,用于判断时间是否到达;
  */
 #define XC_Time_CheckTimeoutSec(_Lc, _t) (XC_Time_CheckTimeout((_Lc), XC_Time_SecToTicks(_t)))
@@ -224,7 +224,7 @@ XC_Tick_t XC_Time_GetElapsed(XC_Tick_t LastTick, XC_Tick_t CompareTick);
 /**
  * @brief       [用户]判断需要比较或延时的时间是否到达
  * @param[in]   _tC     "XC_TimerTick_t"类型定义的数据;
- * @return      boot    1时间达到;0时间没有到达;
+ * @return      bool    1时间达到;0时间没有到达;
  * @details     [扩展]判断需要比较或延时的时间是否到达
  */
 #define XC_Time_TimerCheck(_tC)      ((XC_Time_GetTick() - ((_tC).TickCount)) >= ((_tC).WaitCount))
@@ -287,28 +287,6 @@ void XC_Time_BlockDelayMs(XC_Tick_t Delay_ms);
  ************************************************ 我是分割线 ************************************************|
  ************************************************************************************************************|
  */
-//=== 向后兼容:保留旧版函数/宏名(已弃用,建议迁移到 XC_Time_ 前缀)
-#define XCTime_GetTickUnit       XC_Time_GetTickUnit
-#define XCTime_GetTick           XC_Time_GetTick
-#define XCTime_GetMs             XC_Time_GetMs
-#define XCTime_TickInc           XC_Time_TickInc
-#define XCTime_TickSet           XC_Time_TickSet
-#define XCTime_CheckTimeout      XC_Time_CheckTimeout
-#define XCTime_CheckTimeoutMs    XC_Time_CheckTimeoutMs
-#define XCTime_CheckTimeoutSec   XC_Time_CheckTimeoutSec
-#define XCTime_GetRemain         XC_Time_GetRemain
-#define XCTime_GetElapsed        XC_Time_GetElapsed
-#define XCTime_TimerSet          XC_Time_TimerSet
-#define XCTime_TimerSetMs        XC_Time_TimerSetMs
-#define XCTime_TimerSetSec       XC_Time_TimerSetSec
-#define XCTime_TimerRepeat       XC_Time_TimerRepeat
-#define XCTime_TimerCheck        XC_Time_TimerCheck
-#define XCTime_TimerClr          XC_Time_TimerClr
-#define XCTime_TimerGetRemain    XC_Time_TimerGetRemain
-#define XCTime_TimerGetElapsed   XC_Time_TimerGetElapsed
-#define XCTime_TimerGetElapsedMs XC_Time_TimerGetElapsedMs
-#define XCTime_BlockDelay        XC_Time_BlockDelay
-#define XCTime_BlockDelayMs      XC_Time_BlockDelayMs
 
 //=== 文件结束
 #endif

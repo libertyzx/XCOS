@@ -2,8 +2,8 @@
  * @file        XC_Config.h
  * @brief       配置
  * @author      libertyzx (libertyzx@163.com)
- * @version     2.0.0
- * @date        2025/11/26
+ * @version     2.1.0
+ * @date        2026/08/14
  * **********************************************
  * @copyright   Copyright (c) 2024 libertyzx. All rights reserved.
  * @license     This project is released under the MIT License.
@@ -33,14 +33,22 @@
 //=== 需要配置的参数
 
 /**
- * @brief   [用户]XCOS基础数据类型
+ * @brief   [用户]嘀嗒计数数据类型
  * @details
  *  默认32位,用于系统滴答计数的数据
  *  一般不用改
  */
-#ifndef XC_Tick_t
-#define XC_Tick_t uint32_t
+#ifndef XC_CFG_TICK_TYPE
+#define XC_CFG_TICK_TYPE uint32_t
 #endif
+
+/**
+ * @brief   [用户]嘀嗒计数数据类型定义
+ * @details
+ *  由"XC_CFG_TICK_TYPE"指定的类型定义出"XC_Tick_t";
+ *  必须定义在本文件(最底层配置),供"XC_Config.h"的全局滴答计数声明及上层类型使用;
+ */
+typedef XC_CFG_TICK_TYPE XC_Tick_t;
 
 /************************************************ 我是分割线 ************************************************/
 

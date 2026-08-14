@@ -2,8 +2,8 @@
  * @file        XC_Sch.c
  * @brief       调度器实现
  * @author      libertyzx (libertyzx@163.com)
- * @version     2.0.0
- * @date        2026/01/07
+ * @version     2.1.0
+ * @date        2026/08/14
  * **********************************************
  * @copyright   Copyright (c) 2024 libertyzx. All rights reserved.
  * @license     This project is released under the MIT License.
@@ -15,7 +15,6 @@
  */
 //=== 头文件
 #include "Internal/XC_List.h"
-#include "Internal/XC_SchInternal.h"
 #include "Internal/XC_TaskInternal.h"
 #include "XC_Time.h"
 
@@ -59,7 +58,7 @@ static void XC_Sch_TimeSched(XC_OSHandle_t phXCOS)
 
     pTimeList = &phXCOS->TimeList;
     Tick      = XC_Time_GetTick(); // 得到当前系统Tick
-    XC_Sch_Lock(phXCOS);           // 锁
+    XC_Core_Lock(phXCOS);           // 锁
     /**
      *  Tick时间溢出处理
      *  比较保存的Tick("PrevTick")和当前的Tick值,保存的值大于当前的值,则表示计数溢出
@@ -111,7 +110,7 @@ static void XC_Sch_TimeSched(XC_OSHandle_t phXCOS)
         }
         phXCOS->PrevTick = Tick; // 更新保存Tick
     }
-    XC_Sch_Unlock(phXCOS); // 解锁
+    XC_Core_Unlock(phXCOS); // 解锁
 }
 
 /**
@@ -127,6 +126,20 @@ static void XC_Sch_TimeSched(XC_OSHandle_t phXCOS)
 static void XC_Sch_EventSched(XC_OSHandle_t phXCOS)
 {
 
+    /**
+     * [私有]通知唤醒遍历处理宏
+     * @param[in]   pCList  需要遍历查找"等待通知"任务的链表指针
+     * @details
+     *  刻意使用宏(而非静态函数)的实现说明:
+     *  - 本段代码位于事件调度的热路径上(每次事件触发会对 3 个链表各调用一次),
+     *    宏内联展开可避免函数调用/入栈/返回等开销,同时迭代器与指针缓存在展开点直接生成,不额外占用栈帧;
+     *  - 宏体只使用传入参数和全局宏(链表/任务操作宏),不隐式引用外部局部变量;
+     *  - 宏在函数内定义(局部宏),作用域仅限"XC_Sch_EventSched",不污染全局命名空间;
+     *  - 宏体执行期间依赖外层已持有的调度锁("XC_Core_Lock"),保证链表遍历与节点移动的原子性;
+     *  注意:
+     *  - 被唤醒的节点会移动(移除)到就绪表,所以必须先保存/推进迭代器再操作节点,
+     *    否则链表指针将失效(见宏体内操作顺序);
+     */
 #define WAKEUP_NOTIFY(pCList)                                                                                                                              \
     {                                                                                                                                                      \
         XCListNode_t* pList     = pCList;                          /*缓存链表*/                                                                            \
@@ -151,11 +164,11 @@ static void XC_Sch_EventSched(XC_OSHandle_t phXCOS)
         }                                                                                                                                                  \
     }
 
-    XC_Sch_Lock(phXCOS);                      // 锁
+    XC_Core_Lock(phXCOS);                      // 锁
     WAKEUP_NOTIFY(&phXCOS->TimeList);         // "TimeList"延时/超时/等待的链表
     WAKEUP_NOTIFY(&phXCOS->TimeOverflowList); // "TimeOverflowList"时间溢出的链表
     WAKEUP_NOTIFY(&phXCOS->BlockedList);      // "BlockedList"阻塞链表
-    XC_Sch_Unlock(phXCOS);                    // 解锁
+    XC_Core_Unlock(phXCOS);                    // 解锁
 }
 
 /*

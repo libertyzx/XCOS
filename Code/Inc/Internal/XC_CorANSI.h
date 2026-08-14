@@ -2,8 +2,8 @@
  * @file        XC_CorANSI.h
  * @brief       协程库(ANSI-C实现)
  * @author      libertyzx (libertyzx@163.com)
- * @version     0.3.0
- * @date        2023/12/21
+ * @version     2.1.0
+ * @date        2026/08/14
  * **********************************************
  * @copyright   Copyright (c) 2018 libertyzx. All rights reserved.
  * @license     This project is released under the MIT License.

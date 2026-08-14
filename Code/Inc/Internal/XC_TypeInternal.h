@@ -1,9 +1,9 @@
 /**
- * @file        XC_TypeInternal.h.h
+ * @file        XC_TypeInternal.h
  * @brief       内部类型
  * @author      libertyzx (libertyzx@163.com)
- * @version     2.0.0
- * @date        2026/01/05
+ * @version     2.1.0
+ * @date        2026/08/14
  * **********************************************
  * @copyright   Copyright (c) 2024 libertyzx. All rights reserved.
  * @license     This project is released under the MIT License.
@@ -61,7 +61,7 @@ typedef enum {
  *  用于记录XCOS实例的数据,一个工程中开源有多个XCOS实例,用此句柄区分;
  *  字节数说明(32bit): 8*4+4*2+4+4 = 48Byte
  */
-struct XCOS_t {
+struct XCOS_tag {
     // 链表
     XCListNode_t ReadyList;        // 就绪链表
     XCListNode_t TimeList;         // 延时/超时/等待的链表
@@ -89,12 +89,12 @@ struct XCOS_t {
      *  - 系统Tick是定时器中断计数运行的,可以使用以下方式更新:
      *      ```
      *      XC_Tick_t Tick;
-     *      Tick = XCTime_GetTick() + IdleTick;
-     *      XCTime_TickSet(Tick)
+     *      Tick = XC_Time_GetTick() + IdleTick;
+     *      XC_Time_TickSet(Tick)
      *      ```
-     *  - 系统Tick是一个计数器,则计数器等于"XCTime_GetTick() + IdleTick";
+     *  - 系统Tick是一个计数器,则计数器等于"XC_Time_GetTick() + IdleTick";
      */
-    void (*fIdle)(struct XCOS_t*, XC_Tick_t);
+    void (*fIdle)(struct XCOS_tag*, XC_Tick_t);
 };
 
 /************************************************ 我是分割线 ************************************************/
@@ -111,7 +111,7 @@ typedef COR_BP_t XCBP_t;
  *  用于记录任务控制相关的数据,每个任务都需要一个独立的TCB;
  *  类型占字节数(32bit): 8+4*6+4=36Byte;
  *  ---
- *  基础数据(在"XCTask_BasicInit"中被初始化)
+ *  基础数据(在"XC_Task_BasicInit"中被初始化)
  *      - "TaskWakeupTick"  任务下个唤醒的时间
  *      - "BP"              协程断点
  *      - "pNotifyData"     通知数据
@@ -125,10 +125,10 @@ typedef COR_BP_t XCBP_t;
  *      - "pParam"      传递的参数
  *      - "TaskState"   任务状态
  */
-struct XC_TaskCB_t {
+struct XC_TaskCB_tag {
     XCListNode_t   ListNode;            // 链表节点
-    struct XCOS_t* phXCOS;              // 任务所属的框架句柄
-    void (*fTask)(struct XC_TaskCB_t*); // 函数运行入口(任务入口)
+    struct XCOS_tag* phXCOS;              // 任务所属的框架句柄
+    void (*fTask)(struct XC_TaskCB_tag*); // 函数运行入口(任务入口)
     XCBP_t    BP;                       // 协程断点(Break Point)
     XC_Tick_t TaskWakeupTick;           // 任务下个唤醒的时间(0则一直阻塞)
 

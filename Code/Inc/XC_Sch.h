@@ -2,8 +2,8 @@
  * @file        XC_Sch.h
  * @brief       调度器实现
  * @author      libertyzx (libertyzx@163.com)
- * @version     2.0.0
- * @date        2025/11/26
+ * @version     2.1.0
+ * @date        2026/08/14
  * **********************************************
  * @copyright   Copyright (c) 2024 libertyzx. All rights reserved.
  * @license     This project is released under the MIT License.
@@ -17,6 +17,7 @@
 #ifndef XC_Sch_h
 #define XC_Sch_h
 //=== 头文件
+#include <stdint.h> // uint8_t:获取任务数的返回类型
 #include "XC_Type.h"
 
 /*
@@ -66,19 +67,12 @@ uint8_t XC_Sch_GetTaskNum(XC_OSHandle_t phXCOS);
  *          - 系统Tick是定时器中断计数运行的,可以使用以下方式更新:
  *              ```
  *              XC_Tick_t Tick;
- *              Tick = XCTime_GetTick() + IdleTick;
- *              XCTime_TickSet(Tick)
+ *              Tick = XC_Time_GetTick() + IdleTick;
+ *              XC_Time_TickSet(Tick)
  *              ```
- *          - 系统Tick是一个计数器,则计数器等于"XCTime_GetTick() + IdleTick";
+ *          - 系统Tick是一个计数器,则计数器等于"XC_Time_GetTick() + IdleTick";
  */
 void XC_Sch_SetIdleCallback(XC_OSHandle_t phXCOS, void (*fIdle)(XC_OSHandle_t, XC_Tick_t));
-
-/************************************************ 我是分割线 ************************************************/
-//=== 向后兼容:保留旧版函数名(已弃用,建议迁移到 XC_Sch_ 前缀)
-#define XCSch_Init            XC_Sch_Init
-#define XCSch_Start           XC_Sch_Start
-#define XCSch_GetTaskNum      XC_Sch_GetTaskNum
-#define XCSch_SetIdleCallback XC_Sch_SetIdleCallback
 
 /*
  ************************************************************************************************************|

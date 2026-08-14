@@ -1,67 +1,65 @@
 /**
- * @file        XC_SchInternal.h
- * @brief       调度内部实现
+ * @file        XC_Core.h
+ * @brief       内核基础
  * @author      libertyzx (libertyzx@163.com)
- * @version     2.0.0
- * @date        2026/01/05
+ * @version     2.1.0
+ * @date        2026/08/14
  * **********************************************
  * @copyright   Copyright (c) 2024 libertyzx. All rights reserved.
  * @license     This project is released under the MIT License.
  * **********************************************
- * @details     框架调度内部实现的代码
+ * @details
+ *  框架内核的基础操作(框架实例锁等);
+ *  锁操作原位于"XC_SchInternal.h"(调度锁),因"XC_Task"与"XC_Sch"模块共用而下沉至此;
  * **********************************************
  *  修改日志
  *  - 见"CHANGELOG.md"的更新说明;
  */
 //=== 防重复定义
-#ifndef XC_SchInternal_h
-#define XC_SchInternal_h
+#ifndef XC_Core_h
+#define XC_Core_h
+//=== 头文件
+#include "XC_TypeInternal.h" // XCOS_t:锁操作的框架实例类型
 
 /*
  ************************************************************************************************************|
  ************************************************ 我是分割线 ************************************************|
  ************************************************************************************************************|
  */
-/** 调度器调度锁 */
+/** 框架实例锁 */
 
 /**
- * @brief       [内部]锁
- * @param[in]   phXCOS [XC_OSHandle_t]框架句柄(会强制转换"XCOS句柄指针"类型)
+ * @brief       [内部]锁定框架实例
+ * @param[in]   phXCOS [struct XCOS_tag*]框架句柄(可为"XCOS_t*"或"XC_OSHandle_t")
  * @details
  *  主要用来锁定任务切换(包括链表操作,状态切换),防止中断调用时资源竞争;
  */
-#define XC_Sch_Lock(phXCOS)                   \
-    do {                                      \
-        ((XC_OSHandle_t)(phXCOS))->Lock = 1U; \
+#define XC_Core_Lock(phXCOS)                      \
+    do {                                          \
+        ((struct XCOS_tag*)(phXCOS))->Lock = 1U;  \
     } while(0)
 
 /**
- * @brief       [内部]解锁
- * @param[in]   phXCOS [XC_OSHandle_t]框架句柄(会强制转换"XCOS句柄指针"类型)
+ * @brief       [内部]解锁框架实例
+ * @param[in]   phXCOS [struct XCOS_tag*]框架句柄(可为"XCOS_t*"或"XC_OSHandle_t")
  * @details
  *  主要用来锁定任务切换(包括链表操作,状态切换),防止中断调用时资源竞争;
  */
-#define XC_Sch_Unlock(phXCOS)                 \
-    do {                                      \
-        ((XC_OSHandle_t)(phXCOS))->Lock = 0U; \
+#define XC_Core_Unlock(phXCOS)                    \
+    do {                                          \
+        ((struct XCOS_tag*)(phXCOS))->Lock = 0U;  \
     } while(0)
 
 /**
- * @brief       [内部]获取锁的状态
- * @param[in]   phXCOS [XC_OSHandle_t]框架句柄 (会强制转换"XCOS句柄指针"类型)
+ * @brief       [内部]获取框架实例锁状态
+ * @param[in]   phXCOS [struct XCOS_tag*]框架句柄(可为"XCOS_t*"或"XC_OSHandle_t")
  * @return      uint8_t
  * @retval      0 : 解锁
  * @retval      1 : 锁定
  * @details
  *  主要用来锁定任务切换(包括链表操作,状态切换),防止中断调用时资源竞争;
  */
-#define XC_Sch_GetLockState(phXCOS) (((XC_OSHandle_t)(phXCOS))->Lock)
-
-/************************************************ 我是分割线 ************************************************/
-//=== 向后兼容:保留旧版宏名(已弃用,建议迁移到 XC_Sch_ 前缀)
-#define XCSch_Lock                  XC_Sch_Lock
-#define XCSch_Unlock                XC_Sch_Unlock
-#define XCSch_GetLockState          XC_Sch_GetLockState
+#define XC_Core_GetLockState(phXCOS) (((struct XCOS_tag*)(phXCOS))->Lock)
 
 /*
  ************************************************************************************************************|

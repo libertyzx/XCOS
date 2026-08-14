@@ -2,8 +2,8 @@
  * @file        XC_CorGNU.h
  * @brief       协程库(GNU-C实现)
  * @author      libertyzx (libertyzx@163.com)
- * @version     0.4.0
- * @date        2025/09/24
+ * @version     2.1.0
+ * @date        2026/08/14
  * **********************************************
  * @copyright   Copyright (c) 2018 libertyzx. All rights reserved.
  * @license     This project is released under the MIT License.

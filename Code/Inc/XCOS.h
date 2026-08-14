@@ -2,8 +2,8 @@
  * @file        XCOS.h
  * @brief       框架包含
  * @author      libertyzx (libertyzx@163.com)
- * @version     2.0.0
- * @date        2025/11/26
+ * @version     2.1.0
+ * @date        2026/08/14
  * **********************************************
  * @copyright   Copyright (c) 2024 libertyzx. All rights reserved.
  * @license     This project is released under the MIT License.
@@ -59,6 +59,8 @@
 #include "XC_Sch.h"  //调度处理
 #include "XC_Task.h" //任务处理
 #include "XC_Time.h" //时间处理
+
+#include "XC_Compat.h" //向后兼容宏(旧版函数/宏名,后续版本将删除)
 
 /************************************************ 我是分割线 ************************************************/
 

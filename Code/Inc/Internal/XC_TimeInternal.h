@@ -2,8 +2,8 @@
  * @file        XC_TimeInternal.h
  * @brief       内部时间处理
  * @author      libertyzx (libertyzx@163.com)
- * @version     2.0.0
- * @date        2025/11/26
+ * @version     2.1.0
+ * @date        2026/08/14
  * **********************************************
  * @copyright   Copyright (c) 2024 libertyzx. All rights reserved.
  * @license     This project is released under the MIT License.
@@ -76,13 +76,6 @@
  ************************************************ 我是分割线 ************************************************|
  ************************************************************************************************************|
  */
-//=== 向后兼容:保留旧版宏名(已弃用,建议迁移到 XC_Time_ 前缀)
-#define XCTime_UsToTicks  XC_Time_UsToTicks
-#define XCTime_MsToTicks  XC_Time_MsToTicks
-#define XCTime_SecToTicks XC_Time_SecToTicks
-#define XCTime_TicksToUs  XC_Time_TicksToUs
-#define XCTime_TicksToMs  XC_Time_TicksToMs
-#define XCTime_TicksToSec XC_Time_TicksToSec
 
 //=== 文件结束
 #endif

@@ -2,8 +2,8 @@
  * @file        XC_List.h
  * @brief       链表操作的声明
  * @author      libertyzx (libertyzx@163.com)
- * @version     2.0.0
- * @date        2026/01/06
+ * @version     2.1.0
+ * @date        2026/08/14
  * **********************************************
  * @copyright   Copyright (c) 2024 libertyzx. All rights reserved.
  * @license     This project is released under the MIT License.
@@ -137,7 +137,7 @@ void XC_List_MoveListToNodeAfter(XCListNode_t* pDestNode, XCListNode_t* pSrcList
 /************************************************ 我是分割线 ************************************************/
 
 /** 前向声明，供 XC_LIST_TO_TCB 宏使用 */
-struct XC_TaskCB_t;
+struct XC_TaskCB_tag;
 
 /**
  * @brief       [内部]从链表节点获取所属的任务控制块(TCB)
@@ -152,15 +152,7 @@ struct XC_TaskCB_t;
  *  - 直接转换(XCListNode_t* → XC_TaskCB_t*)会违反 Rule 11.3 (Required)
  *  - 通过 void* 间接转换仅触发 Rule 11.5 (Advisory)，可申请 Deviation 接受
  */
-#define XC_LIST_TO_TCB(pNode)             ((struct XC_TaskCB_t*)(void*)(pNode))
-
-/************************************************ 我是分割线 ************************************************/
-//=== 向后兼容:保留旧版宏名(已弃用,建议迁移到 XC_List_ 前缀)
-#define XCList_InitNode(pNode)            XC_List_InitNode(pNode)
-#define XCList_Init(pList)                XC_List_Init(pList)
-#define XCList_ListValid(pList)           XC_List_ListValid(pList)
-#define XCList_ReachEndNode(pList, pNode) XC_List_ReachEndNode(pList, pNode)
-#define XCList_GetListStartNode(pList)    XC_List_GetListStartNode(pList)
+#define XC_LIST_TO_TCB(pNode)             ((struct XC_TaskCB_tag*)(void*)(pNode))
 
 /*
  ************************************************************************************************************|

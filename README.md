@@ -147,8 +147,8 @@ XCOS
 |   |   |-- Internal/               # 内部头文件
 |   |   |   |-- XC_CorANSI.h        # 协程底层实现("ANSI-C"是由"switch case"实现)
 |   |   |   |-- XC_CorGNU.h         # 协程底层实现("GNU-C" 是由"goto label" 实现)
+|   |   |   |-- XC_Core.h          # 内核基础(框架实例锁等)
 |   |   |   |-- XC_List.h           # 链表实现头文件
-|   |   |   |-- XC_SchInternal.h    # 调度相关的内部代码
 |   |   |   |-- XC_TaskInternal.h   # 任务相关的内部代码
 |   |   |   |-- XC_TimeInternal.h   # 时间相关的内部代码
 |   |   |   |-- XC_TypeInternal.h   # 类型相关的内部代码

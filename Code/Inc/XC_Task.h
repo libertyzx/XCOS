@@ -2,8 +2,8 @@
  * @file        XC_Task.h
  * @brief       任务的实现
  * @author      libertyzx (libertyzx@163.com)
- * @version     2.0.0
- * @date        2026/01/06
+ * @version     2.1.0
+ * @date        2026/08/14
  * **********************************************
  * @copyright   Copyright (c) 2024 libertyzx. All rights reserved.
  * @license     This project is released under the MIT License.
@@ -60,7 +60,7 @@ void XC_Task_Remove(XC_TaskHandle_t phTCB);
  * @param[in]   pParam  传递给任务的参数
  * @details
  *  只设置任务入口和传递给任务的参数;
- *  一般配合XCTask_Addk"使用;
+ *  一般配合"XC_Task_Add"使用;
  */
 void XC_Task_SetEntry(XC_TaskHandle_t phTCB, void (*fTask)(XC_TaskHandle_t), void* pParam);
 
@@ -72,7 +72,7 @@ void XC_Task_SetEntry(XC_TaskHandle_t phTCB, void (*fTask)(XC_TaskHandle_t), voi
  * @retval  XC_OK :      注册成功
  * @retval  XC_FAIL :    注册失败,任务太多
  * @details
- *  添加的任务必须先调用"XCTask_SetEntry";
+ *  添加的任务必须先调用"XC_Task_SetEntry";
  *  设置好任务入口和传递的参数才可添加;
  */
 XC_Return_t XC_Task_Add(XC_OSHandle_t phXCOS, XC_TaskHandle_t phTCB);
@@ -85,7 +85,7 @@ XC_Return_t XC_Task_Add(XC_OSHandle_t phXCOS, XC_TaskHandle_t phTCB);
  * @param[in]   phTCB   协程控制块
  * @details
  *  服务一个任务;
- *  **不可复位自身(复位自身使用"XC_Reset")**
+ *  **不可复位自身(复位自身使用"XC_Cor_Reset")**
  */
 void XC_Task_Reset(XC_TaskHandle_t phTCB);
 
@@ -171,7 +171,7 @@ XC_Return_t XC_Task_SendNotify(XC_TaskHandle_t phTCB, void* pNotifyData);
  * @details
  *  用来获取任务参数;
  *  > 注意: 因为协程内上下文切换局部变量是不保存的,
- *  > 所以若是要使用传递的参数需要再"XC_Enter"前将参数赋值给变量;
+ *  > 所以若是要使用传递的参数需要再"XC_Cor_Enter"前将参数赋值给变量;
  */
 #define XC_Task_GetParam(phTCB)       ((phTCB)->pParam)
 
@@ -187,22 +187,6 @@ XC_Return_t XC_Task_SendNotify(XC_TaskHandle_t phTCB, void* pNotifyData);
  * @details     获取任务运行的状态;
  */
 #define XC_Task_GetState(phTCB)       ((XC_TaskState_t)((phTCB)->TaskState))
-
-/************************************************ 我是分割线 ************************************************/
-//=== 向后兼容:保留旧版函数/宏名(已弃用,建议迁移到 XC_Task_ 前缀)
-#define XCTask_Reg                    XC_Task_Reg
-#define XCTask_Remove                 XC_Task_Remove
-#define XCTask_SetEntry               XC_Task_SetEntry
-#define XCTask_Add                    XC_Task_Add
-#define XCTask_Reset                  XC_Task_Reset
-#define XCTask_Suspend                XC_Task_Suspend
-#define XCTask_Resume                 XC_Task_Resume
-#define XCTask_SendNotify             XC_Task_SendNotify
-#define XCTask_ClrNotify              XC_Task_ClrNotify
-#define XCTask_UpdateNotifyData       XC_Task_UpdateNotifyData
-#define XCTask_ReadNotifyData         XC_Task_ReadNotifyData
-#define XCTask_GetParam               XC_Task_GetParam
-#define XCTask_GetState               XC_Task_GetState
 
 //=== 文件结束
 #endif

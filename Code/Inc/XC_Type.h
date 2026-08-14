@@ -2,8 +2,8 @@
  * @file        XC_Type.h
  * @brief       框架的类型
  * @author      libertyzx (libertyzx@163.com)
- * @version     2.0.0
- * @date        2026/01/05
+ * @version     2.1.0
+ * @date        2026/08/14
  * **********************************************
  * @copyright   Copyright (c) 2024 libertyzx. All rights reserved.
  * @license     This project is released under the MIT License.
@@ -57,12 +57,12 @@ typedef enum {
 /** 基础类型 */
 
 /**
- * @brief   [用户]XCOS基础数据类型
+ * @brief   [用户]嘀嗒计数数据类型
  * @details
  *  默认32位,用于系统滴答计数的数据
  *  一般不用改
+ *  "XC_Tick_t"在"XC_Config.h"文件定义
  */
-/** "XC_Tick_t"在"XC_Config.h"文件定义 */
 
 /**
  * [用户]软件定时器计数类型
@@ -80,7 +80,7 @@ typedef struct {
  * @details
  *  用于记录XCOS实例的数据,一个工程中开源有多个XCOS实例,用此类型区分;
  */
-typedef struct XCOS_t XCOS_t;
+typedef struct XCOS_tag XCOS_t;
 
 /**
  * @brief   [用户]XCOS框架句柄
@@ -98,7 +98,7 @@ typedef XCOS_t* XC_OSHandle_t;
  * @details
  *  用于记录任务控制相关的数据,每个任务都需要一个独立的TCB;
  */
-typedef struct XC_TaskCB_t XC_TaskCB_t;
+typedef struct XC_TaskCB_tag XC_TaskCB_t;
 
 /**
  * @brief   [用户]任务句柄

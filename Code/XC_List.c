@@ -2,8 +2,8 @@
  * @file        XC_List.c
  * @brief       链表操作
  * @author      libertyzx (libertyzx@163.com)
- * @version     2.0.0
- * @date        2026/01/06
+ * @version     2.1.0
+ * @date        2026/08/14
  * **********************************************
  * @copyright   Copyright (c) 2024 libertyzx. All rights reserved.
  * @license     This project is released under the MIT License.

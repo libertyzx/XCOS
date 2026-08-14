@@ -2,8 +2,8 @@
  * @file        XC_BitPatterns.h
  * @brief       定义二进制数据
  * @author      libertyzx (libertyzx@163.com)
- * @version     0.1.0
- * @date        2015/11/05
+ * @version     2.1.0
+ * @date        2026/08/14
  * **********************************************
  * @copyright   Copyright (c) 2015 libertyzx. All rights reserved.
  * @license     This project is released under the MIT License.

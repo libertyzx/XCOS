@@ -3,7 +3,7 @@
  * @brief       协程块实现
  * @author      libertyzx (libertyzx@163.com)
  * @version     2.1.0
- * @date        2026/06/25
+ * @date        2026/08/14
  * **********************************************
  * @copyright   Copyright (c) 2024 libertyzx. All rights reserved.
  * @license     This project is released under the MIT License.
@@ -20,6 +20,7 @@
 #define XC_Cor_h
 //=== 头文件
 #include "XC_Task.h"
+#include "XC_Time.h" // XC_Time_UsToTicks/MsToTicks/SecToTicks:协程延时及等待通知宏使用
 #include "XC_Type.h"
 
 /*
@@ -227,23 +228,6 @@
  ************************************************ 我是分割线 ************************************************|
  ************************************************************************************************************|
  */
-//=== 向后兼容:保留旧版宏名(已弃用,建议迁移到 XC_Cor_ 前缀)
-#define XC_Enter                    XC_Cor_Enter
-#define XC_Leave                    XC_Cor_Leave
-#define XC_GetParam                 XC_Cor_GetParam
-#define XC_Yield                    XC_Cor_Yield
-#define XC_Suspend                  XC_Cor_Suspend
-#define XC_Reset                    XC_Cor_Reset
-#define XC_Remove                   XC_Cor_Remove
-#define XC_DelayTick                XC_Cor_DelayTick
-#define XC_DelayUs                  XC_Cor_DelayUs
-#define XC_DelayMs                  XC_Cor_DelayMs
-#define XC_DelaySec                 XC_Cor_DelaySec
-#define XC_WaitForNotify            XC_Cor_WaitNotify
-#define XC_WaitForNotifyMs          XC_Cor_WaitNotifyMs
-#define XC_ClrNotify                XC_Cor_ClrNotify
-#define XC_CheckNotifyWakeupTimeout XC_Cor_IsNotifyTimeout
-#define XC_GetNotifyData            XC_Cor_GetNotifyData
 
 //=== 文件结束
 #endif
