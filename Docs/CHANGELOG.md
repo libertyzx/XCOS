@@ -12,17 +12,30 @@
 
 ## 函数重命名
 - 原协程相关命名修改:`XC_<功能>` --> `XC_Cor_<功能>`;
-- 所有模块前缀添加`_`分割符:`XCSch_`->`XC_Sch_`,`XCTask_`->`XC_Task_`,`XCTime_`->`XC_Time_`,`XCList_`->`XC_List_`;
+- 所有模块前缀添加`_`分割符:
+    - `XCSch_`->`XC_Sch_`
+    - `XCTask_`->`XC_Task_`
+    - `XCTime_`->`XC_Time_`
+    - `XCList_`->`XC_List_`
 - 将协程块宏从`XC_Task.h`迁移至新文件`XC_Cor.h`,保留向后兼容宏;
 - 向后兼容:所有旧名称均通过`#define`别名指向新名称;
 - 影响范围:全部`.c`和`.h`文件,约150处符号修改;
 
-## MISRA-C:2025 合规修正:
-- Rule 7.2 — unsigned 常量加 U 后缀
-- Rule-5.10 / Rule-20.15 — 保留标识符禁令
-- Rule 13.2 — 表达式值和副作用应在所有求值顺序下保持一致
-- Rule 15.6 — 迭代/选择语句体应为复合语句
-- Rule 20.7 — 宏参数展开应恰当定界
+## [MISRA-C:2025](./Docs/MISRA_C_2025_Rules_Complete.md) 合规修正:
+
+- Rule 1.3 - 未定义行为
+- Rule 7.2 - unsigned 常量加 U 后缀
+- Rule 5.10 / Rule 20.15 - 保留标识符禁令
+- Rule 10.1 — 操作数基本类型不当
+- Rule 11.3 - 跨类型指针强转
+- Rule 13.2 - 表达式值和副作用应在所有求值顺序下保持一致
+- Rule 14.3 - 不变控制表达式
+- Rule 15.1 (ANSI 版) - 不使用goto
+- Rule 15.6 - 迭代/选择语句体应为复合语句
+- Rule 20.7 - 宏参数展开应恰当定界
+
+### Deviation说明
+见 [MISRA-C_2025_Deviation](./Docs/MISRA-C_2025_Deviation.md)
 
 ---
 

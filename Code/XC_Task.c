@@ -144,7 +144,7 @@ static void XC_Task_HandleBlocking(XC_TaskHandle_t phTCB, uint32_t TickCount)
          *  保证(指向节点的值 <= 新节点的值),确保新的阻塞任务在表的最后;
          */
         pIterator = XC_List_GetListStartNode(pList); // 获取链表的首节点
-        while((pIterator != pList) && (((XC_TaskHandle_t)pIterator)->TaskWakeupTick <= TickCount)) {
+        while((pIterator != pList) && (XC_LIST_TO_TCB(pIterator)->TaskWakeupTick <= TickCount)) {
             /** 指向节点不是根节点 && (指向节点的值 <= 新节点的值) */
             pIterator = pIterator->pNext; // 指向下个节点
         }
@@ -329,7 +329,7 @@ XC_Return_t XC_Task_Add(XC_OSHandle_t phXCOS, XC_TaskHandle_t phTCB)
  */
 void XC_Task_Reset(XC_TaskHandle_t phTCB)
 {
-    if(phTCB->TaskState != XC_TASK_VOID) {
+    if(phTCB->TaskState != (uint8_t)XC_TASK_VOID) {
         XC_Task_HandleReset(phTCB);
     }
 }
@@ -350,10 +350,10 @@ void XC_Task_Reset(XC_TaskHandle_t phTCB)
 XC_Return_t XC_Task_Suspend(XC_TaskHandle_t phTCB)
 {
     /** 挂起操作只有在任务存在的时候才能运行 */
-    if(phTCB->TaskState == XC_TASK_VOID) {
+    if(phTCB->TaskState == (uint8_t)XC_TASK_VOID) {
         return (XC_FAIL);
     }
-    else if(phTCB->TaskState == XC_TASK_SUSPEND) {
+    else if(phTCB->TaskState == (uint8_t)XC_TASK_SUSPEND) {
         return (XC_OK); // 已经被挂起
     }
 
@@ -374,7 +374,7 @@ XC_Return_t XC_Task_Suspend(XC_TaskHandle_t phTCB)
 XC_Return_t XC_Task_Resume(XC_TaskHandle_t phTCB)
 {
     // 任务没有被挂起
-    if(phTCB->TaskState != XC_TASK_SUSPEND) {
+    if(phTCB->TaskState != (uint8_t)XC_TASK_SUSPEND) {
         return (XC_FAIL); // 没有被挂起
     }
 
@@ -431,16 +431,16 @@ XC_Return_t XC_Task_SendNotify(XC_TaskHandle_t phTCB, void* pNotifyData)
      *       - 非调度中:直接调度;
      */
 
-    if((phTCB->TaskState == XC_TASK_VOID) || (phTCB->TaskState == XC_TASK_SUSPEND)) {
+    if((phTCB->TaskState == (uint8_t)XC_TASK_VOID) || (phTCB->TaskState == (uint8_t)XC_TASK_SUSPEND)) {
         /** 任务不存在 || 任务被挂起 */
         return (XC_FAIL);
     }
 
     phTCB->pNotifyData = pNotifyData; // 通知数据
 
-    if(phTCB->NotifyState != XC_NOTIFY_WAIT) {
+    if(phTCB->NotifyState != (uint8_t)XC_NOTIFY_WAIT) {
         /** 不是等待通知状态 */
-        if((phTCB->NotifyProduced + 1) != phTCB->NotifyConsumed) {
+        if((phTCB->NotifyProduced + 1U) != phTCB->NotifyConsumed) {
             phTCB->NotifyProduced++; // 通知-生产者,生产者未满则+1
         }
         return (XC_CONTINUE);
@@ -449,10 +449,10 @@ XC_Return_t XC_Task_SendNotify(XC_TaskHandle_t phTCB, void* pNotifyData)
     /** 必须是等待通知唤醒 */
     if(XC_Sch_GetLockState(phTCB->phXCOS)) {
         /** 调度运行中-异步,只会在中断中出现 */
-        if((phTCB->NotifyProduced + 1) != phTCB->NotifyConsumed) {
+        if((phTCB->NotifyProduced + 1U) != phTCB->NotifyConsumed) {
             phTCB->NotifyProduced++; // 通知-生产者,生产者未满则+1
         }
-        if((phTCB->phXCOS->EventProduced + 1) != phTCB->phXCOS->EventConsumed) {
+        if((phTCB->phXCOS->EventProduced + 1U) != phTCB->phXCOS->EventConsumed) {
             phTCB->phXCOS->EventProduced++; // 异步调度触发,生产者未满则+1
         }
         return (XC_CONTINUE);

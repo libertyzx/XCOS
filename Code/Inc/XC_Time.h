@@ -32,7 +32,7 @@
  * @return      int32_t     返回当前系统嘀嗒计数(Tick)最小时间(单位:us);
  * @details     即是一次计数过去了多少时间;
  */
-#define XC_Time_GetTickUnit() (_XC_TICK_PERIOD_US)
+#define XC_Time_GetTickUnit() (XC_TICK_PERIOD_US)
 
 /**
  * @brief       [用户]获取系统Tick

@@ -135,6 +135,26 @@ void XC_List_Remove(XCListNode_t* pNode);
 void XC_List_MoveListToNodeAfter(XCListNode_t* pDestNode, XCListNode_t* pSrcList);
 
 /************************************************ 我是分割线 ************************************************/
+
+/** 前向声明，供 XC_LIST_TO_TCB 宏使用 */
+struct XC_TaskCB_t;
+
+/**
+ * @brief       [内部]从链表节点获取所属的任务控制块(TCB)
+ * @param[in]   pNode  链表节点指针
+ * @return      XC_TaskCB_t*  返回所属的 TCB 指针
+ * @details
+ *  container_of 的专用变体，XC_TaskCB_t 的第一个成员是 XCListNode_t，
+ *  通过 void* 过渡获取容器地址。
+ *  C 标准保证结构体指针与首成员指针地址相同。
+ *
+ *  MISRA-C 合规说明：
+ *  - 直接转换(XCListNode_t* → XC_TaskCB_t*)会违反 Rule 11.3 (Required)
+ *  - 通过 void* 间接转换仅触发 Rule 11.5 (Advisory)，可申请 Deviation 接受
+ */
+#define XC_LIST_TO_TCB(pNode)             ((struct XC_TaskCB_t*)(void*)(pNode))
+
+/************************************************ 我是分割线 ************************************************/
 //=== 向后兼容:保留旧版宏名(已弃用,建议迁移到 XC_List_ 前缀)
 #define XCList_InitNode(pNode)            XC_List_InitNode(pNode)
 #define XCList_Init(pList)                XC_List_Init(pList)

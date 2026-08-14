@@ -21,6 +21,9 @@
  *      - "COR_End"添加goto结束断点;
  *  - 2023/12/21
  *      - 增加"COR_Break"直接跳出协程;
+ *  - 2026/06/28
+ *      - 将 goto 替换为 break 以符合 MISRA-C Rule 15.1
+ *      - 删除 COR_GOTO_END 标签
  */
 /************************************************ 我是分割线 ************************************************/
 //=== 防重复定义
@@ -78,7 +81,7 @@ typedef unsigned long COR_BP_t;
  * @details     直接跳出协程
  */
 #define COR_Break(BP) \
-    goto COR_GOTO_END;
+    break;
 
 /**
  * @brief       协程-设置断点并跳出
@@ -87,7 +90,7 @@ typedef unsigned long COR_BP_t;
  */
 #define COR_SetBPBreak(BP)            \
     (BP) = (unsigned long)(__LINE__); \
-    goto COR_GOTO_END;                \
+    break;                            \
     case __LINE__:;
 
 /**
@@ -95,8 +98,9 @@ typedef unsigned long COR_BP_t;
  * @details     协程块的结束(状态机的结尾);
  */
 #define COR_End() \
-    }             \
-    COR_GOTO_END: /*结束跳转标志*/
+    default:      \
+        break;    \
+        }
 
 /*
  ************************************************************************************************************|

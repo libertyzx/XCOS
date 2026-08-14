@@ -1,0 +1,236 @@
+# XCOS — MISRA C:2025 Deviation 记录
+
+> **版本**: 1.0
+> **创建日期**: 2026-08-14
+> **适用范围**: XCOS v2.1.0 代码库（`Code/` 目录）
+> **依据**: MISRA C:2025 规则清单（`Docs/MISRA_C_2025_Rules_Complete.md`）
+> **性质**: 本文件为 Deviation **通知记录**，用于归档代码库对 MISRA 规则的偏差事实及理由，供后续审查、审计与合规性追溯使用。
+
+---
+
+## Deviation 汇总
+
+| ID | 规则 | 级别 | 主题 | 记录日期 |
+|----|------|------|------|:----:|
+| DEV-XCOS-001 | Rule 11.5 / Rule 20.10 / Rule 15.1 | Advisory | 协程底层设计约束（`void*`过渡 + `##` + `goto`） | 2026-08-14 |
+| DEV-XCOS-002 | Rule 8.7 | Advisory | 全局滴答计数外部链接 | 2026-08-14 |
+| DEV-XCOS-003 | Rule 2.3 | Advisory | 未使用的类型声明（用户 API） | 2026-08-14 |
+| DEV-XCOS-004 | Rule 8.13 | Advisory/Undecidable | 指针 const 限定 | 2026-08-14 |
+
+---
+
+## DEV-XCOS-001 — 协程底层设计约束
+
+### 基本信息
+
+| 字段 | 内容 |
+|------|------|
+| Deviation ID | DEV-XCOS-001 |
+| 规则 | Rule 11.5（void 指针转换对象指针）/ Rule 20.10（`##` 运算符）/ Rule 15.1（goto 语句） |
+| 级别 | 🟡 Advisory |
+| 文件 | `Code/Inc/Internal/XC_List.h`、`Code/Inc/Internal/XC_CorGNU.h` |
+| 记录日期 | 2026-08-14 |
+
+### 违规描述
+
+**Rule 11.5** — `void*` 过渡转换：
+
+```c
+// XC_List.h:155
+#define XC_LIST_TO_TCB(pNode) ((struct XC_TaskCB_t*)(void*)(pNode))
+```
+
+**Rule 20.10** — `##` 预处理运算符：
+
+```c
+// XC_CorGNU.h:65
+#define COR_BP2(S1, S2) S1##S2
+```
+
+**Rule 15.1** — goto 语句（GNU 版协程）：
+
+```c
+// XC_CorGNU.h:105, 116
+goto COR_GOTO_END;
+```
+
+### 偏差理由
+
+| 规则 | 理由 |
+|------|------|
+| Rule 11.5 | `XC_LIST_TO_TCB` 是 container_of 专用宏。C 标准（C89~C23 §6.7.2.1）保证结构体指针与首成员指针地址相同，`void*` 过渡语义完全安全。且已从原 Rule 11.3（Required）降级为 Rule 11.5（Advisory） |
+| Rule 20.10 | GNU 协程必须用 `##` 拼接 `__func__` 与 `__LINE__` 生成唯一 goto 标签名，这是计算跳转协程的核心机制，无替代方案 |
+| Rule 15.1 | GNU 协程使用 `goto *BP` 计算跳转实现上下文切换，`goto COR_GOTO_END` 是向前跳转至函数末尾（cleanup 模式），符合 Rule 15.2 要求，无替代方案 |
+
+### 缓解措施
+
+1. **ANSI-C 替代方案已提供**：`XC_CorANSI.h` 基于 `switch`/`case` 实现协程，已**零 goto、零 `##` 违规**（`COR_Break`/`COR_SetBPBreak`/`COR_End` 已用 `break` 替换）。`XC_TypeInternal.h:30-34` 自动选择：`__GNUC__` 用 GNU 版，否则用 ANSI 版。
+2. `XC_LIST_TO_TCB` 宏内已添加 MISRA 合规注释说明（`XC_List.h:151-154`）。
+
+### 结论
+
+**记录完成**。GNU 协程底层实现机制不可避免，用户可选用 ANSI-C 版规避（已提供缓解措施）。
+
+---
+
+## DEV-XCOS-002 — 全局滴答计数外部链接
+
+### 基本信息
+
+| 字段 | 内容 |
+|------|------|
+| Deviation ID | DEV-XCOS-002 |
+| 规则 | Rule 8.7（外部链接但仅单 TU 引用） |
+| 级别 | 🟡 Advisory |
+| 文件 | `Code/XC_Time.c`、`Code/Inc/XC_Config.h` |
+| 记录日期 | 2026-08-14 |
+
+### 违规描述
+
+```c
+// XC_Time.c:28 — 定义（外部链接）
+volatile XC_Tick_t g_SysTickCount = 0U; // 用户系统Tick
+
+// XC_Config.h:100 — extern 声明暴露给用户
+extern volatile XC_Tick_t g_SysTickCount; // 外部声明全局滴答时间计数
+```
+
+从框架内部看，`g_SysTickCount` 仅在 `XC_Time.c` 单 TU 定义，其余 TU 通过宏 `XC_SYS_TICK_COUNT` 间接引用。按 Rule 8.7 应设为 `static`。
+
+### 偏差理由
+
+`g_SysTickCount` **不是纯内部变量，是用户 API**：
+
+- 框架文档（XC_Config.h:82）明确要求用户**在自己的中断服务程序（ISR）中直接累加**此变量，实现系统滴答计数
+- 用户代码位于框架之外，若设为 `static`，用户无法访问 → **破坏公开 API 与向后兼容性**
+- 典型用户用法：
+  ```c
+  // 用户 ISR（框架之外的文件）
+  void SysTick_Handler(void) {
+      g_SysTickCount++;  // 需要 extern 链接
+  }
+  ```
+
+### 缓解措施
+
+已提供访问函数宏封装（`XC_Time.h`）：
+
+```c
+#define XC_Time_TickInc() do { g_SysTickCount++; } while(0)
+#define XC_Time_TickSet(_Tick) do { g_SysTickCount = (_Tick); } while(0)
+```
+
+用户可通过宏或直接访问两种方式使用，保持最大兼容性。
+
+### 结论
+
+**记录完成**。作为用户 API，必须保持外部链接供用户中断访问。
+
+---
+
+## DEV-XCOS-003 — 未使用的类型声明
+
+### 基本信息
+
+| 字段 | 内容 |
+|------|------|
+| Deviation ID | DEV-XCOS-003 |
+| 规则 | Rule 2.3（项目不应包含未使用的类型声明） |
+| 级别 | 🟡 Advisory |
+| 文件 | `Code/Inc/XC_Type.h` |
+| 记录日期 | 2026-08-14 |
+
+### 违规描述
+
+```c
+// XC_Type.h:70-73
+typedef struct {
+    XC_Tick_t TickCount;
+    XC_Tick_t WaitCount;
+} XC_TimerTick_t;
+```
+
+`XC_TimerTick_t` 在核心调度模块（XC_Sch/XC_Task）中未直接使用。
+
+### 偏差理由
+
+- `XC_TimerTick_t` 是**用户公开 API 类型**，用于扩展时间处理功能
+- 实际上已被 `XC_Time.c` 的扩展时间处理函数使用：
+  - `XC_Time_TimerGetRemain(XC_TimerTick_t)` 
+  - `XC_Time_TimerGetElapsed(XC_TimerTick_t)`
+  - 以及 `XC_Time.h` 中的 `XC_Time_TimerSet` / `XC_Time_TimerCheck` 等宏
+- 头文件文档明确标注为"[用户]软件定时器计数类型"，是 API 完整性的一部分
+
+### 缓解措施
+
+已在 `XC_Time.h`/`XC_Time.c` 提供完整的扩展时间处理 API 使用该类型，类型并非真正"未使用"。
+
+### 结论
+
+**记录完成**。作为用户 API 类型，内部未直接使用但对外提供，且已被扩展时间模块实际使用。
+
+---
+
+## DEV-XCOS-004 — 指针 const 限定
+
+### 基本信息
+
+| 字段 | 内容 |
+|------|------|
+| Deviation ID | DEV-XCOS-004 |
+| 规则 | Rule 8.13（只要可能，指针应指向 const 限定类型） |
+| 级别 | 🟡 Advisory / Undecidable |
+| 文件 | `Code/Inc/XC_Sch.h`、`Code/Inc/XC_Task.h`、`Code/Inc/XC_Time.h` 等 API 头文件 |
+| 记录日期 | 2026-08-14 |
+
+### 违规描述
+
+API 函数指针参数未加 const 限定，例如：
+
+```c
+void XC_Sch_Init(XC_OSHandle_t phXCOS);
+void XC_Sch_Start(XC_OSHandle_t phXCOS);
+uint8_t XC_Sch_GetTaskNum(XC_OSHandle_t phXCOS);
+XC_Return_t XC_Task_SendNotify(XC_TaskHandle_t phTCB, void* pNotifyData);
+```
+
+### 偏差理由
+
+1. **绝大多数 API 需修改数据，无法加 const**：
+   - `XC_Sch_Init` / `XC_Sch_Start` / `XC_Sch_TimeSched`：写 TCB/XCOS 状态
+   - `XC_Task_SendNotify` / `XC_Task_Remove` / `XC_Task_Reset`：写 TCB 字段
+   - 只有极少数纯查询函数（如 `XC_Sch_GetTaskNum`）只读
+
+2. **typedef 结构约束**：
+   ```c
+   // XC_Type.h:91
+   typedef XCOS_t* XC_OSHandle_t;
+   ```
+   若全局改为 `const XCOS_t*`，所有**需要写数据**的函数将编译失败（向 const 指针指向的对象写入）；只能为只读查询单独定义 const 版本句柄，破坏 API 一致性。
+
+3. **收益有限**：可加 const 的仅 `XC_Sch_GetTaskNum` 等个别纯查询函数，改造成本与 API 复杂度不成比例。
+
+### 缓解措施
+
+不改变句柄 typedef 设计。如未来需要，可为只读查询函数单独引入 `XC_OSHandleConst_t` 类型，但当前收益不匹配成本。
+
+### 结论
+
+**记录完成**。Undecidable 规则，结合句柄 typedef 设计约束，统一记录偏差。
+
+---
+
+## 记录清单
+
+本文件所有 Deviation 均为**通知记录**，记录日期见各条目基本信息表与顶部汇总表。
+
+| Deviation ID | 规则 | 记录日期 |
+|--------------|------|----------|
+| DEV-XCOS-001 | Rule 11.5 / 20.10 / 15.1 | 2026-08-14 |
+| DEV-XCOS-002 | Rule 8.7 | 2026-08-14 |
+| DEV-XCOS-003 | Rule 2.3 | 2026-08-14 |
+| DEV-XCOS-004 | Rule 8.13 | 2026-08-14 |
+
+---
+
+*文档结束*
