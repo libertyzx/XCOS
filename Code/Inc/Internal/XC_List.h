@@ -95,7 +95,7 @@ void XC_List_Remove(XCListNode_t* pNode);
 /**
  * @brief       [内部]链表是否有效
  * @param[in]   pList [XCListNode_t*]链表指针
- * @return      boot
+ * @return      bool
  * @retval      0 : 没有节点
  * @retval      1 : 有节点
  * @details     判断一个链表的是否有效(是否有节点)
@@ -106,7 +106,7 @@ void XC_List_Remove(XCListNode_t* pNode);
  * @brief       [内部]节点是否到达结尾节点
  * @param[in]   pList  [XCListNode_t*]链表指针
  * @param[in]   pNode  [XCListNode_t*]节点指针
- * @return      boot
+ * @return      bool
  * @retval      0 : 没有到达结尾节点
  * @retval      1 : 到达结尾节点(节点和链表根地址相同)
  * @details     用于遍历链表时,判断遍历的节点是否到达根节点(既是否结束遍历)
@@ -114,7 +114,7 @@ void XC_List_Remove(XCListNode_t* pNode);
 #define XC_List_ReachEndNode(pList, pNode) ((pList) == (pNode))
 
 /**
- * @brief       [internal]获取链表的开始节点
+ * @brief       [内部]获取链表的开始节点
  * @param[in]   pList  [XCListNode_t*]链表地址
  * @return      XCListNode_t*   返回节点地址
  * @details     得到当前链表的开始地址

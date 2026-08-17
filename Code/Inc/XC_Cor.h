@@ -40,7 +40,7 @@
 #define XC_Cor_Enter(phTCB)                                        \
     {                                                              \
         /*全局变量转局部变量可加快运行速度*/                       \
-        XC_TaskHandle_t phXCCorTCB = (phTCB);         /*得到PCB*/  \
+        XC_TaskHandle_t phXCCorTCB = (phTCB);         /*得到TCB*/  \
         XCBP_t*         pXCCorPB   = &phXCCorTCB->BP; /*得到断点*/ \
         /*启动协程*/                                               \
         COR_Start(*pXCCorPB); /*启动*/
@@ -171,7 +171,7 @@
  * @details
  *  **必须在协程块中使用;**
  *  任务等待通知;
- *  唤醒后用"XC_Cor_CheckNotifyWakeupTimeout"判断是否超时;
+ *  唤醒后用"XC_Cor_IsNotifyTimeout"判断是否超时;
  */
 #define XC_Cor_WaitNotify(TickTimeout)                     \
     {                                                      \
@@ -185,7 +185,7 @@
  * @details
  *  **必须在协程块中使用;**
  *  任务等待通知;
- *  唤醒后用"XC_Cor_CheckNotifyWakeupTimeout"判断是否超时;
+ *  唤醒后用"XC_Cor_IsNotifyTimeout"判断是否超时;
  */
 #define XC_Cor_WaitNotifyMs(MsTimeout) XC_Cor_WaitNotify(XC_Time_MsToTicks(MsTimeout))
 
@@ -204,7 +204,7 @@
 
 /**
  * @brief       [用户][协程]检查通知唤醒是否超时
- * @return      boot
+ * @return      bool
  * @retval      0 : 没有超时
  * @retval      1 : 超时
  * @details

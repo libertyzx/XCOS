@@ -89,11 +89,11 @@ void XC_List_Remove(XCListNode_t* pNode)
  *  >   链表X:Root,X1,X2,X3,Root
  *  >   链表Y:Root,Y1,Y2,Y3,Root
  *  >   在链表X节点X2的下面插入链表Y;
- *  >   函数为:XCList_MoveListToNodeAfter(&X2,&Y);
+ *  >   函数为:XC_List_MoveListToNodeAfter(&X2,&Y);
  *  >   运行后得到:
  *  >   链表X: Root,X1,X2,Y1,Y2,Y3,X3,Root;
  *  >   链表Y: 被清除;
- *  - 运行表(运行:XCList_MoveListToNodeAfter(&X2,&Y);)
+ *  - 运行表(运行:XC_List_MoveListToNodeAfter(&X2,&Y);)
  *  > XR,YR:为根节点; X*,Y*:为节点; P:指向上个节点; N:指向下个节点
  *  > 运行顺序对应代码操作;
  *  | 链表\运行顺序 | 1    | 2    | 3    | 4    | 5         | 最终得到     |

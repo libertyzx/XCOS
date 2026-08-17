@@ -40,7 +40,7 @@
 #define XCOS_VER_NUMBER ((XCOS_VER_MAJOR << 16U) | (XCOS_VER_MINOR << 8U) | XCOS_VER_PATCH) // 版本数值
 
 /**
- * @brief XCOS框架API兼容性性标识
+ * @brief XCOS框架API兼容性标识
  * @details
  * - 此宏必须存在，用于标识XCOS框架的可用性
  * - 指向主版本号，便于版本兼容性检查

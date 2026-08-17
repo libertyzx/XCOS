@@ -159,10 +159,11 @@ XCOS
 |   |   |-- XC_Time.h               # 时间处理头文件
 |   |   |-- XC_Type.h               # 框架中所有用户类型
 |   |   |-- XCOS.h                  # 总头文件,包含版本信息
-|   |-- XC_List.c                   # 内部链表实现
-|   |-- XC_Sch.c                    # 调度处理
-|   |-- XC_Task.c                   # 任务处理
-|   |-- XC_Time.c                   # 时间处理
+|   |-- Src/                         # 源码文件
+|   |   |-- XC_List.c                # 内部链表实现
+|   |   |-- XC_Sch.c                 # 调度处理
+|   |   |-- XC_Task.c                # 任务处理
+|   |   |-- XC_Time.c                # 时间处理
 |-- Docs/                           # 文档
 |-- Examples/                       # 示例
 |-- .clang-format                   # 格式化配置

@@ -368,7 +368,7 @@ XC_Return_t XC_Task_Suspend(XC_TaskHandle_t phTCB)
  * @retval      XC_FAIL:         失败(任务未挂起)
  * @details
  *  只能恢复被挂起的任务;
- *  任务唤醒后原先的阻塞将失效,任务状态为"XC_TASK_RESUME";
+ *  任务唤醒后原先的阻塞将失效,任务状态为"XC_TASK_READY";
  */
 XC_Return_t XC_Task_Resume(XC_TaskHandle_t phTCB)
 {

@@ -118,7 +118,7 @@ static void XC_Sch_TimeSched(XC_OSHandle_t phXCOS)
  * @param[in]   phXCOS  框架句柄
  * @details
  *  此函数用于:
- *      - 任务唤醒"XCTask_SendNotify"函数触发;
+ *      - 任务唤醒"XC_Task_SendNotify"函数触发;
  *  注意:
  *      - 在调用此函数前必须先判断"phXCOS->EventProduced != phXCOS->EventConsumed";
  *      - 此函数的实现主要是循环搜索链表(时间表,溢出表,阻塞表),判断是否有需要处理的任务:

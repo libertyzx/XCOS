@@ -39,7 +39,7 @@
 
 /**
  *  将时间转换成Tick(1个时间是多少Tick)
- *  注意:使用"XCTime_UsToTicks"时,时间误差会非常大,tick是ms级的,us时间处理按1个tick处理;
+ *  注意:使用"XC_Time_UsToTicks"时,时间误差会非常大,tick是ms级的,us时间处理按1个tick处理;
  */
 #define XC_Time_UsToTicks(Time)  (((Time) + XC_TICK_PERIOD_MS * 1000U - 1U) / (XC_TICK_PERIOD_MS * 1000U)) /*(Time)us 转换成Tick*/
 #define XC_Time_MsToTicks(Time)  (((Time) + XC_TICK_PERIOD_MS - 1U) / XC_TICK_PERIOD_MS)                   /*(Time)ms 转换成Tick*/
@@ -68,7 +68,7 @@
 #define XC_Time_TicksToSec(Tick) (XC_Time_TicksToMs(Tick) / 1000U)                       /*(Tick)转换成s*/
 
 #else
-#error "系统每秒滴答数[XC_CFG_TICKS_PER_SECd]设置错误!"
+#error "系统每秒滴答数[XC_CFG_TICKS_PER_SEC]设置错误!"
 #endif
 
 /*

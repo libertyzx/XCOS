@@ -477,22 +477,22 @@
             <File>
               <FileName>XC_List.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\Code\XC_List.c</FilePath>
+              <FilePath>..\..\Code\Src\XC_List.c</FilePath>
             </File>
             <File>
               <FileName>XC_Sch.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\Code\XC_Sch.c</FilePath>
+              <FilePath>..\..\Code\Src\XC_Sch.c</FilePath>
             </File>
             <File>
               <FileName>XC_Task.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\Code\XC_Task.c</FilePath>
+              <FilePath>..\..\Code\Src\XC_Task.c</FilePath>
             </File>
             <File>
               <FileName>XC_Time.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\Code\XC_Time.c</FilePath>
+              <FilePath>..\..\Code\Src\XC_Time.c</FilePath>
             </File>
           </Files>
         </Group>

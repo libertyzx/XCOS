@@ -29,7 +29,7 @@
 
 /**
  * @brief       [用户]获取系统Tick最小时间(单位:us)
- * @return      int32_t     返回当前系统嘀嗒计数(Tick)最小时间(单位:us);
+ * @return      uint32_t    返回当前系统嘀嗒计数(Tick)最小时间(单位:us);
  * @details     即是一次计数过去了多少时间;
  */
 #define XC_Time_GetTickUnit() (XC_TICK_PERIOD_US)
@@ -61,7 +61,7 @@
 
 /**
  * @brief   [用户]递增系统Tick
- * @details 在中断中调用,XC_CFG_TICKS_PER_SECond"频率计数;
+ * @details 在中断中调用,XC_CFG_TICKS_PER_SEC"频率计数;
  */
 #define XC_Time_TickInc() \
     do {                  \
@@ -257,7 +257,7 @@ XC_Tick_t XC_Time_TimerGetElapsed(XC_TimerTick_t tTime);
  * @brief       [用户]获取运行了多少ms
  * @param[in]   tTime       "XC_TimerTick_t"类型定义的时间数据;
  * @return      XC_Tick_t    返回已经运行的ms,若等于"tTime.WaitCount",表示时间到达或早已到达;
- * @details     [扩展]从上次调用更新计算,获取当前Tick到设定的值已经运行了多少个Tick;
+ * @details     [扩展]从上次调用更新计算,获取当前Tick到设定的值已经运行了多少ms;
  */
 #define XC_Time_TimerGetElapsedMs(_tC) XC_Time_TicksToMs(XC_Time_TimerGetElapsed(_tC)) // 获取运行了多少ms
 

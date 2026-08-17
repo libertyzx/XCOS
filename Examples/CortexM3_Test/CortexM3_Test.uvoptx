@@ -474,7 +474,7 @@
       <tvExp>0</tvExp>
       <tvExpOptDlg>0</tvExpOptDlg>
       <bDave2>0</bDave2>
-      <PathWithFileName>..\..\Code\XC_List.c</PathWithFileName>
+      <PathWithFileName>..\..\Code\Src\XC_List.c</PathWithFileName>
       <FilenameWithoutPath>XC_List.c</FilenameWithoutPath>
       <RteFlg>0</RteFlg>
       <bShared>0</bShared>
@@ -486,7 +486,7 @@
       <tvExp>0</tvExp>
       <tvExpOptDlg>0</tvExpOptDlg>
       <bDave2>0</bDave2>
-      <PathWithFileName>..\..\Code\XC_Sch.c</PathWithFileName>
+      <PathWithFileName>..\..\Code\Src\XC_Sch.c</PathWithFileName>
       <FilenameWithoutPath>XC_Sch.c</FilenameWithoutPath>
       <RteFlg>0</RteFlg>
       <bShared>0</bShared>
@@ -498,7 +498,7 @@
       <tvExp>0</tvExp>
       <tvExpOptDlg>0</tvExpOptDlg>
       <bDave2>0</bDave2>
-      <PathWithFileName>..\..\Code\XC_Task.c</PathWithFileName>
+      <PathWithFileName>..\..\Code\Src\XC_Task.c</PathWithFileName>
       <FilenameWithoutPath>XC_Task.c</FilenameWithoutPath>
       <RteFlg>0</RteFlg>
       <bShared>0</bShared>
@@ -510,7 +510,7 @@
       <tvExp>0</tvExp>
       <tvExpOptDlg>0</tvExpOptDlg>
       <bDave2>0</bDave2>
-      <PathWithFileName>..\..\Code\XC_Time.c</PathWithFileName>
+      <PathWithFileName>..\..\Code\Src\XC_Time.c</PathWithFileName>
       <FilenameWithoutPath>XC_Time.c</FilenameWithoutPath>
       <RteFlg>0</RteFlg>
       <bShared>0</bShared>
