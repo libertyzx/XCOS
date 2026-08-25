@@ -44,6 +44,39 @@
 XC_Return_t XC_Task_Reg(XC_OSHandle_t phXCOS, XC_TaskHandle_t phTCB, void (*fTask)(XC_TaskHandle_t), void* pParam);
 
 /**
+ * @brief       [用户]任务注册(扩展:支持协程嵌套)
+ * @param[in]   phXCOS        框架句柄
+ * @param[in]   phTCB         协程任务控制块
+ * @param[in]   fTask         任务的函数指针(任务入口)
+ * @param[in]   pParam        传递给任务的参数
+ * @param[in]   pCorStack     协程帧栈(用户按需提供;无嵌套传NULL)
+ * @param[in]   CorDepthMax   帧栈容量(最大嵌套层数;无嵌套传0)
+ * @return      XC_Return_t
+ * @retval      XC_OK :      注册成功
+ * @retval      XC_FAIL :    注册失败(任务太多,或帧栈/容量参数不匹配)
+ * @details
+ *  在"XC_Task_Reg"基础上增加协程帧栈配置,等价于"XC_Task_Reg"+"XC_Task_SetCorStack";
+ *  "pCorStack"/"CorDepthMax"必须同为有/同为无(都传NULL/0表示无嵌套任务);
+ *  需要嵌套的任务必须用本函数或"XC_Task_SetCorStack"配置帧栈;
+ */
+XC_Return_t XC_Task_RegExt(XC_OSHandle_t phXCOS, XC_TaskHandle_t phTCB, XC_CorFn_t fTask, void* pParam, XC_CorFrame_t* pCorStack, uint8_t CorDepthMax);
+
+/**
+ * @brief       [用户]设置协程帧栈(支持/撤销协程嵌套能力)
+ * @param[in]   phTCB         协程任务控制块
+ * @param[in]   pCorStack     协程帧栈(用户按需提供;撤销嵌套能力传NULL)
+ * @param[in]   CorDepthMax   帧栈容量(最大嵌套层数;撤销传0)
+ * @return      XC_Return_t
+ * @retval      XC_OK :      设置成功
+ * @retval      XC_FAIL :    帧栈/容量参数不匹配
+ * @details
+ *  "pCorStack"/"CorDepthMax"必须同为有/同为无;
+ *  传"(NULL, 0U)"撤销嵌套能力;重新设置会清空当前深度("CorDepth=0");
+ *  任务嵌套中更换配置前应先"XC_Task_Reset"/"XC_Cor_Reset"清栈;
+ */
+XC_Return_t XC_Task_SetCorStack(XC_TaskHandle_t phTCB, XC_CorFrame_t* pCorStack, uint8_t CorDepthMax);
+
+/**
  * @brief       [用户]任务移除
  * @param[in]   phTCB 协程控制块
  * @details     移除一个任务

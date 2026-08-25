@@ -15,19 +15,7 @@
  *  使用协程库后,每个文件代码行数不能超过65535;
  * **********************************************
  *  修改日志
- *  - 2018/04/16
- *      - 版本:0.1
- *      - 初始编写
- *  - 2022/08/15
- *      - 版本:0.2
- *      - 修改断点在断点标号前加'_',为了防止数字开头的文件,导致标号不符合c语言规范;
- *      - "COR_End"添加goto结束断点;
- *  - 2023/12/21
- *      - 版本:0.3
- *      - 增加"COR_Break"直接跳出协程;
- *  - 2024/03/23
- *      - 版本:0.4
- *      - 删除宏中的"do{}while(0)"操作;
+ *  - 见"CHANGELOG.md"的更新说明;
  */
 //=== 防重复定义
 #ifndef XC_CorGNU_h
@@ -77,11 +65,13 @@ typedef void* COR_BP_t;
  * @param[in]   BP  [COR_BP_t]协程断点
  * @details     协程块的开始(状态机的开始);
  */
-#define COR_Start(BP)    \
-    {                    \
-        if(BP != NULL) { \
-            goto* BP;    \
-        }                \
+#define COR_Start(BP)                                                         \
+    {                                                                         \
+        (void)(&&COR_ANCHOR); /* 锚点取地址(不执行,编译器优化为无指令) */     \
+    COR_ANCHOR:;              /* 锚点标签定义(每函数仅一个 Enter,天然唯一) */ \
+        if(BP != NULL) {                                                      \
+            goto* BP;                                                         \
+        }                                                                     \
     }
 
 /**
@@ -123,6 +113,27 @@ typedef void* COR_BP_t;
  */
 #define COR_End() \
     COR_GOTO_END: /*结束跳转标志*/
+
+/**
+ * @brief       协程-跳出并放置返回标签(供 XC_Cor_Call 使用,不设断点)
+ * @details
+ *  返回点已由 XC_Task_PushFrame 存入帧,故只需"跳出 + 标签";
+ *  goto 跳到 COR_GOTO_END,跳过 Leave 的 CorState = DONE 赋值,保持挂起;
+ */
+#define COR_BreakLabel()              \
+    {                                 \
+        goto COR_GOTO_END;            \
+        COR_BP(__func__, __LINE__) :; \
+    }
+
+/**
+ * @brief       协程-返回点表达式(供 XC_Task_PushFrame 传参)
+ * @return      COR_BP_t  返回当前行标签的地址(void*)
+ * @details
+ *  与 COR_BreakLabel 同处 XC_Cor.h 的外层宏内展开,__func__/__LINE__ 为同一
+ *  用户函数与行号,保证帧内返回点与恢复标签匹配;
+ */
+#define COR_RetPoint() (&&COR_BP(__func__, __LINE__))
 
 /*
  ************************************************************************************************************|

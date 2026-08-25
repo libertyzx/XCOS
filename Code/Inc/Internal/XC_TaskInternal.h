@@ -65,6 +65,23 @@ void XC_Task_HandleReset(XC_TaskHandle_t phTCB);
  */
 void XC_Task_HandleRemove(XC_TaskHandle_t phTCB);
 
+/**
+ * @brief       [内部]协程帧入栈
+ * @param[in]   phTCB     任务句柄
+ * @param[in]   fn        子协程函数入口
+ * @param[in]   RetLine   父层返回点(ANSI:行号 / GNU:标签地址)
+ * @details     仅由 XC_Cor_Call 调用:保存父层入口+返回点,入口切换为子函数;
+ *              越界时复位任务安全降级;
+ */
+void XC_Task_PushFrame(XC_TaskHandle_t phTCB, XC_CorFn_t fn, XC_BP_t RetLine);
+
+/**
+ * @brief       [内部]协程帧出栈
+ * @param[in]   phTCB   [XC_TaskHandle_t]任务句柄
+ * @details     弹帧恢复父层入口与返回点(调度器同轮切父使用);
+ */
+void XC_Task_PopFrame(XC_TaskHandle_t phTCB);
+
 /*
  ************************************************************************************************************|
  ************************************************ 我是分割线 ************************************************|
@@ -75,9 +92,9 @@ void XC_Task_HandleRemove(XC_TaskHandle_t phTCB);
 /**
  * @brief       [内部]将任务移动到就绪表
  * @param[in]   phTCB   [XC_TaskHandle_t]协程控制块
- * @details     将任务移动上个就绪节点后,确保最后调用;
+ * @details     将任务插入就绪表首(下轮优先运行);
  */
-#define XC_Task_MoveToReadyList(phTCB)   XC_List_MoveNodeAfter((phTCB)->phXCOS->pPrevReadyNode, &(phTCB)->ListNode)
+#define XC_Task_MoveToReadyList(phTCB)   XC_List_MoveNodeAfter(&(phTCB)->phXCOS->ReadyList, &(phTCB)->ListNode)
 
 /**
  * @brief       [内部]将任务移动到阻塞表

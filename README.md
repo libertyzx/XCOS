@@ -3,7 +3,7 @@
 <div align="center">
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
-![Version](https://img.shields.io/badge/version-2.0.0-green.svg)
+![Version](https://img.shields.io/badge/version-2.1.0-green.svg)
 ![C Language](https://img.shields.io/badge/language-C-orange.svg)
 ![Platform](https://img.shields.io/badge/platform-Embedded-lightgrey.svg)
 
@@ -25,8 +25,9 @@
 | 场景          | RAM 占用      | ROM 占用      |
 | ---           | ---           | ---           |
 | 框架核心      | 52 Bytes      | < 700 Bytes   |
-| +1个任务      | +36 Bytes     | +~230 Bytes   |
+| +1个任务      | +44 Bytes     | +~230 Bytes   |
 | 无任务堆栈    | 共享系统堆栈  | 无额外开销    |
+| +协程嵌套     | 8 Bytes/层     | 极少量指令     |
 
 ### ⚡ 高效协作式调度
 - **纯协作式调度** - 无优先级抢占, 简化设计
@@ -39,6 +40,7 @@
 - ✅ 任务挂起与恢复管理
 - ✅ 软件定时器支持
 - ✅ 空闲任务回调
+- ✅ **协程嵌套** - 子协程调用/返回, 帧栈实现, C 栈开销恒定 O(1)
 
 ## 📋 设计约束
 
@@ -82,13 +84,13 @@ XC_TaskCB_t s_hTCB0 = {0};
 void Task(XC_TaskHandle_t phTCB)
 {
     /***/
-    XC_Enter(phTCB);        // 进入协程块
+    XC_Cor_Enter(phTCB);    // 进入协程块
     /***/
     while(1) {
-        XC_DelayMs(20);     // 阻塞延时20ms
+        XC_Cor_DelayMs(20); // 阻塞延时20ms
     }
     /***/
-    XC_Leave();             // 离开协程块
+    XC_Cor_Leave();         // 离开协程块
     /***/
 }
 
@@ -110,10 +112,10 @@ int main(void)
 {
     // 硬件初始化(配置1ms定时器)
     // XCOS框架初始化
-    XCSch_Init(&s_hXCOS0);
-    XCSch_SetIdleCallback(&s_hXCOS0, IdleCallback);
-    XCTask_Reg(&s_hTCB0, Task, NULL);
-    XCSch_Start(&s_hXCOS0);
+    XC_Sch_Init(&s_hXCOS0);
+    XC_Sch_SetIdleCallback(&s_hXCOS0, IdleCallback);
+    XC_Task_Reg(&s_hXCOS0, &s_hTCB0, Task, NULL);
+    XC_Sch_Start(&s_hXCOS0);
     return(0);
 }
 
@@ -122,7 +124,7 @@ int main(void)
  */
 void TimerISR(void)
 {
-    XCTime_TickInc();   // 系统Tick递增
+    XC_Time_TickInc();  // 系统Tick递增
 }
 ```
 
@@ -133,9 +135,13 @@ void TimerISR(void)
 ## 📚 文档
 
 - [API文档](./Docs/XCOS.md) - 完整的数据类型与函数说明
+- [Agent开发技能](./Docs/XCOS_Agent_Skill.md) - AI Agent 使用 XCOS 2.1.0 的开发指南（编程模型、API 速查、代码模式与陷阱）
+- [框架概览](./Docs/架构概览/XCOS_V2.1.0_架构概览.md) - 完整实现说明（数据结构、调度流程、内存开销、边界限制）
 - [使用示例](./Docs/Examples.md) - 丰富的示例代码
 - [配置说明](./Docs/XC_Config.md) - 详细的配置选项说明
 - [更新日志](./Docs/CHANGELOG.md) - 版本更新记录
+- [修正方案](./Docs/修正方案/) - 问题修正方案（含问题说明、根因分析、修复方案与测试）
+- [缺陷记录](./Docs/缺陷记录/) - 已知缺陷记录（含触发条件、实测复现与使用注意）
 
 ## 🔧 文件结构
 
@@ -147,13 +153,15 @@ XCOS
 |   |   |-- Internal/               # 内部头文件
 |   |   |   |-- XC_CorANSI.h        # 协程底层实现("ANSI-C"是由"switch case"实现)
 |   |   |   |-- XC_CorGNU.h         # 协程底层实现("GNU-C" 是由"goto label" 实现)
-|   |   |   |-- XC_Core.h          # 内核基础(框架实例锁等)
+|   |   |   |-- XC_Core.h           # 内核基础(框架实例锁等)
 |   |   |   |-- XC_List.h           # 链表实现头文件
 |   |   |   |-- XC_TaskInternal.h   # 任务相关的内部代码
 |   |   |   |-- XC_TimeInternal.h   # 时间相关的内部代码
 |   |   |   |-- XC_TypeInternal.h   # 类型相关的内部代码
 |   |   |-- XC_BitPatterns.h        # 二进制数值宏定义
+|   |   |-- XC_Compat.h             # 向后兼容宏(旧名映射,后续版本删除)
 |   |   |-- XC_Config.h             # 用于存放"XCOS"的配置参数
+|   |   |-- XC_Cor.h                # 协程块宏(进入/离开/延时/通知/嵌套调用)
 |   |   |-- XC_Sch.h                # 调度处理头文件
 |   |   |-- XC_Task.h               # 任务处理头文件
 |   |   |-- XC_Time.h               # 时间处理头文件
@@ -165,6 +173,16 @@ XCOS
 |   |   |-- XC_Task.c                # 任务处理
 |   |   |-- XC_Time.c                # 时间处理
 |-- Docs/                           # 文档
+|   |-- XCOS.md                     # API参考手册(完整)
+|   |-- XCOS_Agent_Skill.md        # AI Agent 开发技能(编程模型/API速查/代码模式/陷阱)
+|   |-- XC_Config.md                # 配置说明
+|   |-- Examples.md                 # 示例说明
+|   |-- ROADMAP.md                  # 项目路线图
+|   |-- CHANGELOG.md                # 更新日志
+|   |-- MISRA-C/                    # MISRA C:2025 合规文档
+|   |-- 架构概览/                    # 架构实现说明（Markdown 思维导图 + 完整实现）
+|   |-- 修正方案/                    # 问题修正方案(问题说明/根因/修复/测试)
+|   |-- 缺陷记录/                    # 已知缺陷记录(触发条件/复现/使用注意)
 |-- Examples/                       # 示例
 |-- .clang-format                   # 格式化配置
 |-- .gitignore

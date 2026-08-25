@@ -1,9 +1,9 @@
 # MISRA C:2025 完整规则清单
 
-> **来源**: Perforce QAC for C 2026.2 Rule Enforcement Summary + LDRA MISRA C:2025 分类统计  
-> **统计**: 201条 Rules + 22条 Directives = 223条 Guidelines（MISRA C:2023 为221条，2025新增4条Rules，净增2条）  
-> **规则分类**: Mandatory(强制) 22 / Required(必要) 140 / Advisory(建议) 38 / Disapplied(废止) 1 (Rule 15.5)  
-> **可静态执行**: 201条中 Decidable 规则可由工具自动判定，Undecidable 规则需人工审查；Perforce QAC 对全部可判定规则 **100% 覆盖**  
+> **来源**: Perforce QAC for C 2026.2 Rule Enforcement Summary + LDRA MISRA C:2025 分类统计
+> **统计**: 201条 Rules + 22条 Directives = 223条 Guidelines（MISRA C:2023 为221条，2025新增4条Rules，净增2条）
+> **规则分类**: Mandatory(强制) 22 / Required(必要) 140 / Advisory(建议) 38 / Disapplied(废止) 1 (Rule 15.5)
+> **可静态执行**: 201条中 Decidable 规则可由工具自动判定，Undecidable 规则需人工审查；Perforce QAC 对全部可判定规则 **100% 覆盖**
 > **不可静态执行**: 22条 Directives（Assisted: 17条 提供辅助检查 / Unassisted: 5条 需完全人工）
 
 ---
@@ -387,5 +387,5 @@
 ---
 
 > **版权声明**: 本文档基于 Perforce QAC for C 2026.2 Rule Enforcement Summary + LDRA MISRA C:2025 分类统计整理。MISRA、MISRA C、MISRA C++ 是 The MISRA Consortium Limited 的注册商标。完整标准文档可从 [misra.org.uk](https://misra.org.uk/product/misra-c2025/) 购买，售价 £15/授权。
-> 
+>
 > **注**: Perforce 博客称"225条活跃Guidelines"，与 LDRA（其技术专家 Andrew Banks 担任 MISRA C Working Group 主席）所述 223 条相差 2 条。本文档以 LDRA 的 223 条（201 Rules + 22 Directives）为准。Perforce 工具中"新增 5 条"的第 5 条推测为 1 条新增 Directive（文档 22 条 Directive 列表中尚未标出 🆕），并非 Perforce 内部编造。

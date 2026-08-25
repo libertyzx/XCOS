@@ -34,9 +34,9 @@
  * @details
  *  主要用来锁定任务切换(包括链表操作,状态切换),防止中断调用时资源竞争;
  */
-#define XC_Core_Lock(phXCOS)                      \
-    do {                                          \
-        ((struct XCOS_tag*)(phXCOS))->Lock = 1U;  \
+#define XC_Core_Lock(phXCOS)                     \
+    do {                                         \
+        ((struct XCOS_tag*)(phXCOS))->Lock = 1U; \
     } while(0)
 
 /**
@@ -45,9 +45,9 @@
  * @details
  *  主要用来锁定任务切换(包括链表操作,状态切换),防止中断调用时资源竞争;
  */
-#define XC_Core_Unlock(phXCOS)                    \
-    do {                                          \
-        ((struct XCOS_tag*)(phXCOS))->Lock = 0U;  \
+#define XC_Core_Unlock(phXCOS)                   \
+    do {                                         \
+        ((struct XCOS_tag*)(phXCOS))->Lock = 0U; \
     } while(0)
 
 /**

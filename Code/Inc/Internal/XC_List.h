@@ -32,10 +32,10 @@
  *  根节点只是标记的普通节点;
  *  32位下占8字节;
  */
-typedef struct XCListNode_t {
-    struct XCListNode_t* pNext; // 指向下个节点
-    struct XCListNode_t* pPrev; // 指向上个节点
-} XCListNode_t;
+typedef struct XC_ListNode_tag {
+    struct XC_ListNode_tag* pNext; // 指向下个节点
+    struct XC_ListNode_tag* pPrev; // 指向上个节点
+} XC_ListNode_t;
 
 /*
  ************************************************************************************************************|
@@ -46,7 +46,7 @@ typedef struct XCListNode_t {
 
 /**
  * @brief       [内部]初始化节点
- * @param[in]   pNode   [XCListNode_t*]需要初始化的节点
+ * @param[in]   pNode   [XC_ListNode_t*]需要初始化的节点
  * @details     初始化节点时使用,指向自己,优化为宏;
  */
 #define XC_List_InitNode(pNode)   \
@@ -71,7 +71,7 @@ typedef struct XCListNode_t {
  * @param[in]   pNewNode    新节点
  * @details     只插入节点;
  */
-void XC_List_InsertNodeAfter(XCListNode_t* pListNode, XCListNode_t* pNewNode);
+void XC_List_InsertNodeAfter(XC_ListNode_t* pListNode, XC_ListNode_t* pNewNode);
 
 /**
  * @brief       [内部]将节点移动到某个节点之后
@@ -80,21 +80,21 @@ void XC_List_InsertNodeAfter(XCListNode_t* pListNode, XCListNode_t* pNewNode);
  * @details
  *  将节点从原先链表中移除,并移动到目标节点之后;
  */
-void XC_List_MoveNodeAfter(XCListNode_t* pDestNode, XCListNode_t* pSrcNode);
+void XC_List_MoveNodeAfter(XC_ListNode_t* pDestNode, XC_ListNode_t* pSrcNode);
 
 /**
  * @brief       [内部]从链表中移除一个节点
- * @param[in]   pNode   [XCListNode_t*]需要删除的节点
+ * @param[in]   pNode   [XC_ListNode_t*]需要删除的节点
  * @details     只处理链表节点部分,不影响节点挂载的其他数据;
  */
-void XC_List_Remove(XCListNode_t* pNode);
+void XC_List_Remove(XC_ListNode_t* pNode);
 
 /************************************************ 我是分割线 ************************************************/
 /**基础判断 */
 
 /**
  * @brief       [内部]链表是否有效
- * @param[in]   pList [XCListNode_t*]链表指针
+ * @param[in]   pList [XC_ListNode_t*]链表指针
  * @return      bool
  * @retval      0 : 没有节点
  * @retval      1 : 有节点
@@ -104,8 +104,8 @@ void XC_List_Remove(XCListNode_t* pNode);
 
 /**
  * @brief       [内部]节点是否到达结尾节点
- * @param[in]   pList  [XCListNode_t*]链表指针
- * @param[in]   pNode  [XCListNode_t*]节点指针
+ * @param[in]   pList  [XC_ListNode_t*]链表指针
+ * @param[in]   pNode  [XC_ListNode_t*]节点指针
  * @return      bool
  * @retval      0 : 没有到达结尾节点
  * @retval      1 : 到达结尾节点(节点和链表根地址相同)
@@ -115,8 +115,8 @@ void XC_List_Remove(XCListNode_t* pNode);
 
 /**
  * @brief       [内部]获取链表的开始节点
- * @param[in]   pList  [XCListNode_t*]链表地址
- * @return      XCListNode_t*   返回节点地址
+ * @param[in]   pList  [XC_ListNode_t*]链表地址
+ * @return      XC_ListNode_t*   返回节点地址
  * @details     得到当前链表的开始地址
  */
 #define XC_List_GetListStartNode(pList)    ((pList)->pNext)
@@ -132,7 +132,7 @@ void XC_List_Remove(XCListNode_t* pNode);
  *  - 转移完节点后的链表会被清除;
  *  - 注意:不要移动自己;
  */
-void XC_List_MoveListToNodeAfter(XCListNode_t* pDestNode, XCListNode_t* pSrcList);
+void XC_List_MoveListToNodeAfter(XC_ListNode_t* pDestNode, XC_ListNode_t* pSrcList);
 
 /************************************************ 我是分割线 ************************************************/
 
@@ -144,15 +144,15 @@ struct XC_TaskCB_tag;
  * @param[in]   pNode  链表节点指针
  * @return      XC_TaskCB_t*  返回所属的 TCB 指针
  * @details
- *  container_of 的专用变体，XC_TaskCB_t 的第一个成员是 XCListNode_t，
+ *  container_of 的专用变体，XC_TaskCB_t 的第一个成员是 XC_ListNode_t，
  *  通过 void* 过渡获取容器地址。
  *  C 标准保证结构体指针与首成员指针地址相同。
  *
  *  MISRA-C 合规说明：
- *  - 直接转换(XCListNode_t* → XC_TaskCB_t*)会违反 Rule 11.3 (Required)
+ *  - 直接转换(XC_ListNode_t* → XC_TaskCB_t*)会违反 Rule 11.3 (Required)
  *  - 通过 void* 间接转换仅触发 Rule 11.5 (Advisory)，可申请 Deviation 接受
  */
-#define XC_LIST_TO_TCB(pNode)             ((struct XC_TaskCB_tag*)(void*)(pNode))
+#define XC_LIST_TO_TCB(pNode) ((struct XC_TaskCB_tag*)(void*)(pNode))
 
 /*
  ************************************************************************************************************|

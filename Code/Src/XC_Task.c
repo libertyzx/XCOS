@@ -47,6 +47,51 @@ static void XC_Task_BasicInit(XC_TaskHandle_t phTCB)
     phTCB->NotifyState    = XC_NOTIFY_WAKEUP; // 通知状态:通知唤醒(没有通知)
     // 清除通知
     phTCB->NotifyConsumed = phTCB->NotifyProduced;
+    phTCB->CorDepth       = 0U; // 清协程深度(pCorStack/CorDepthMax 保留)
+}
+
+/**
+ * @brief       [内部]协程帧入栈
+ * @param[in]   phTCB     任务句柄
+ * @param[in]   fn        子协程函数入口
+ * @param[in]   RetLine   父层返回点(ANSI:行号 / GNU:标签地址)
+ * @details
+ *  仅由"XC_Cor_Call"调用:保存父层入口+返回点,入口切换为子函数;
+ *  不做真实 C 嵌套调用(C 栈 O(1)),由调度器下一轮进入子层;
+ *  越界保护(未配栈调用 Call / 栈容量不足)统一复位任务安全降级;
+ */
+void XC_Task_PushFrame(XC_TaskHandle_t phTCB, XC_CorFn_t fn, XC_BP_t RetLine)
+{
+    /**
+     *  越界保护:同一分支覆盖两种情形——
+     *  1. 未设栈调用 Call:CorDepthMax==0U 且 pCorStack==NULL(用户编程错误);
+     *  2. 栈容量不足:CorDepth 达到 CorDepthMax(嵌套过深);
+     *  处理策略:复位任务安全降级(HandleReset 内部清栈并恢复顶层入口 fTask=[0].pfn);
+     */
+    if(phTCB->CorDepth >= phTCB->CorDepthMax) {
+        XC_Task_HandleReset(phTCB);
+        return;
+    }
+    XC_CorFrame_t* pf = &phTCB->pCorStack[phTCB->CorDepth];
+    pf->pfn           = phTCB->fTask; // 父层入口(弹帧恢复用;栈底帧恒为顶层任务)
+    pf->BP            = RetLine;      // 父层返回点(ANSI:行号 / GNU:标签地址)
+    phTCB->fTask      = fn;           // 入口切换为子函数(下轮/切父循环进入)
+    COR_Init(phTCB->BP);              // 子层首次从头(ANSI:0 / GNU:NULL);用 COR_Init 跨版本统一
+    phTCB->CorDepth++;
+}
+
+/**
+ * @brief       [内部]协程帧出栈
+ * @param[in]   phTCB   [XC_TaskHandle_t]任务句柄
+ * @details
+ *  弹帧恢复父层入口与返回点(调度器同轮切父使用);
+ *  仅当"CorDepth > 0U"时调用(由调度器保证);
+ */
+void XC_Task_PopFrame(XC_TaskHandle_t phTCB)
+{
+    phTCB->CorDepth--;                                    // 先减后取(弹出当前层)
+    phTCB->fTask = phTCB->pCorStack[phTCB->CorDepth].pfn; // 恢复父层入口
+    phTCB->BP    = phTCB->pCorStack[phTCB->CorDepth].BP;  // 恢复父层返回点
 }
 
 /**
@@ -59,9 +104,9 @@ static void XC_Task_BasicInit(XC_TaskHandle_t phTCB)
 static void XC_Task_AddInternal(XC_TaskHandle_t phTCB)
 {
     XC_Task_BasicInit(phTCB);                                                 // 基础初始化
-    XC_Core_Lock(phTCB->phXCOS);                                               // 锁
-    XC_List_InsertNodeAfter(phTCB->phXCOS->pPrevReadyNode, &phTCB->ListNode); // 插入就续表
-    XC_Core_Unlock(phTCB->phXCOS);                                             // 解锁
+    XC_Core_Lock(phTCB->phXCOS);                                              // 锁
+    XC_List_InsertNodeAfter(&phTCB->phXCOS->ReadyList, &phTCB->ListNode); // 插入就续表(表首)
+    XC_Core_Unlock(phTCB->phXCOS);                                            // 解锁
     phTCB->TaskState = XC_TASK_READY;                                         // 任务更新状态为就绪
     phTCB->phXCOS->TaskNum++;                                                 // 任务数+1
 }
@@ -78,12 +123,17 @@ static void XC_Task_AddInternal(XC_TaskHandle_t phTCB)
 void XC_Task_HandleRemove(XC_TaskHandle_t phTCB)
 {
     phTCB->TaskState = XC_TASK_VOID; // 任务状态改为空
-    XC_Core_Lock(phTCB->phXCOS);      // 锁
+    XC_Core_Lock(phTCB->phXCOS);     // 锁
     XC_Task_RemoveNode(phTCB);       // 移除任务节点
-    XC_Core_Unlock(phTCB->phXCOS);    // 解锁
-    XC_Task_BasicInit(phTCB);        // 基本数据初始化
-    phTCB->phXCOS->TaskNum--;        // 任务数-1
-    phTCB->phXCOS = NULL;            // 清除任务的所属框架句柄
+    XC_Core_Unlock(phTCB->phXCOS);   // 解锁
+    /* 清栈并恢复最外层入口(栈底帧 [0].pfn 恒为最外层) */
+    if(phTCB->CorDepth > 0U) {
+        phTCB->fTask = phTCB->pCorStack[0].pfn;
+    }
+    phTCB->CorDepth = 0U;
+    XC_Task_BasicInit(phTCB); // 基本数据初始化
+    phTCB->phXCOS->TaskNum--; // 任务数-1
+    phTCB->phXCOS = NULL;     // 清除任务的所属框架句柄
 }
 
 /**
@@ -95,10 +145,15 @@ void XC_Task_HandleReset(XC_TaskHandle_t phTCB)
 {
     phTCB->TaskState = XC_TASK_READY; // 任务更新状态为就绪
     /**这里不判断是否在就绪表,直接移动*/
-    XC_Core_Lock(phTCB->phXCOS);     // 锁
+    XC_Core_Lock(phTCB->phXCOS);    // 锁
     XC_Task_MoveToReadyList(phTCB); // 任务移动到就绪表
-    XC_Core_Unlock(phTCB->phXCOS);   // 解锁
-    XC_Task_BasicInit(phTCB);       // 基本数据初始化
+    XC_Core_Unlock(phTCB->phXCOS);  // 解锁
+    /* 清栈并恢复最外层入口(栈底帧 [0].pfn 恒为最外层) */
+    if(phTCB->CorDepth > 0U) {
+        phTCB->fTask = phTCB->pCorStack[0].pfn;
+    }
+    phTCB->CorDepth = 0U;
+    XC_Task_BasicInit(phTCB); // 基本数据初始化
 }
 
 /**
@@ -109,9 +164,9 @@ void XC_Task_HandleReset(XC_TaskHandle_t phTCB)
 void XC_Task_HandleSuspend(XC_TaskHandle_t phTCB)
 {
     phTCB->TaskState = XC_TASK_SUSPEND; // 任务状态:挂起
-    XC_Core_Lock(phTCB->phXCOS);         // 锁
+    XC_Core_Lock(phTCB->phXCOS);        // 锁
     XC_Task_MoveToBlockedList(phTCB);   // 将任务移动到阻塞表
-    XC_Core_Unlock(phTCB->phXCOS);       // 解锁
+    XC_Core_Unlock(phTCB->phXCOS);      // 解锁
 }
 
 /**
@@ -122,9 +177,9 @@ void XC_Task_HandleSuspend(XC_TaskHandle_t phTCB)
  */
 static void XC_Task_HandleBlocking(XC_TaskHandle_t phTCB, uint32_t TickCount)
 {
-    XC_Tick_t     Tick;
-    XCListNode_t* pIterator;
-    XCListNode_t* pList;
+    XC_Tick_t      Tick;
+    XC_ListNode_t* pIterator;
+    XC_ListNode_t* pList;
 
     if(TickCount != 0U) {                  // 有延时或超时时间("TickCount"!=0)
         Tick = XC_Time_GetTick();          // 得到当前系统Tick
@@ -136,7 +191,7 @@ static void XC_Task_HandleBlocking(XC_TaskHandle_t phTCB, uint32_t TickCount)
          *  由溢出和非溢出选择任务入溢出表或者时间表;
          */
         pList = (TickCount < Tick) ? (&phTCB->phXCOS->TimeOverflowList) : (&phTCB->phXCOS->TimeList); // 得到链表
-        XC_Core_Lock(phTCB->phXCOS);                                                                   // 锁
+        XC_Core_Lock(phTCB->phXCOS);                                                                  // 锁
         /**
          *  插入时间表按升序排列;
          *  从根节点向下(Next)查询"任务下个唤醒的时间"(TaskWakeupTick),根据查询值从小到大排列;
@@ -155,7 +210,7 @@ static void XC_Task_HandleBlocking(XC_TaskHandle_t phTCB, uint32_t TickCount)
         XC_List_MoveNodeAfter(pIterator->pPrev, &phTCB->ListNode);
     }
     else {                                // 无时间,阻塞处理
-        XC_Core_Lock(phTCB->phXCOS);       // 锁
+        XC_Core_Lock(phTCB->phXCOS);      // 锁
         XC_Task_MoveToBlockedList(phTCB); // 任务移动到阻塞表(任务挂起或者死等,进入阻塞表;)
     }
     XC_Core_Unlock(phTCB->phXCOS); // 解锁
@@ -190,14 +245,18 @@ void XC_Task_HandleWaitNotify(XC_TaskHandle_t phTCB, uint32_t TickCount)
     if(phTCB->NotifyProduced != phTCB->NotifyConsumed) { // 出现通知
         phTCB->NotifyConsumed = phTCB->NotifyProduced;   // 清除通知
         phTCB->NotifyState    = XC_NOTIFY_WAKEUP;        // 通知状态:通知唤醒
-        XC_Core_Unlock(phTCB->phXCOS);                    // 解锁
+        XC_Core_Unlock(phTCB->phXCOS);                   // 解锁
         phTCB->TaskState = XC_TASK_READY;                // 任务状态:就绪
     }
     else {
-        /**语句[1]后没有中断,这里直接处理阻塞 */
-        XC_Task_HandleBlocking(phTCB, TickCount); // 处理阻塞
+        /* 语句[1]后没有中断,这里直接处理阻塞:
+         * - 先置 BLOCKED 再入表:若中断在 "XC_Task_HandleBlocking" 解锁后直接唤醒任务,
+         *   其设置的 READY 会覆盖此处 BLOCKED,保证状态与链表一致;
+         * - 锁设计:外层锁(本函数开头)须持续到入表完成,防止解锁窗口内中断直接唤醒任务
+         *   导致"已唤醒却再次入表阻塞";"XC_Task_HandleBlocking"按"锁范围最小化"自持锁,
+         *   其内部 Unlock 即隐式释放本外层锁(锁为单一标志位,不支持嵌套,此即隐式配对) */
         phTCB->TaskState = XC_TASK_BLOCKED;       // 任务状态:阻塞
-        /*"XC_Task_HandleBlocking"中已经解锁*/
+        XC_Task_HandleBlocking(phTCB, TickCount); // 处理阻塞(内部锁保护入表,锁范围最小)
     }
 }
 
@@ -250,6 +309,55 @@ XC_Return_t XC_Task_Reg(XC_OSHandle_t phXCOS, XC_TaskHandle_t phTCB, void (*fTas
     phTCB->pParam    = pParam;       // 传递给任务的参数
     XC_Task_AddInternal(phTCB);
 
+    return (XC_OK);
+}
+
+/**
+ * @brief       [用户]任务注册(扩展:支持协程嵌套)
+ * @param[in]   phXCOS        框架句柄
+ * @param[in]   phTCB         协程任务控制块
+ * @param[in]   fTask         任务的函数指针(任务入口)
+ * @param[in]   pParam        传递给任务的参数
+ * @param[in]   pCorStack     协程帧栈(用户按需提供;无嵌套传NULL)
+ * @param[in]   CorDepthMax   帧栈容量(最大嵌套层数;无嵌套传0)
+ * @return      XC_Return_t
+ * @retval      XC_OK :      注册成功
+ * @retval      XC_FAIL :    注册失败(任务太多,或帧栈/容量参数不匹配)
+ * @details
+ *  先写帧栈配置,再走"XC_Task_Reg"流程(等价于 Reg + SetCorStack);
+ *  "pCorStack"/"CorDepthMax"必须同为有/同为无;
+ */
+XC_Return_t XC_Task_RegExt(XC_OSHandle_t phXCOS, XC_TaskHandle_t phTCB, XC_CorFn_t fTask, void* pParam, XC_CorFrame_t* pCorStack, uint8_t CorDepthMax)
+{
+    /* 参数校验:帧栈与容量同为有/同为无 */
+    if((pCorStack == NULL) != (CorDepthMax == 0U)) {
+        return (XC_FAIL);
+    }
+    phTCB->pCorStack   = pCorStack;   // 帧栈
+    phTCB->CorDepthMax = CorDepthMax; // 栈容量
+    return (XC_Task_Reg(phXCOS, phTCB, fTask, pParam));
+}
+
+/**
+ * @brief       [用户]设置协程帧栈(支持/撤销协程嵌套能力)
+ * @param[in]   phTCB         协程任务控制块
+ * @param[in]   pCorStack     协程帧栈(用户按需提供;撤销嵌套能力传NULL)
+ * @param[in]   CorDepthMax   帧栈容量(最大嵌套层数;撤销传0)
+ * @return      XC_Return_t
+ * @retval      XC_OK :      设置成功
+ * @retval      XC_FAIL :    帧栈/容量参数不匹配
+ * @details
+ *  写配置并置"CorDepth = 0U";传"(NULL, 0U)"撤销嵌套能力;
+ */
+XC_Return_t XC_Task_SetCorStack(XC_TaskHandle_t phTCB, XC_CorFrame_t* pCorStack, uint8_t CorDepthMax)
+{
+    /* 参数校验:帧栈与容量同为有/同为无 */
+    if((pCorStack == NULL) != (CorDepthMax == 0U)) {
+        return (XC_FAIL);
+    }
+    phTCB->pCorStack   = pCorStack;   // 帧栈
+    phTCB->CorDepthMax = CorDepthMax; // 栈容量
+    phTCB->CorDepth    = 0U;          // 清当前深度
     return (XC_OK);
 }
 
@@ -377,9 +485,9 @@ XC_Return_t XC_Task_Resume(XC_TaskHandle_t phTCB)
         return (XC_FAIL); // 没有被挂起
     }
 
-    XC_Core_Lock(phTCB->phXCOS);       // 锁
+    XC_Core_Lock(phTCB->phXCOS);      // 锁
     XC_Task_MoveToReadyList(phTCB);   // 将任务移动到就绪表
-    XC_Core_Unlock(phTCB->phXCOS);     // 解锁
+    XC_Core_Unlock(phTCB->phXCOS);    // 解锁
     phTCB->TaskState = XC_TASK_READY; // 任务状态:就绪
     return (XC_OK);
 }
@@ -458,9 +566,9 @@ XC_Return_t XC_Task_SendNotify(XC_TaskHandle_t phTCB, void* pNotifyData)
     }
 
     /** 调度没有运行 */
-    XC_Core_Lock(phTCB->phXCOS);            // 锁
+    XC_Core_Lock(phTCB->phXCOS);           // 锁
     XC_Task_MoveToReadyList(phTCB);        // 移动到就绪表
-    XC_Core_Unlock(phTCB->phXCOS);          // 解锁
+    XC_Core_Unlock(phTCB->phXCOS);         // 解锁
     phTCB->NotifyState = XC_NOTIFY_WAKEUP; // 通知状态:通知唤醒
     phTCB->TaskState   = XC_TASK_READY;    // 任务状态:就绪
     return (XC_OK);

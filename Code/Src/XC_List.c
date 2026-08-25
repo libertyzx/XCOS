@@ -33,7 +33,7 @@
  * @param[in]   pNewNode    新节点
  * @details     只插入节点;
  */
-void XC_List_InsertNodeAfter(XCListNode_t* pListNode, XCListNode_t* pNewNode)
+void XC_List_InsertNodeAfter(XC_ListNode_t* pListNode, XC_ListNode_t* pNewNode)
 {
     pNewNode->pNext        = pListNode->pNext;
     pNewNode->pNext->pPrev = pNewNode;
@@ -48,7 +48,7 @@ void XC_List_InsertNodeAfter(XCListNode_t* pListNode, XCListNode_t* pNewNode)
  * @details
  *  将节点从原先链表中移除,并移动到目标节点之后;
  */
-void XC_List_MoveNodeAfter(XCListNode_t* pDestNode, XCListNode_t* pSrcNode)
+void XC_List_MoveNodeAfter(XC_ListNode_t* pDestNode, XC_ListNode_t* pSrcNode)
 {
     // 链接前后两个节点来删除节点
     pSrcNode->pNext->pPrev = pSrcNode->pPrev;
@@ -66,7 +66,7 @@ void XC_List_MoveNodeAfter(XCListNode_t* pDestNode, XCListNode_t* pSrcNode)
  * @param[in]   pNode   需要删除的节点
  * @details     只处理链表节点部分,不影响节点挂载的其他数据;
  */
-void XC_List_Remove(XCListNode_t* pNode)
+void XC_List_Remove(XC_ListNode_t* pNode)
 {
     /* 链接前后两个节点来删除节点*/
     pNode->pNext->pPrev = pNode->pPrev;
@@ -117,7 +117,7 @@ void XC_List_Remove(XCListNode_t* pNode)
  *  | Y3,P=Y2,N=X3 |              |
  *  | X3,P=Y3,N=XR |              |
  */
-void XC_List_MoveListToNodeAfter(XCListNode_t* pDestNode, XCListNode_t* pSrcList)
+void XC_List_MoveListToNodeAfter(XC_ListNode_t* pDestNode, XC_ListNode_t* pSrcList)
 {
     pSrcList->pPrev->pNext  = pDestNode->pNext; //[1]链表上的下,链接到,节点下;[YR->P(Y3)->N = X2->N(X3)]
     pDestNode->pNext->pPrev = pSrcList->pPrev;  //[2]节点下的上,链接到,链表上;[X2->N(X3)->P = YR->P(Y3)]

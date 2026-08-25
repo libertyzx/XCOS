@@ -3,7 +3,7 @@
 > **版本**: 1.0
 > **创建日期**: 2026-08-14
 > **适用范围**: XCOS v2.1.0 代码库（`Code/` 目录）
-> **依据**: MISRA C:2025 规则清单（`Docs/MISRA_C_2025_Rules_Complete.md`）
+> **依据**: MISRA C:2025 规则清单（`Docs/MISRA-C/MISRA_C_2025_Rules_Complete.md`）
 > **性质**: 本文件为 Deviation **通知记录**，用于归档代码库对 MISRA 规则的偏差事实及理由，供后续审查、审计与合规性追溯使用。
 
 ---
@@ -28,7 +28,7 @@
 | Deviation ID | DEV-XCOS-001 |
 | 规则 | Rule 11.5（void 指针转换对象指针）/ Rule 20.10（`##` 运算符）/ Rule 15.1（goto 语句） |
 | 级别 | 🟡 Advisory |
-| 文件 | `Code/Inc/Internal/XC_List.h`、`Code/Inc/Internal/XC_CorGNU.h` |
+| 文件 | `Code/Inc/Internal/XC_List.h`、`Code/Inc/Internal/XC_CorGNU.h`、`Code/Inc/Internal/XC_CorANSI.h`（嵌套协程 v2.1.0 起） |
 | 记录日期 | 2026-08-14 |
 
 ### 违规描述
@@ -43,15 +43,17 @@
 **Rule 20.10** — `##` 预处理运算符：
 
 ```c
-// XC_CorGNU.h:65
+// XC_CorGNU.h:53
 #define COR_BP2(S1, S2) S1##S2
 ```
 
-**Rule 15.1** — goto 语句（GNU 版协程）：
+**Rule 15.1** — goto 语句（协程底层，GNU 版 + ANSI 版）：
 
 ```c
-// XC_CorGNU.h:105, 116
+// XC_CorGNU.h:92, 104, 123 / XC_CorANSI.h:74, 83, 104(嵌套协程 v2.1.0 回退)
 goto COR_GOTO_END;
+// XC_Cor.h(用户可见宏):XC_Cor_Leave 内的编译器可达性提示(2026-08 起,消除 armcc #111-D)
+if(0) { goto COR_DONE_L; } COR_DONE_L:;
 ```
 
 ### 偏差理由
@@ -60,16 +62,16 @@ goto COR_GOTO_END;
 |------|------|
 | Rule 11.5 | `XC_LIST_TO_TCB` 是 container_of 专用宏。C 标准（C89~C23 §6.7.2.1）保证结构体指针与首成员指针地址相同，`void*` 过渡语义完全安全。且已从原 Rule 11.3（Required）降级为 Rule 11.5（Advisory） |
 | Rule 20.10 | GNU 协程必须用 `##` 拼接 `__func__` 与 `__LINE__` 生成唯一 goto 标签名，这是计算跳转协程的核心机制，无替代方案 |
-| Rule 15.1 | GNU 协程使用 `goto *BP` 计算跳转实现上下文切换，`goto COR_GOTO_END` 是向前跳转至函数末尾（cleanup 模式），符合 Rule 15.2 要求，无替代方案 |
+| Rule 15.1 | 协程使用 `goto *BP` 计算跳转实现上下文切换（GNU），`goto COR_GOTO_END` 是向前跳转至函数末尾（cleanup 模式），符合 Rule 15.2 要求，无替代方案。**ANSI 版自嵌套协程 v2.1.0 起回退使用同一 `goto COR_GOTO_END` 模式**（`COR_Break`/`COR_SetBPBreak`/`COR_End`/`COR_BreakLabel`）：`break` 在循环体内跳出的是循环而非协程 `switch`，控制流会落入 `XC_Cor_Leave` 误置 `CorState=DONE`，使调度器"同轮切父"误判弹帧（方案附例 `for(;;)+Call` 实测死循环、子协程从不运行），故 ANSI 版必须与 GNU 版一致使用 `goto`。**另**：`XC_Cor_Leave` 宏内 `if(0){ goto COR_DONE_L; } COR_DONE_L:;` 为编译器可达性提示（`goto` 在常量假分支内、永不执行），用于消除 armcc 对协程标准写法 `while(1){...}XC_Cor_Leave()` 的 #111-D 告警，与协程挂起/完成 `goto` 同类，一并纳入本 Deviation |
 
 ### 缓解措施
 
-1. **ANSI-C 替代方案已提供**：`XC_CorANSI.h` 基于 `switch`/`case` 实现协程，已**零 goto、零 `##` 违规**（`COR_Break`/`COR_SetBPBreak`/`COR_End` 已用 `break` 替换）。`XC_TypeInternal.h:30-34` 自动选择：`__GNUC__` 用 GNU 版，否则用 ANSI 版。
+1. **ANSI-C 替代方案（零 goto）不再成立**：嵌套协程方案（v2.1.0）要求 ANSI 版回退 `goto`。`XC_CorANSI.h` 原基于 `switch`/`case` 实现、`COR_Break`/`COR_SetBPBreak`/`COR_End` 用 `break` 替换 goto（`f4607ea`，MISRA-C:2025 修正），但 `break` 在循环体内跳出的是循环而非协程 `switch`，导致 `CorState=DONE` 被误置（调度器"同轮切父"误判弹帧、死循环/子协程被跳过）；嵌套协程要求挂起点可写在 `for`/`while` 体内（方案附例即 `for(;;)+Call`），故 ANSI 版必须恢复 `goto COR_GOTO_END`（前向跳转至 `DONE` 赋值之后的函数末尾标签，跳过 `DONE`），与 GNU 版语义对齐。`XC_TypeInternal.h:30-34` 仍按 `__GNUC__` 自动选择：`__GNUC__` 用 GNU 版，否则用 ANSI 版（两版本现均使用 `goto`）。
 2. `XC_LIST_TO_TCB` 宏内已添加 MISRA 合规注释说明（`XC_List.h:151-154`）。
 
 ### 结论
 
-**记录完成**。GNU 协程底层实现机制不可避免，用户可选用 ANSI-C 版规避（已提供缓解措施）。
+**记录完成**。协程底层（GNU 版 + ANSI 版）实现机制不可避免：ANSI 版自嵌套协程 v2.1.0 起因 `break` 在循环体内语义缺陷回退 `goto`，两版本现均使用 `goto COR_GOTO_END`（前向跳转、cleanup 模式）。
 
 ---
 
@@ -91,7 +93,7 @@ goto COR_GOTO_END;
 // XC_Time.c:28 — 定义（外部链接）
 volatile XC_Tick_t g_SysTickCount = 0U; // 用户系统Tick
 
-// XC_Config.h:100 — extern 声明暴露给用户
+// XC_Config.h:108 — extern 声明暴露给用户
 extern volatile XC_Tick_t g_SysTickCount; // 外部声明全局滴答时间计数
 ```
 
@@ -156,7 +158,7 @@ typedef struct {
 
 - `XC_TimerTick_t` 是**用户公开 API 类型**，用于扩展时间处理功能
 - 实际上已被 `XC_Time.c` 的扩展时间处理函数使用：
-  - `XC_Time_TimerGetRemain(XC_TimerTick_t)` 
+  - `XC_Time_TimerGetRemain(XC_TimerTick_t)`
   - `XC_Time_TimerGetElapsed(XC_TimerTick_t)`
   - 以及 `XC_Time.h` 中的 `XC_Time_TimerSet` / `XC_Time_TimerCheck` 等宏
 - 头文件文档明确标注为"[用户]软件定时器计数类型"，是 API 完整性的一部分

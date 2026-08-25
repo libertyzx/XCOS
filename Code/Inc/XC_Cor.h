@@ -36,23 +36,61 @@
  * @details
  *  **协程块的开始;**
  *  必须搭配"XC_Cor_Leave"使用;
+ *  进入即置"CorState = XC_COR_SUSPENDED"(本轮默认挂起),由"XC_Cor_Leave"置
+ *  "DONE"区分"本层完成"(调度器据此决定是否同轮切父);
  */
-#define XC_Cor_Enter(phTCB)                                        \
-    {                                                              \
-        /*全局变量转局部变量可加快运行速度*/                       \
-        XC_TaskHandle_t phXCCorTCB = (phTCB);         /*得到TCB*/  \
-        XCBP_t*         pXCCorPB   = &phXCCorTCB->BP; /*得到断点*/ \
-        /*启动协程*/                                               \
-        COR_Start(*pXCCorPB); /*启动*/
+#define XC_Cor_Enter(phTCB)                            \
+    {                                                  \
+        /*全局变量转局部变量可加快运行速度*/           \
+        XC_TaskHandle_t phXCCorTCB = (phTCB);          \
+        XC_BP_t*        pXCCorPB   = &phXCCorTCB->BP;  \
+        phXCCorTCB->CorState       = XC_COR_SUSPENDED; \
+        /*启动协程*/                                   \
+        COR_Start(*pXCCorPB)
 
 /**
  * @brief       [用户][协程]离开
  * @details
  *  **协程块的结束;**
  *  必须搭配"XC_Cor_Enter"使用;
+ *  "DONE"赋值必须在"COR_End()"之前——挂起/Call 经底层 goto 跳出时跳过它,
+ *  保持"SUSPENDED";正常走完本层才执行"DONE";
+ *  ---
+ *  **实现说明(消除 armcc #111-D)**:若 DONE 赋值直接写在循环后(while(1) 恒真),
+ *  armcc(AC5)会将其判为"不可达语句"并告警(#111-D)——因为普通语句在无限循环后不可达,
+ *  而"标签后的语句"不告警;故此处用 `if(0){goto}` 引用一个标签,使 DONE 赋值成为
+ *  "标签后的语句",消除告警;
+ *  - 运行时:`if(0)` 恒假、`goto` 永不执行,`do-while(0)` 单次执行,行为与原版逐字节等价;
+ *  - 编译期:常量条件 `if(0)` 在 -O0~-O3 均被消除,实测各优化级别 Flash 大小/性能与原版完全一致(+0);
+ *  - 任务代码无需任何改动,`while(1) { ... } XC_Cor_Leave();` 写法即可免告警;
  */
-#define XC_Cor_Leave()  \
-    COR_End(); /*结束*/ \
+#define XC_Cor_Leave()                                 \
+    do {                                               \
+        if(0) {                                        \
+            goto COR_DONE_L;                           \
+        } /* 引用下方标签,免 armcc #177-D */           \
+    COR_DONE_L:; /* 标签后的语句不触发 armcc #111-D */ \
+        phXCCorTCB->CorState = XC_COR_DONE;            \
+    } while(0);                                        \
+    COR_End(); /*结束*/                                \
+    }
+
+/**
+ * @brief       [用户][协程]嵌套调用子协程(登记,不做真实 C 嵌套调用)
+ * @param[in]   fn  [XC_CorFn_t]子协程函数(签名同任务函数:void (XC_TaskHandle_t))
+ * @details
+ *  **必须在协程块中使用;**
+ *  登记子协程:入栈保存"父层入口+返回点",入口切换为子函数后跳出,由调度器下一轮
+ *  进入子层;子层完成后调度器弹帧恢复父层,同轮切父;
+ *  需要嵌套的任务必须用"XC_Task_RegExt"/"XC_Task_SetCorStack"配置帧栈,
+ *  未配置栈时调用将触发任务复位保护;
+ *  **注意**:Call 是必挂起点,调用前后局部变量一律不保存,需跨调用保留的数据
+ *  放 TCB/静态区;
+ */
+#define XC_Cor_Call(fn)                                      \
+    {                                                        \
+        XC_Task_PushFrame(phXCCorTCB, (fn), COR_RetPoint()); \
+        COR_BreakLabel();                                    \
     }
 
 /************************************************ 我是分割线 ************************************************/
@@ -212,7 +250,7 @@
  *  用于判断任务通知阻塞唤醒后是否超时;
  *  > 通知函数:XC_Cor_WaitNotify;
  */
-#define XC_Cor_IsNotifyTimeout()    (phXCCorTCB->NotifyState != XC_NOTIFY_WAKEUP)
+#define XC_Cor_IsNotifyTimeout() (phXCCorTCB->NotifyState != XC_NOTIFY_WAKEUP)
 
 /**
  * @brief       [用户][协程]获取通知的数据(void*)
@@ -221,7 +259,7 @@
  *  **必须在协程块中使用;**
  *  被通知唤醒后获取通知传递的数据;
  */
-#define XC_Cor_GetNotifyData()      (phXCCorTCB->pNotifyData)
+#define XC_Cor_GetNotifyData()   (phXCCorTCB->pNotifyData)
 
 /*
  ************************************************************************************************************|

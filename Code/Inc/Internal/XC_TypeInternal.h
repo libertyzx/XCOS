@@ -63,12 +63,10 @@ typedef enum {
  */
 struct XCOS_tag {
     // 链表
-    XCListNode_t ReadyList;        // 就绪链表
-    XCListNode_t TimeList;         // 延时/超时/等待的链表
-    XCListNode_t TimeOverflowList; // 时间溢出的链表
-    XCListNode_t BlockedList;      // 阻塞链表
-
-    XCListNode_t* pPrevReadyNode; // 上个就绪的节点,位于就绪表
+    XC_ListNode_t ReadyList;        // 就绪链表
+    XC_ListNode_t TimeList;         // 延时/超时/等待的链表
+    XC_ListNode_t TimeOverflowList; // 时间溢出的链表
+    XC_ListNode_t BlockedList;      // 阻塞链表
 
     XC_Tick_t PrevTick; // 上个Tick,用于判断Tick溢出,在时间处理中时间表更新时更新
 
@@ -103,13 +101,45 @@ struct XCOS_tag {
  * @brief   [内部]XCOS核心断点类型
  * @details 用于创建上下文切换的断点标记
  */
-typedef COR_BP_t XCBP_t;
+typedef COR_BP_t XC_BP_t;
+
+/**
+ * @brief   [内部]协程状态(存 TCB.CorState,调度器据此决定是否同轮切父)
+ * @details
+ *  - "XC_COR_DONE":      本层完成(执行到"XC_Cor_Leave");
+ *  - "XC_COR_SUSPENDED": 本层挂起(延时/通知/让出/Call 登记后跳出);
+ *  枚举值存 TCB.CorState(uint8_t),与 TaskState/NotifyState 同为"枚举值存 uint8_t 字段"模式;
+ */
+typedef enum {
+    XC_COR_DONE = 0,  // 本层完成
+    XC_COR_SUSPENDED, // 本层挂起(延时/通知/让出)
+} XC_CorState_t;
+
+/**
+ * @brief   [内部]协程函数类型(顶层任务与子协程统一)
+ * @details
+ *  与现有 TCB.fTask 类型等价(void 返回):参数经"struct XC_TaskCB_tag*"引用,
+ *  即用户侧"XC_TaskHandle_t"(XC_TaskCB_t* = struct XC_TaskCB_tag*),任务函数签名
+ *  保持 void 不变(非破坏性 API);
+ */
+typedef void (*XC_CorFn_t)(struct XC_TaskCB_tag*);
+
+/**
+ * @brief   [内部]协程帧(任务私有帧栈的一个元素)
+ * @details
+ *  8 字节/层(32位):父层函数入口 + 父层返回点;
+ *  栈底帧恒为顶层任务(只在第一次"XC_Cor_Call"时写入);
+ */
+typedef struct {
+    XC_CorFn_t pfn; // 父层函数入口(弹帧恢复 fTask 用;栈底帧恒为顶层任务)
+    XC_BP_t    BP;  // 父层返回点(ANSI:行号 / GNU:标签地址)
+} XC_CorFrame_t;
 
 /**
  * @brief   [内部]协程任务控制块(Task Control Block)
  * @details
  *  用于记录任务控制相关的数据,每个任务都需要一个独立的TCB;
- *  类型占字节数(32bit): 8+4*6+4=36Byte;
+ *  类型占字节数(32bit): 36→44Byte(+8B;7B 字段 + 1B 对齐 padding,整体仍 4B 对齐);
  *  ---
  *  基础数据(在"XC_Task_BasicInit"中被初始化)
  *      - "TaskWakeupTick"  任务下个唤醒的时间
@@ -118,19 +148,23 @@ typedef COR_BP_t XCBP_t;
  *      - "NotifyState"     通知状态
  *      - "NotifyProduced"  通知-生产者
  *      - "NotifyConsumed"  通知-消费者
+ *      - "CorDepth"        协程深度
  *  非基础数据
  *      - "ListNode"    链表节点
  *      - "phXCOS"      任务所属的框架句柄
- *      - "fTask"       函数运行入口
+ *      - "fTask"       当前层入口(顶层或子层,由 XC_Cor_Call 切换;无嵌套时恒为顶层)
  *      - "pParam"      传递的参数
  *      - "TaskState"   任务状态
+ *      - "pCorStack"   用户按需提供的帧栈(NULL=无嵌套)
+ *      - "CorDepthMax" 栈容量(越界检查)
+ *      - "CorState"    本轮结果
  */
 struct XC_TaskCB_tag {
-    XCListNode_t   ListNode;            // 链表节点
-    struct XCOS_tag* phXCOS;              // 任务所属的框架句柄
-    void (*fTask)(struct XC_TaskCB_tag*); // 函数运行入口(任务入口)
-    XCBP_t    BP;                       // 协程断点(Break Point)
-    XC_Tick_t TaskWakeupTick;           // 任务下个唤醒的时间(0则一直阻塞)
+    XC_ListNode_t    ListNode;       // 链表节点
+    struct XCOS_tag* phXCOS;         // 任务所属的框架句柄
+    XC_CorFn_t       fTask;          // 当前层入口(顶层或子层,由 XC_Cor_Call 切换;无嵌套时恒为顶层)
+    XC_BP_t          BP;             // 当前执行层断点(唯一,顶层/子层共用;不占栈)
+    XC_Tick_t        TaskWakeupTick; // 任务下个唤醒的时间(0则一直阻塞)
 
     void*            pParam;      // 传递的参数
     void*            pNotifyData; // 通知数据
@@ -144,6 +178,12 @@ struct XC_TaskCB_tag {
      */
     volatile uint8_t NotifyProduced; // 通知-生产者
     volatile uint8_t NotifyConsumed; // 通知-消费者
+
+    /* 协程嵌套支持 */
+    XC_CorFrame_t* pCorStack;   // 用户按需提供的帧栈(NULL=无嵌套)
+    uint8_t        CorDepth;    // 当前子层深度(0=在顶层)
+    uint8_t        CorDepthMax; // 栈容量(越界检查)
+    uint8_t        CorState;    // 本轮结果(值域:XC_CorState_t;填补对齐padding)
 };
 
 /*

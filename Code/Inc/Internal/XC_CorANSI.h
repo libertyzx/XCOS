@@ -13,17 +13,7 @@
  *  由"switch case"实现;
  * **********************************************
  *  修改日志
- *  - 2018/04/16
- *      - 版本:0.01
- *      - 从"SysFSM.h"V0.05 更新代码
- *  - 2022/08/15
- *      - 版本:0.02
- *      - "COR_End"添加goto结束断点;
- *  - 2023/12/21
- *      - 增加"COR_Break"直接跳出协程;
- *  - 2026/06/28
- *      - 将 goto 替换为 break 以符合 MISRA-C Rule 15.1
- *      - 删除 COR_GOTO_END 标签
+ *  - 见"CHANGELOG.md"的更新说明;
  */
 /************************************************ 我是分割线 ************************************************/
 //=== 防重复定义
@@ -81,7 +71,7 @@ typedef unsigned long COR_BP_t;
  * @details     直接跳出协程
  */
 #define COR_Break(BP) \
-    break;
+    goto COR_GOTO_END;
 
 /**
  * @brief       协程-设置断点并跳出
@@ -90,7 +80,7 @@ typedef unsigned long COR_BP_t;
  */
 #define COR_SetBPBreak(BP)            \
     (BP) = (unsigned long)(__LINE__); \
-    break;                            \
+    goto COR_GOTO_END;                \
     case __LINE__:;
 
 /**
@@ -100,7 +90,29 @@ typedef unsigned long COR_BP_t;
 #define COR_End() \
     default:      \
         break;    \
-        }
+        }         \
+    COR_GOTO_END: /*结束跳转标志*/
+
+/**
+ * @brief       协程-跳出并放置返回标签(供 XC_Cor_Call 使用,不设断点)
+ * @details
+ *  返回点已由 XC_Task_PushFrame 存入帧,故只需"跳出 + 标签";
+ *  goto 跳到 switch 外的 COR_GOTO_END,跳过 Leave 的 CorState = DONE 赋值,保持挂起;
+ */
+#define COR_BreakLabel()   \
+    {                      \
+        goto COR_GOTO_END; \
+        case __LINE__:;    \
+    }
+
+/**
+ * @brief       协程-返回点表达式(供 XC_Task_PushFrame 传参)
+ * @return      COR_BP_t  返回当前行的行号(__LINE__值)
+ * @details
+ *  与 COR_BreakLabel 同处 XC_Cor.h 的外层宏内展开,__LINE__ 为同一用户行号,
+ *  保证帧内返回点与恢复标签匹配;
+ */
+#define COR_RetPoint() ((COR_BP_t)(__LINE__))
 
 /*
  ************************************************************************************************************|
