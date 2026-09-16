@@ -102,7 +102,7 @@
  *      }
  *      Cache32 = XC_Time_GetRemain(Lc,1000);    //从Lc开始,离1000个Tick还差多少个Tick
  *      Cache32 = XC_Time_GetElapsed(Lc,1000);   //从Lc开始,到1000个Tick已经运行了多少Tick
- *      if(XC_Time_CheckTimeoutMs(Lc, 700){
+ *      if(XC_Time_CheckTimeoutMs(Lc, 700)){
  *          //等待>=700ms后会运行这里;
  *      }
  *  }
@@ -141,9 +141,14 @@
 /**
  * @brief       [用户]比较时间是否到达设定值(单位:s)
  * @param[in]   _Lc     上个记录的Tick
- * @param[in]   _t      需要比较时间
+ * @param[in]   _t      需要比较时间(单位:s)
  * @return      bool    1:时间到达;0:时间没有到达;
- * @details     判断是否运行了"_t"个时间,用于判断时间是否到达;
+ * @details
+ *  判断是否运行了"_t"个时间,用于判断时间是否到达;
+ * @note
+ *  秒数上限 ≈ "XC_Tick_t最大值 / XC_CFG_TICKS_PER_SEC"(默认 uint32_t ⇒ 1000Hz 约 49.7 天);
+ *  超限会整型回绕,且回绕结果**必然偏小** ⇒ 判为"到达"的时刻**比预期早**(与延时类接口一致);
+ *  需要更长/更精确的超时请改用 "XC_Time_CheckTimeout"(直接给 Tick 数);
  */
 #define XC_Time_CheckTimeoutSec(_Lc, _t) (XC_Time_CheckTimeout((_Lc), XC_Time_SecToTicks(_t)))
 

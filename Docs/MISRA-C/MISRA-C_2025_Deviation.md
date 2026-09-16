@@ -50,7 +50,7 @@
 **Rule 15.1** — goto 语句（协程底层，GNU 版 + ANSI 版）：
 
 ```c
-// XC_CorGNU.h:92, 104, 123 / XC_CorANSI.h:74, 83, 104(嵌套协程 v2.1.0 回退)
+// XC_CorGNU.h:95, 106, 125 / XC_CorANSI.h:74, 83, 104(嵌套协程 v2.1.0 回退)
 goto COR_GOTO_END;
 // XC_Cor.h(用户可见宏):XC_Cor_Leave 内的编译器可达性提示(2026-08 起,消除 armcc #111-D)
 if(0) { goto COR_DONE_L; } COR_DONE_L:;
@@ -84,7 +84,7 @@ if(0) { goto COR_DONE_L; } COR_DONE_L:;
 | Deviation ID | DEV-XCOS-002 |
 | 规则 | Rule 8.7（外部链接但仅单 TU 引用） |
 | 级别 | 🟡 Advisory |
-| 文件 | `Code/XC_Time.c`、`Code/Inc/XC_Config.h` |
+| 文件 | `Code/Src/XC_Time.c`、`Code/Inc/XC_Config.h` |
 | 记录日期 | 2026-08-14 |
 
 ### 违规描述
@@ -93,7 +93,7 @@ if(0) { goto COR_DONE_L; } COR_DONE_L:;
 // XC_Time.c:28 — 定义（外部链接）
 volatile XC_Tick_t g_SysTickCount = 0U; // 用户系统Tick
 
-// XC_Config.h:108 — extern 声明暴露给用户
+// XC_Config.h:230 — extern 声明暴露给用户
 extern volatile XC_Tick_t g_SysTickCount; // 外部声明全局滴答时间计数
 ```
 
@@ -103,7 +103,7 @@ extern volatile XC_Tick_t g_SysTickCount; // 外部声明全局滴答时间计�
 
 `g_SysTickCount` **不是纯内部变量，是用户 API**：
 
-- 框架文档（XC_Config.h:82）明确要求用户**在自己的中断服务程序（ISR）中直接累加**此变量，实现系统滴答计数
+- 框架文档（`XC_Config.h:210-216`）明确要求用户**在自己的中断服务程序（ISR）中直接累加**此变量，实现系统滴答计数
 - 用户代码位于框架之外，若设为 `static`，用户无法访问 → **破坏公开 API 与向后兼容性**
 - 典型用户用法：
   ```c
@@ -232,6 +232,34 @@ XC_Return_t XC_Task_SendNotify(XC_TaskHandle_t phTCB, void* pNotifyData);
 | DEV-XCOS-002 | Rule 8.7 | 2026-08-14 |
 | DEV-XCOS-003 | Rule 2.3 | 2026-08-14 |
 | DEV-XCOS-004 | Rule 8.13 | 2026-08-14 |
+
+---
+
+## 规则 → 代码位置索引（2026-09-14 新增）
+
+> **目的**：把"代码改动后需人工复核 MISRA 偏差"变成**可勾选的索引 + 固定流程**，降低人工复核负担。
+> **注意**：下表行号会随重构漂移，**复核时以"符号/宏名"为准**（行号仅作起点）。
+> **脚本化**：下方流程第 2 步的锚点检查，已明确划归 **回归 / CI 通道**（顶层 `Tests/`：`run_all.ps1` / `run_tests.ps1`）做脚本化。
+
+### A. Deviation → 代码位置
+
+| Deviation | 规则 | 级别 | 代码位置（锚点） | 复核要点 |
+| --- | --- | --- | --- | --- |
+| DEV-XCOS-001 | Rule 11.5 | Advisory | `Code/Inc/Internal/XC_List.h`（`XC_LIST_TO_TCB`，`void*` 过渡；宏内已有 MISRA 合规注释） | 宏与合规注释仍在；新增 `void*`↔对象指针转换需先查本表 |
+| DEV-XCOS-001 | Rule 20.10 | Advisory | `Code/Inc/Internal/XC_CorGNU.h`（`COR_BP2`，`##` 标签拼接） | `##` 仅用于协程标签拼接 |
+| DEV-XCOS-001 | Rule 15.1 | Advisory | `Code/Inc/Internal/XC_CorGNU.h`、`Code/Inc/Internal/XC_CorANSI.h`（`goto COR_GOTO_END`）、`Code/Inc/XC_Cor.h`（`XC_Cor_Leave` 可达性提示） | `goto` 只允许出现在上述协程底层白名单位置 |
+| DEV-XCOS-002 | Rule 8.7 | Advisory | `Code/Src/XC_Time.c`（`g_SysTickCount` 定义）、`Code/Inc/XC_Config.h`（`extern volatile XC_Tick_t g_SysTickCount`） | 该变量是**用户 API**（ISR 直接累加）⇒ 不得改 `static` |
+| DEV-XCOS-003 | Rule 2.3 | Advisory | `Code/Inc/XC_Type.h`（`XC_TimerTick_t`） | 该类型仍被 `XC_Time.c` 的定时器 API 使用（非真正"未使用"） |
+| DEV-XCOS-004 | Rule 8.13 | Advisory / Undecidable | `Code/Inc/XC_Sch.h`、`Code/Inc/XC_Task.h`、`Code/Inc/XC_Time.h`（句柄参数：`XC_OSHandle_t`/`XC_TaskHandle_t`） | 句柄 typedef 设计未变；如引入 `const` 句柄需整体评估 |
+
+### B. 同步流程（每次改动 `Code/` 后 4 步）
+
+| # | 步骤 | 做法 |
+| --- | --- | --- |
+| 1 | **编译 0 告警** | 用工程实际编译器（AC5/AC6）或 `armclang --target=arm-arm-none-eabi -mcpu=cortex-m3 -Wall -Wextra -c` 全量编译，确认 **0 告警** |
+| 2 | **锚点抽查** | 按上表 A 核对"代码位置"的锚点（宏名/标签名而非行号），确认偏差条目仍成立 |
+| 3 | **新偏差先登记** | 新增 `void*` 转换、`goto`、`##`、外部链接变量、位运算/联合体等构造前先查本表；构成新偏差 ⇒ 新增 `DEV-XCOS-00x`（规则/级别/代码位置/理由/缓解措施） |
+| 4 | **记录与脚本化** | 偏差增减写入 `CHANGELOG.md`；把第 2 步固化为脚本，纳入**回归 / CI 通道**（顶层 `Tests/`） |
 
 ---
 

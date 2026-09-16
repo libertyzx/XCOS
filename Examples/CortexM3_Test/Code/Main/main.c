@@ -12,8 +12,7 @@
  * @details     演示XCOS的主文件
  * **********************************************
  *  修改日志
- *  - 2026/01/06
- *      - 初始编写
+ *  - 见"CHANGELOG.md"的更新说明;
  */
 //=== 头文件
 #include "main.h"
@@ -547,14 +546,58 @@ void Task_A11(XC_TaskHandle_t phTCB)
 
 /************************************************ 我是分割线 ************************************************/
 
+#if ((XC_CFG_DEBUG_CHECK != 0) || (XC_CFG_TASK_STATS != 0))
+/**
+ * @brief       诊断演示(可选能力: 由"XC_Config.h"的诊断开关控制)
+ * @details
+ *  本段演示两类**可选诊断能力**, 默认全关 ⇒ **本段不编译(0 代码 / 0 开销)**:
+ *  - `XC_CFG_DEBUG_CHECK`: 运行期不变量自检 `XC_Diag_CheckInvariants`(只读检查, 返回"首个失败项");
+ *  - `XC_CFG_TASK_STATS` : 每任务运行统计 `XC_Diag_GetRunCnt` / `XC_Diag_GetMaxRunTick`(调度槽耗时);
+ *  调用时机: **空闲回调**里每若干轮抽查一次(见 "Docs/XC_Config.md" 的推荐用法);
+ *  观察方式: 调试器查看下面的观测变量(实际项目可改为点灯/写日志/上报);
+ *  详细说明: "Docs/XCOS.md"「运行期自检」「运行统计」与 "Docs/XC_Config.md" 对应开关节;
+ */
+volatile XC_ChkResult_t s_DiagChkLast    = XC_CHK_OK; // [观测] 最近一次自检结果(XC_CHK_OK = 全部一致)
+volatile uint32_t       s_DiagChkTimes   = 0;         // [观测] 自检触发次数
+volatile uint32_t       s_DiagRunCnt     = 0;         // [观测] A0 运行次数(统计档)
+volatile XC_Tick_t      s_DiagMaxRunTick = 0;         // [观测] A0 最长一次调度槽耗时(Tick)
+
+/**
+ * @brief   诊断演示处理
+ * @details 自检(开档时, 每 256 次空闲抽查一次) + 刷新运行统计快照(开档时); 两开关全关时本函数不存在
+ */
+static void DiagDemo(void)
+{
+#if(XC_CFG_DEBUG_CHECK != 0)
+    /* 运行期自检: 盘点四张任务表与状态标签; 失败返回首个失败项编号(1 链表 / 2 状态↔表 / 3 重复挂表 / 4 计数 / 5 嵌套 / 6 归属) */
+    if((s_DiagChkTimes & 0xFFU) == 0U) {
+        s_DiagChkLast = XC_Diag_CheckInvariants(&s_hXCOS0); // 抽查(全量盘点 O(n²), 故降频)
+    }
+    s_DiagChkTimes++;
+#endif
+#if(XC_CFG_TASK_STATS != 0)
+    /* 运行统计: A0(基础延时任务) 的运行次数与最长一次耗时(单位 Tick; 默认 1ms/tick ⇒ 短于 1ms 记 0) */
+    s_DiagRunCnt     = XC_Diag_GetRunCnt(&s_hTCBn[0]);
+    s_DiagMaxRunTick = XC_Diag_GetMaxRunTick(&s_hTCBn[0]);
+#endif
+}
+#endif
+
+/************************************************ 我是分割线 ************************************************/
+
 /**
  * @brief       空闲处理
  * @param[in]   phXCOS      框架句柄
  * @param[in]   IdleTick    空闲的Tick
- * @details     空闲处理
+ * @details
+ *  空闲处理;
+ *  另: 演示"运行期守护"用法 —— 在空闲回调里抽查诊断(见 "DiagDemo", 诊断开关全关时不编译);
  */
 void Idle(XC_OSHandle_t phXCOS, XC_Tick_t IdleTick)
 {
+#if ((XC_CFG_DEBUG_CHECK != 0) || (XC_CFG_TASK_STATS != 0))
+    DiagDemo(); // 诊断演示(全关时连本调用都不编译 ⇒ 0 开销)
+#endif
     __WFI(); // 休眠
 }
 

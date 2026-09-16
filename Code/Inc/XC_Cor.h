@@ -193,10 +193,14 @@
 
 /**
  * @brief       [用户][协程]延时s
- * @param[in]   Sec  [XC_Tick_t]延时的值
+ * @param[in]   Sec  [XC_Tick_t]延时的值(单位:s)
  * @details
  *  **必须在协程块中使用;**
  *  让出CPU的使用权,延时Sec个时间;
+ * @note
+ *  "Sec × 频率"是 32 位直乘 ⇒ 秒数上限 ≈ "XC_Tick_t最大值 / XC_CFG_TICKS_PER_SEC"
+ *  (默认 uint32_t ⇒ 1000Hz 约 49.7 天);超限回绕后**延时必然比请求短**
+ *  ⇒ 这种量级的延时请用 "XC_Cor_DelayTick"(直接给 Tick 数)或**分段**延时;
  */
 #define XC_Cor_DelaySec(Sec) XC_Cor_DelayTick(XC_Time_SecToTicks(Sec))
 
@@ -235,9 +239,9 @@
  *  用于清除通知;
  *  可在"等待通知"前调用,防止通知提前到达;
  */
-#define XC_Cor_ClrNotify()                                       \
-    do {                                                         \
-        phXCCorTCB->NotifyConsumed = phXCCorTCB->NotifyProduced; \
+#define XC_Cor_ClrNotify()              \
+    do {                                \
+        phXCCorTCB->NotifyPending = 0U; \
     } while(0)
 
 /**

@@ -53,6 +53,8 @@
 
 #include "XC_BitPatterns.h" //二进制值
 #include "XC_Config.h"      //配置
+#include "XC_Diag.h"        //诊断能力(断言/运行期自检/运行统计; 开关 XC_CFG_*; 可物理裁剪 XC_Diag.c)
+#include "XC_Err.h"         //错误上报(错误码/用户钩子/上报宏; 开关 XC_CFG_ERR_HOOK; **无实现文件**)
 #include "XC_Type.h"        //类型
 
 #include "XC_Cor.h"  //协程处理
@@ -60,7 +62,7 @@
 #include "XC_Task.h" //任务处理
 #include "XC_Time.h" //时间处理
 
-#include "XC_Compat.h" //向后兼容宏(旧版函数/宏名,后续版本将删除)
+#include "XC_Compat.h" //向后兼容宏(旧版函数/宏名); 仅供迁移期使用, 计划 V2.2.0 删除(见 Docs/XCOS.md「向后兼容」)
 
 /************************************************ 我是分割线 ************************************************/
 

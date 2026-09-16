@@ -57,11 +57,8 @@ typedef enum {
 /** 基础类型 */
 
 /**
- * @brief   [用户]嘀嗒计数数据类型
- * @details
- *  默认32位,用于系统滴答计数的数据
- *  一般不用改
- *  "XC_Tick_t"在"XC_Config.h"文件定义
+ * 说明: "XC_Tick_t"(嘀嗒计数类型)在 "XC_Config.h" 中由 "XC_CFG_TICK_TYPE" 定义
+ *      (默认 uint32_t; 必须 >= 32 位, 有编译期断言); 此处不再重复声明, 仅作提示;
  */
 
 /**
@@ -107,6 +104,15 @@ typedef struct XC_TaskCB_tag XC_TaskCB_t;
  *  对外提供的任务句柄指针,指向任务实例
  */
 typedef XC_TaskCB_t* XC_TaskHandle_t;
+
+/**
+ * @brief   [用户]协程帧类型(协程嵌套用)
+ * @details
+ *  用户按需定义帧栈数组后交给任务(见 "XC_Task_RegExt" / "XC_Task_SetCorStack"):
+ *      XC_CorFrame_t s_stack[3];
+ *  结构体定义在 "Internal/XC_TypeInternal.h"(字段由框架内部维护, 用户不要直接访问);
+ */
+typedef struct XC_CorFrame_tag XC_CorFrame_t;
 
 /*
  ************************************************************************************************************|

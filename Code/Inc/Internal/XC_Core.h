@@ -32,7 +32,19 @@
  * @brief       [内部]锁定框架实例
  * @param[in]   phXCOS [struct XCOS_tag*]框架句柄(可为"XCOS_t*"或"XC_OSHandle_t")
  * @details
- *  主要用来锁定任务切换(包括链表操作,状态切换),防止中断调用时资源竞争;
+ *  **契约(务必先读)**:
+ *  - 本组宏**不是互斥锁**(无原子性/无阻塞/无等待队列),而是"**主循环正处于关键区**"的**单一标志位**;
+ *    它的唯一用途是让中断侧判断"此刻能否直接改链表",不能用于"互斥"语义;
+ *  - **不可重入**: 同一上下文连续 Lock 不会"叠加",一次 Unlock 即全部打开;
+ *  - **必须配对**: 每个 Lock 必须有且仅有一次 Unlock(见下"隐式配对"说明);
+ *  - **不得在中断中 Unlock**: 中断里调用会**把主循环持有的锁提前打开**(静默破坏保护);
+ *  - 中断侧只允许"读到 0 才获取、完成后配对释放"(见 "XC_Task_SendNotify");
+ *  - 与字段并发等级/锁保护的完整矩阵见 "Docs/架构概览/XCOS_V2.1.0_架构概览.md"「并发模型与字段所有权」
+ *    (用户侧约束见 "Docs/XCOS.md"「并发约束」)。
+ *
+ *  **隐式配对(使用注意)**: "XC_Task_HandleWaitNotify" 会在**持锁状态**下调用
+ *  "XC_Task_HandleBlocking",而解锁由后者内部完成 —— 即"谁加的锁不一定是谁解"。
+ *  改动这两个函数时**必须保持配对不变**,否则锁将永久为 1(所有中断通知退化为"只登记")。
  */
 #define XC_Core_Lock(phXCOS)                     \
     do {                                         \
@@ -43,7 +55,8 @@
  * @brief       [内部]解锁框架实例
  * @param[in]   phXCOS [struct XCOS_tag*]框架句柄(可为"XCOS_t*"或"XC_OSHandle_t")
  * @details
- *  主要用来锁定任务切换(包括链表操作,状态切换),防止中断调用时资源竞争;
+ *  与 "XC_Core_Lock" 配对(契约见上);
+ *  注意: 若当前不是在**自己加的锁**上解锁(如中断里 Unlock),会静默关闭主循环的保护;
  */
 #define XC_Core_Unlock(phXCOS)                   \
     do {                                         \
@@ -54,10 +67,12 @@
  * @brief       [内部]获取框架实例锁状态
  * @param[in]   phXCOS [struct XCOS_tag*]框架句柄(可为"XCOS_t*"或"XC_OSHandle_t")
  * @return      uint8_t
- * @retval      0 : 解锁
- * @retval      1 : 锁定
+ * @retval      0 : 解锁(主循环不在关键区 => 中断可直接改链表)
+ * @retval      1 : 锁定(主循环在关键区 => 中断只能"登记")
  * @details
- *  主要用来锁定任务切换(包括链表操作,状态切换),防止中断调用时资源竞争;
+ *  这是"主循环 ↔ 中断"的**握手读口**; 目前唯一使用点是 "XC_Task_SendNotify"
+ *  (读到 1 时只置待处理标志,读到 0 时才直接搬表);
+ *  注意: 它**不能**用来判断"我是不是中断上下文"(详见 "Docs/架构概览/XCOS_V2.1.0_架构概览.md"「并发模型与字段所有权」§12.4)。
  */
 #define XC_Core_GetLockState(phXCOS) (((struct XCOS_tag*)(phXCOS))->Lock)
 

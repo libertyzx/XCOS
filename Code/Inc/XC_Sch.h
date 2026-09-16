@@ -61,16 +61,29 @@ uint8_t XC_Sch_GetTaskNum(XC_OSHandle_t phXCOS);
  *  回调说明:
  *      简述: 框架空闲处理回调
  *      参数[in]: phXCOS    [XC_OSHandle_t]框架句柄
- *      参数[in]: IdleTick  [XC_Tick_t]空闲的Tick值(空闲多少个Tick)
- *      说明: 若是休眠,则需要"IdleTick"个Tick计数后唤醒;
+ *      参数[in]: IdleTick  [XC_Tick_t]空闲提示值(距下一个任务唤醒还有多少 Tick)
+ *      说明: **实现回调时务必按下面三档处理 "IdleTick"**:
+ *          - "0"      : **不要休眠**(有到点/待处理的工作) ⇒ **立刻返回**, 回主循环;
+ *                       ⚠️ 不要把 0 直接交给"设置休眠时长"类接口 —— 有些平台把 0 当"无限",
+ *                       会一睡不起(正确做法: 判 0 直接 return);
+ *          - "~0U"    : 无待唤醒任务(时间表与溢出表都空) ⇒ 按平台**最大能力**处理
+ *                       (如只等下一次中断 / 平台支持的最长休眠周期);
+ *                       ⚠️ 休眠期间 Tick 停走的平台, 不要把它当成"睡 49.7 天"用;
+ *          - 其余(≥1) : **建议休眠上限** —— 若休眠, 则需要"IdleTick"个Tick计数后唤醒;
+ *      补充: 该值是"**快照**"(回调返回后可能刚有任务就绪) ⇒ 按"上限"理解;
  *          若是系统Tick计数也停止了则需要更新Tick值:
  *          - 系统Tick是定时器中断计数运行的,可以使用以下方式更新:
  *              ```
  *              XC_Tick_t Tick;
  *              Tick = XC_Time_GetTick() + IdleTick;
- *              XC_Time_TickSet(Tick)
+ *              XC_Time_TickSet(Tick);
  *              ```
  *          - 系统Tick是一个计数器,则计数器等于"XC_Time_GetTick() + IdleTick";
+ *          - 注意: XC_Time_TickSet/TickInc 仅在"中断累加模式"下存在
+ *            (即定义了 "XC_SYS_TICK_INT_INC_MODE", 见 "XC_Config.h");
+ *            若使用"计数器模式"(把 "XC_SYS_TICK_COUNT" 指向硬件计数器),
+ *            这两个宏不存在, 此时应把硬件计数器校正到 "XC_Time_GetTick() + IdleTick";
+ *      详见: "Internal/XC_TypeInternal.h" 中 "fIdle" 字段的完整契约;
  */
 void XC_Sch_SetIdleCallback(XC_OSHandle_t phXCOS, void (*fIdle)(XC_OSHandle_t, XC_Tick_t));
 

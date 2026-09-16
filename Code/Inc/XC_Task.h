@@ -36,10 +36,13 @@
  * @param[in]   pParam  传递给任务的参数
  * @return      XC_Return_t
  * @retval      XC_OK :      注册成功
- * @retval      XC_FAIL :    注册失败,任务太多
+ * @retval      XC_FAIL :    注册失败(任务太多, 或该任务已注册)
  * @details
  *  注册一个任务;
- *  **不可多次注册同个任务(没有做重复判断,会发生未知情况)**
+ *  **同一任务只能注册一次**: 重复注册返回 XC_FAIL (移除后可再次注册)
+ *  **前置契约(违背 = 未定义行为)**: `phXCOS` / `phTCB` / `fTask` 均须非空 —— 属"编程错误"，
+ *  按"单一强制点"规则只由断言上报(DEBUG 档 `XC_DIAG_ASSERT`)，**发布档不检查、不返回错误**(0 成本)；
+ *  边界规则见 `Docs/架构概览/XCOS_V2.1.0_架构概览.md`「断言 vs 返回码：边界规则」§11.6;
  */
 XC_Return_t XC_Task_Reg(XC_OSHandle_t phXCOS, XC_TaskHandle_t phTCB, void (*fTask)(XC_TaskHandle_t), void* pParam);
 
@@ -53,11 +56,12 @@ XC_Return_t XC_Task_Reg(XC_OSHandle_t phXCOS, XC_TaskHandle_t phTCB, void (*fTas
  * @param[in]   CorDepthMax   帧栈容量(最大嵌套层数;无嵌套传0)
  * @return      XC_Return_t
  * @retval      XC_OK :      注册成功
- * @retval      XC_FAIL :    注册失败(任务太多,或帧栈/容量参数不匹配)
+ * @retval      XC_FAIL :    注册失败(任务太多, 或该任务已注册)—— 同 `XC_Task_Reg`
  * @details
  *  在"XC_Task_Reg"基础上增加协程帧栈配置,等价于"XC_Task_Reg"+"XC_Task_SetCorStack";
  *  "pCorStack"/"CorDepthMax"必须同为有/同为无(都传NULL/0表示无嵌套任务);
  *  需要嵌套的任务必须用本函数或"XC_Task_SetCorStack"配置帧栈;
+ *  **前置契约(违背 = 未定义行为)**: 入参非空 + "帧栈/容量同为有或同为无"(DEBUG 档由断言上报, 发布档不检查);
  */
 XC_Return_t XC_Task_RegExt(XC_OSHandle_t phXCOS, XC_TaskHandle_t phTCB, XC_CorFn_t fTask, void* pParam, XC_CorFrame_t* pCorStack, uint8_t CorDepthMax);
 
@@ -67,12 +71,13 @@ XC_Return_t XC_Task_RegExt(XC_OSHandle_t phXCOS, XC_TaskHandle_t phTCB, XC_CorFn
  * @param[in]   pCorStack     协程帧栈(用户按需提供;撤销嵌套能力传NULL)
  * @param[in]   CorDepthMax   帧栈容量(最大嵌套层数;撤销传0)
  * @return      XC_Return_t
- * @retval      XC_OK :      设置成功
- * @retval      XC_FAIL :    帧栈/容量参数不匹配
+ * @retval      XC_OK :      设置成功(当前实现**恒返回 XC_OK**)
  * @details
  *  "pCorStack"/"CorDepthMax"必须同为有/同为无;
  *  传"(NULL, 0U)"撤销嵌套能力;重新设置会清空当前深度("CorDepth=0");
  *  任务嵌套中更换配置前应先"XC_Task_Reset"/"XC_Cor_Reset"清栈;
+ *  **前置契约(违背 = 未定义行为)**: 入参非空 + "帧栈/容量同为有或同为无"
+ *  (属"编程错误" ⇒ 只由断言上报, 发布档不检查、不返回错误);
  */
 XC_Return_t XC_Task_SetCorStack(XC_TaskHandle_t phTCB, XC_CorFrame_t* pCorStack, uint8_t CorDepthMax);
 
@@ -93,7 +98,9 @@ void XC_Task_Remove(XC_TaskHandle_t phTCB);
  * @param[in]   pParam  传递给任务的参数
  * @details
  *  只设置任务入口和传递给任务的参数;
- *  一般配合"XC_Task_Add"使用;
+ *  一般配合"XC_Task_Add"使用(分步注册);
+ *  **嵌套中换入口**: 会自动"清栈 + 重置断点", 语义 = **丢弃当前嵌套层, 按新入口从头运行**
+ *  (否则栈底帧 pCorStack[0].pfn 会与新入口不一致, 复位/移除时把 fTask 恢复成旧入口);
  */
 void XC_Task_SetEntry(XC_TaskHandle_t phTCB, void (*fTask)(XC_TaskHandle_t), void* pParam);
 
@@ -103,10 +110,12 @@ void XC_Task_SetEntry(XC_TaskHandle_t phTCB, void (*fTask)(XC_TaskHandle_t), voi
  * @param   phTCB   协程任务控制块
  * @return  XC_Return_t
  * @retval  XC_OK :      注册成功
- * @retval  XC_FAIL :    注册失败,任务太多
+ * @retval  XC_FAIL :    注册失败(任务太多, 或该任务已注册)
  * @details
  *  添加的任务必须先调用"XC_Task_SetEntry";
  *  设置好任务入口和传递的参数才可添加;
+ *  **前置契约(违背 = 未定义行为)**: `phXCOS`/`phTCB` 非空, 且已用 `XC_Task_SetEntry` 配好非空入口
+ *  (DEBUG 档由断言上报, 发布档不检查);
  */
 XC_Return_t XC_Task_Add(XC_OSHandle_t phXCOS, XC_TaskHandle_t phTCB);
 
@@ -128,7 +137,6 @@ void XC_Task_Reset(XC_TaskHandle_t phTCB);
  * @return      XC_Return_t
  * @retval      XC_OK :          挂起成功
  * @retval      XC_FAIL:         失败(任务不存在)
- * @retval      XC_CONTINUE :    异步操作中
  * @details     将任务挂起,本次任务运行完成后暂停任务;
  */
 XC_Return_t XC_Task_Suspend(XC_TaskHandle_t phTCB);
@@ -164,12 +172,14 @@ XC_Return_t XC_Task_SendNotify(XC_TaskHandle_t phTCB, void* pNotifyData);
  * @brief       [用户]清除通知
  * @param[in]   phTCB       [XC_TaskHandle_t]任务控制块
  * @details
- *  用于清除通知;
+ *  用于清除通知(把"通知-待处理标志"清0);
  *  可在"等待通知"前调用,防止通知提前到达;
+ *  **调用上下文**:本操作写的是"消费侧"字段,应在主循环(目标任务自身)调用,
+ *  禁止在中断中调用(否则破坏单生产者单消费者前提);
  */
-#define XC_Task_ClrNotify(phTCB)                           \
-    do {                                                   \
-        (phTCB)->NotifyConsumed = (phTCB)->NotifyProduced; \
+#define XC_Task_ClrNotify(phTCB)     \
+    do {                             \
+        (phTCB)->NotifyPending = 0U; \
     } while(0)
 
 /**
@@ -221,5 +231,10 @@ XC_Return_t XC_Task_SendNotify(XC_TaskHandle_t phTCB, void* pNotifyData);
  */
 #define XC_Task_GetState(phTCB)       ((XC_TaskState_t)((phTCB)->TaskState))
 
+/*
+ ************************************************************************************************************|
+ ************************************************ 我是分割线 ************************************************|
+ ************************************************************************************************************|
+ */
 //=== 文件结束
 #endif

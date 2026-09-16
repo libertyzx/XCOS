@@ -23,7 +23,7 @@
 | **版本**      | V5.39.0.0                 |
 | **工具链**    | ARM Compiler V5.06        |
 | **目标芯片**  | STM32F103ZE (软件模拟)    |
-| **优化等级**  | -O0                       |
+| **优化等级**  | -O1（优化大小；工程 `<Optim>1</Optim>`） |
 
 ### MDK配置截图
 
@@ -38,28 +38,29 @@
 
 ## 📊 资源占用分析
 
-> **测量条件**: 与当前 MDK 工程一致 —— ARM Compiler **V5.06 update 7**，优化 **-O1（优化大小）**，C99，STM32F103ZE；基准（配置0）已包含 HAL 库启用模块的全部代码。
+> **测量条件**：当前 MDK 工程（`Examples/CortexM3_Test`，12 任务 A0~A11）—— ARM Compiler **V5.06 update 7**、**-O1（优化大小）**、C99、STM32F103ZE；已含 HAL 库启用模块的全部代码。
+> 下表为**当前实测值**（每次内核/示例改动后由 [`Tests/run_size.ps1`](../Tests/run_size.ps1) 重新测量，阈值 ±8 B）；口径与最新值见 [`Tests/baseline.md`](../Tests/baseline.md)。
 
-### 内存占用对比表 (MDK -O1)
+### 固件占用（当前实测）
 
-| 配置      | Code  | RO-data | RW-data | ZI-data | Flash增量     | RAM增量       |
-| ---       | ---   | ---     | ---     | ---     | ---           | ---           |
-| **基准**  | 4700  | 380     | 24      | 1168    | -             | -             |
-| **配置1** | 5576  | 380     | 28      | 1212    | +876 Bytes    | +48 Bytes     |
-| **配置2** | 8720  | 380     | 40      | 1944    | +4020 Bytes   | +792 Bytes    |
+> 读法：**Code** = Flash 里的代码；**RO/RW** = 常量与已初始化变量；**ZI** = 零初始化变量（开机后占 RAM）。
 
-- 注:增量为和基准比较的值;Code 为含 HAL 库在内的工程代码量,增量即 XCOS 框架与测试任务的额外开销;
+| 配置      | Code  | RO-data | RW-data | ZI-data | 说明 |
+| ---       | ---   | ---     | ---     | ---     | ---  |
+| **默认档** | **8768** | 380 | 40 | **1944** | 完整功能（12 任务 A0~A11；诊断开关全关） |
+| **+ 运行统计** | **8920** | 380 | 56 | **2040** | `XC_CFG_TASK_STATS=1`：内核埋点 + 示例诊断演示；RAM 增量 = 12 × TCB **+8 B** + 示例 4 个观测变量（16 B） |
+| **+ 四开关全开** | **9868** | 380 | 56 | **2040** | `ERR_HOOK` + `DEBUG_CHECK` + `TASK_STATS` + `ASSERT` |
 
-### 资源占用总结
+### 关键尺寸（当前实测）
 
-基于上述测试数据（V2.1.0，当前 MDK 工程全量实测，AC5 V5.06 -O1），XCOS框架的资源占用特点如下:
+| 项 | 值 | 依据 |
+| --- | --- | --- |
+| 框架实例 `XCOS_t` | **44 B** | `sizeof()`（周期基线 `sizeof_xcos`） |
+| 任务控制块 TCB（`XC_TaskCB_t`） | **44 B** | `sizeof()`（周期基线 `sizeof_tcb`） |
+| TCB（打开 `XC_CFG_TASK_STATS`） | **52 B**（+8 B/任务） | 追加 `RunCnt`(4B) + `MaxRunTick`(4B) |
+| 协程帧（`XC_CorFrame_t`） | **8 B/层** | 用户按需定义帧栈数组（每层一个），不占框架 RAM |
 
-- **框架核心**: 约 **0.9 KB Flash**（+876B）+ **48 Bytes RAM**（`XCOS_t` 与 `g_SysTickCount` 实测，与结构体定义吻合）
-- **任务区**（12 任务 A0~A11，含协程嵌套）: 约 **3.1 KB Flash**（+3144B）+ **744 Bytes RAM**
-  - 单个任务平均: 约 **262 Bytes Flash** + **62 Bytes RAM**（含 TCB 44B）
-  - 协程嵌套任务: 每层额外 **8 Bytes 帧栈**（`XC_CorFrame_t`）
-
-**资源效率**: 12 个测试任务（含中断通知、协程嵌套、分步注册）增加约 3.1KB Flash + 744B RAM，适合资源受限的嵌入式环境。相比 V2.0.0（TCB 36B），V2.1.0 每个任务增加 8B（协程嵌套字段）。
+**资源效率**: 默认档下 12 个测试任务（含中断通知、协程嵌套、分步注册）的完整固件为 **Flash 8768 B / RAM 1944 B**，适合资源受限的嵌入式环境。
 
 ## ⚙️ 示例配置说明
 
@@ -112,6 +113,24 @@
 - ✅ 低功耗支持(空闲回调)
 - ✅ **协程嵌套**(子协程调用/返回/同轮切父)
 - ✅ **协程帧栈配置**(RegExt/SetCorStack)
+- ✅ **诊断能力演示**（可选，默认关 ⇒ 0 开销，见下节）
+
+### 🩺 诊断能力演示（可选，默认关）
+
+`Code/Main/main.c` 的**空闲回调 `Idle()`** 里演示了两类可选诊断能力，**由编译开关控制、默认全关 ⇒ 相关代码不编译（0 代码 / 0 开销）**：
+
+| 开关 | 示例调用 | 观测变量（调试器里看） |
+| --- | --- | --- |
+| `XC_CFG_DEBUG_CHECK` | `XC_Diag_CheckInvariants(&s_hXCOS0)`（每 256 次空闲抽查一次） | `s_DiagChkLast` = `XC_CHK_OK` 或"首个失败项编号"（1 链表损坏 / 2 状态↔表 / 3 重复挂表 / 4 计数不符 / 5 嵌套不自洽 / 6 归属错） |
+| `XC_CFG_TASK_STATS` | `XC_Diag_GetRunCnt(&s_hTCBn[0])` / `XC_Diag_GetMaxRunTick(&s_hTCBn[0])` | `s_DiagRunCnt`（A0 运行次数）、`s_DiagMaxRunTick`（A0 最长一次调度槽耗时，单位 Tick） |
+
+**怎么打开**（三选一）：
+1. **MDK**：`Options for Target → C/C++ → Define` 追加（如 `XC_CFG_DEBUG_CHECK=1`、`XC_CFG_TASK_STATS=1`）；
+2. **脚本/命令行**：见 `Tests/run_size.ps1` —— 它的"统计 / 全诊断"两个配置就是这么构建的（用来量开关打开后多出来的体积）；
+3. **断言**（`XC_CFG_ASSERT=1`）需**同时开** `XC_CFG_ERR_HOOK=1` 并由用户实现 `XC_Err_Hook`（见 `Docs/XCOS.md`「错误上报」）。
+
+> 说明：诊断能力**不参与内核运行**（自检只读、统计只记录），全部默认关闭；打开后**每个任务多 8 字节 RAM**（统计档），
+> 代码增量见 `Tests/baseline.md`。参数级说明见 [`XC_Config.md`](./XC_Config.md)，语义见 [`XCOS.md`](./XCOS.md)。
 
 ---
 

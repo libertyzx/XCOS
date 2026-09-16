@@ -2,7 +2,10 @@
 
 > **定位**：本文档从**当前实现**视角，对 XCOS V2.1.0 的整个系统做完整、细致的说明——总体架构、链表、时间、任务、协程、调度、通知、锁等各模块的实现方式，以及内存开销、边界限制与使用示例。所有代码块均为 V2.1.0 的**当前定义**。
 > **配套文档**：`Docs/XCOS.md`（用户手册）、`Docs/CHANGELOG.md`（版本记录）、`Docs/MISRA-C/MISRA-C_2025_Deviation.md`（合规豁免）。
-> **关联代码**：`Code/Inc/`（`XC_Config.h`/`XC_Type.h`/`XC_TypeInternal.h`/`XC_List.h`/`XC_Time.h`/`XC_Task.h`/`XC_Sch.h`/`XC_Cor.h`/`XCOS.h`）、`Code/Inc/Internal/`（`XC_Core.h`/`XC_List.h`/`XC_TimeInternal.h`/`XC_TaskInternal.h`/`XC_CorANSI.h`/`XC_CorGNU.h`）、`Code/Src/`（`XC_List.c`/`XC_Time.c`/`XC_Task.c`/`XC_Sch.c`）。
+> **关联代码**：`Code/Inc/`（`XC_Config.h`/`XC_Type.h`/`XC_TypeInternal.h`/`XC_List.h`/`XC_Time.h`/`XC_Task.h`/`XC_Sch.h`/`XC_Cor.h`/`XC_Err.h`/`XC_Diag.h`/`XCOS.h`）、`Code/Inc/Internal/`（`XC_Core.h`/`XC_List.h`/`XC_TimeInternal.h`/`XC_TaskInternal.h`/`XC_DiagInternal.h`/`XC_CorANSI.h`/`XC_CorGNU.h`）、`Code/Src/`（`XC_Diag.c`/`XC_List.c`/`XC_Time.c`/`XC_Task.c`/`XC_Sch.c`）。
+> **概览图**：本文档的架构图**统一用 ASCII 图**（文本框 + `-->` / `|` / `v`，任何查看器都能看、无需渲染器）——
+> **不再依赖 XMind 与导出图片**（旧的 `XCOS.xmind` / `XCOS.png` 已于 2026-09-15 移除，需要历史版本请查 git）。
+> **API 总览（表格）** 见 [`Docs/XCOS.md`](../XCOS.md) 的「🏗️ 架构概览」（只列有哪些函数/类型/常量）；本文件在 §一 给"调度主循环"的 **ASCII 流程图**，其余为逐模块实现细节。
 
 ---
 
@@ -18,10 +21,41 @@
 8. [内存开销](#八内存开销)
 9. [边界与限制](#九边界与限制)
 10. [使用示例](#十使用示例)
+11. [诊断与错误上报（`XC_Err.h` / `XC_Diag.h`）](#十一诊断与错误上报xc_errh--xc_diagh)
+12. [并发模型与字段所有权（字段级契约）](#十二并发模型与字段所有权字段级契约)
 
 ---
 
 ## 一、总体架构
+
+**调度主循环（总览）** —— 就绪表轮转 + "任何任务进就绪表都排队尾"（图中箭头与线均为 ASCII 码）：
+
+```text
+主循环 XC_Sch_Start
+  |
+  +--> [1] 就绪表非空? --否(空)--> [5] 空闲回调 fIdle(可休眠 IdleTick)
+  |         |
+  |         | 是
+  |         v
+  |    [2] 取表首任务(摘除=>自环=游离标记, TaskState=RUN)
+  |         |
+  |         v
+  |    [3] 运行 fTask(恒调当前层: 顶层或子层; 协程块内让出)
+  |         |
+  |         v
+  |    [4] 仍游离(自环)?                     同轮切父: 本层 DONE 且栈非空
+  |         | 是  --> [4a] 插回就绪表尾       则弹帧后立即再运行父层(while 循环)
+  |         | 否(已被移入 时间表/阻塞表)              |
+  |         +<---------------------------------------+
+  |         |
+  |         v
+  |    [5] 时间调度 XC_Sch_TimeSched + 事件调度 XC_Sch_EventSched
+  |         |
+  +<--------+
+```
+
+> 代码级细节（`XC_SCH_TAKE_FIRST` / `XC_SCH_PUT_TAIL` / 自环判定）见 [§6.2 主循环](#62-主循环-xc_sch_start)；
+> **API 总览表**（纯文本，任何查看器都能看）见 [`Docs/XCOS.md`](../XCOS.md) 的「🏗️ 架构概览」。
 
 ### 1.1 系统组成
 
@@ -36,6 +70,8 @@ XCOS 是一个**协作式（非抢占）协程操作系统**：任务以函数�
 | 任务 | `XC_Task.h` / `XC_Task.c` + `XC_TaskInternal.h` | 任务注册/控制、阻塞处理、通知、协程帧栈 |
 | 协程 | `XC_Cor.h` + `Internal/XC_CorANSI.h` / `XC_CorGNU.h` | 协程块宏、挂起/延时/通知/嵌套 |
 | 调度 | `XC_Sch.h` / `XC_Sch.c` | 主循环、时间调度、事件调度、空闲处理 |
+| 错误上报 | `XC_Err.h` | **错误上报设施**（**无实现文件**）：错误码 `XC_ErrCode_t` + 用户钩子 `XC_Err_Hook` + 上报宏 `XC_Err_Report`（开关 `XC_CFG_ERR_HOOK`，默认关 ⇒ 0 代码/0 RAM） |
+| 诊断 | `XC_Diag.h` / `XC_Diag.c`（实现侧声明：`Internal/XC_DiagInternal.h`） | **诊断能力**（与内核功能解耦，包含 `XC_Err.h`）：参数断言 `XC_DIAG_ASSERT` + 运行期不变量自检 + 每任务运行统计；关档 **0 代码/0 RAM**，且**可按工程裁剪该 `.c`**（物理排除） |
 | 内核基础 | `Internal/XC_Core.h` | 框架实例锁 |
 
 ### 1.2 设计要点
@@ -67,7 +103,7 @@ XCOS 是一个**协作式（非抢占）协程操作系统**：任务以函数�
 #endif
 typedef XC_CFG_TICK_TYPE XC_Tick_t;
 
-/* 最大任务数(10~255,默认100) */
+/* 最大任务数(1~255,默认100; 上限有编译期断言) */
 #ifndef XC_CFG_MAX_TASKS
 #define XC_CFG_MAX_TASKS (100U)
 #endif
@@ -82,6 +118,8 @@ typedef XC_CFG_TICK_TYPE XC_Tick_t;
 
 1. **中断累加模式（默认）**：`XC_SYS_TICK_INT_INC_MODE` + 全局 `g_SysTickCount`；用户定时器中断中调 `XC_Time_TickInc()`；
 2. **计数器模式**：`XC_SYS_TICK_COUNT` 宏直接取硬件计数器（只读高频调用，须为 32 位计数器）。
+
+> 完整参数表见 `Docs/XC_Config.md`；**诊断类 4 个开关**（`XC_CFG_ERR_HOOK` / `XC_CFG_ASSERT` / `XC_CFG_DEBUG_CHECK` / `XC_CFG_TASK_STATS`，**默认全部关闭 ⇒ 发布 0 开销**）见 §十一。
 
 
 ---
@@ -274,17 +312,21 @@ struct XC_TaskCB_tag {
     volatile uint8_t TaskState;   // 任务状态(VOID/RUN/READY/BLOCKED/SUSPEND)
     volatile uint8_t NotifyState; // 通知状态(WAKEUP/WAIT)
 
-    /* SPSC 生产-消费者计数(线程安全;只在创建任务时清0) */
-    volatile uint8_t NotifyProduced; // 通知-生产者
-    volatile uint8_t NotifyConsumed; // 通知-消费者
+    /* 通知-待处理标志(生产侧只写1/消费侧只写0, 均为常量写 => 无需原子操作/关中断) */
+    volatile uint8_t NotifyPending;  // 通知-待处理(1:有未消费通知;0:无)
 
     /* 协程嵌套支持 */
-    XC_CorFrame_t* pCorStack;    // 用户按需提供的帧栈(NULL=无嵌套)
+    struct XC_CorFrame_tag* pCorStack;   // 用户按需提供的帧栈(NULL=无嵌套)
     uint8_t        CorDepth;     // 当前子层深度(0=在顶层)
     uint8_t        CorDepthMax;  // 帧栈容量(越界检查)
     uint8_t        CorState;     // 本轮结果(值域:XC_CorState_t;填补对齐padding)
+
+#if(XC_CFG_TASK_STATS != 0)      /* 可选: 每任务运行统计(默认关闭) */
+    volatile uint32_t RunCnt;    // 运行次数(饱和计数,不回绕)
+    XC_Tick_t         MaxRunTick;// 最长一次运行耗时(Tick)
+#endif
 };
-/* sizeof: 44B(32bit) */
+/* sizeof: 44B(32bit); 统计档(XC_CFG_TASK_STATS=1) 为 52B(每任务 +8B) */
 ```
 
 **任务状态机**：
@@ -324,15 +366,17 @@ XC_Return_t XC_Task_Add(XC_OSHandle_t phXCOS, XC_TaskHandle_t phTCB);
 **`XC_Task_Reg` 流程**：
 
 ```c
+/* 前置契约: 入参非空(违背 = 未定义行为; DEBUG 档由断言上报, 发布档不检查) */
+if(phTCB->phXCOS != NULL) return XC_FAIL;                // 重复注册检测(已注册: 再入表会破坏链表/计数虚高)
 if(phXCOS->TaskNum >= XC_CFG_MAX_TASKS) return XC_FAIL;  // 数量上限
 phTCB->TaskState = XC_TASK_VOID;
 phTCB->phXCOS    = phXCOS;
 phTCB->fTask     = fTask;
 phTCB->pParam    = pParam;
-XC_Task_AddInternal(phTCB);   // BasicInit + 锁 + 插入就绪表 + READY + TaskNum++
+XC_Task_AddInternal(phTCB);  // BasicInit(含统计清零) + 锁 + 插入就绪表尾 + READY + TaskNum++
 ```
 
-**`XC_Task_RegExt`**：先校验 `pCorStack`/`CorDepthMax` **同为有/同为无**（否则 `XC_FAIL`），写帧栈配置后走 `XC_Task_Reg` 流程。**`XC_Task_SetCorStack`**：独立配置帧栈并清 `CorDepth`，传 `(NULL, 0U)` 撤销嵌套能力。
+**`XC_Task_RegExt`**：**前置契约**为 `pCorStack`/`CorDepthMax` **同为有/同为无**（DEBUG 档由断言上报，发布档不检查）；写帧栈配置后走 `XC_Task_Reg` 流程（返回值同 `XC_Task_Reg`）。**`XC_Task_SetCorStack`**：独立配置帧栈并清 `CorDepth`，传 `(NULL, 0U)` 撤销嵌套能力；前置契约同上（恒返回 `XC_OK`）。
 
 ### 4.3 任务控制
 
@@ -340,7 +384,7 @@ XC_Task_AddInternal(phTCB);   // BasicInit + 锁 + 插入就绪表 + READY + Tas
 | --- | --- |
 | `XC_Task_Reset(phTCB)` | 任务复位到就绪表并从头运行；TCB 除 `phXCOS`/`fTask`/`pParam` 外全部重置；不可复位自身（自身用 `XC_Cor_Reset`） |
 | `XC_Task_Suspend(phTCB)` | 挂起任务（本次运行完成后暂停），优先级最高、覆盖一切阻塞；`VOID` 返回 `XC_FAIL`，已挂起返回 `XC_OK` |
-| `XC_Task_Resume(phTCB)` | 恢复被挂起的任务到就绪表（原阻塞失效）；未挂起返回 `XC_FAIL` |
+| `XC_Task_Resume(phTCB)` | 恢复被挂起的任务到**就绪表尾**（原阻塞失效），并**交付挂起期间已登记的通知**（`NotifyPending` ⇒ `WAKEUP`，避免恢复后 `IsNotifyTimeout` 误判超时）；未挂起返回 `XC_FAIL` |
 | `XC_Task_Remove(phTCB)` | 移除任务（出表、清 TCB、`TaskNum--`、`phXCOS=NULL`）；不可移除自身（自身用 `XC_Cor_Remove`） |
 | `XC_Task_GetState(phTCB)` | 获取任务状态 |
 
@@ -376,7 +420,10 @@ static void XC_Task_HandleBlocking(XC_TaskHandle_t phTCB, uint32_t TickCount)
 ```
 
 - **升序时间表**保证时间调度只需处理队首到期链，且任务数量超限时（时间表非空）`XC_Sch_GetNextTaskWakeupTick` 取首节点即最近唤醒；
-- **溢出表**承接"唤醒时刻已回绕"的任务，Tick 回绕时由时间调度整表处理；
+- **溢出表**承接"唤醒时刻已回绕"的任务，Tick 回绕时由时间调度整表处理（搬入时间表**表首**，保持升序）；
+  > 入表判定 `TickCount < Tick` 与 64 位精确比较（`Tick + TickCount ≥ 2³²`）**完全等价**（无"半量程"限制）；
+  > **量程** = `XC_Tick_t` 自身（默认 `uint32_t` ⇒ 单次延时 ≤ 4294967295 Tick）⇒ **跨回绕的延时是支持的**；
+  > 「秒 → Tick」换算宏另有更小的**秒数**上限（乘法规限，见 `XC_Config.md` §`XC_CFG_TICKS_PER_SEC`）。
 - **锁设计（范围最小化）**：`HandleBlocking` 内部自持锁，锁范围**只覆盖链表临界操作**（时间表升序查找 + 插入 / 移入阻塞表），Tick 计算与表选择在锁外——保证高频路径（延时/等待通知入表）持锁时间最短；
 - **锁配对（隐式）**：框架锁为单一标志位（`Lock=1/0`，不支持嵌套）。`HandleDelay` 调用 `HandleBlocking` 时无外层锁，由其内部 Lock/Unlock 成对；`HandleWaitNotify` 调用时已有外层锁，外层锁须持续到入表完成（防止"解锁窗口内中断直接唤醒导致已唤醒却再次入表阻塞"，见 4.6），由 `HandleBlocking` 内部 Unlock **隐式释放**（即外层锁委托内层释放）。
 
@@ -391,7 +438,8 @@ static void XC_Task_HandleBlocking(XC_TaskHandle_t phTCB, uint32_t TickCount)
 | `XC_Task_HandleRemove(phTCB)` | 移除：置 `VOID` + 出表 + **清栈恢复最外层入口** + `BasicInit` + 计数减一 |
 | `XC_Task_PushFrame/PopFrame` | 协程帧入栈/出栈（见 4.7） |
 
-链表操作宏：`XC_Task_MoveToReadyList`（移到上个就绪节点后，保证最后被调度）、`XC_Task_MoveToBlockedList`、`XC_Task_RemoveNode`。
+链表操作宏（**进入就绪表统一排队尾**，回归 V2.0 语义 ⇒ 严格轮转、无优先级补偿）：
+`XC_Task_InsertToReadyListTail`（注册路径专用，节点必须游离）、`XC_Task_MoveToReadyListTail`（唤醒/定时到点/复位/恢复等路径；内部**先 `XC_List_Remove` 摘除再插表尾** —— 直接 `XC_List_MoveNodeAfter(ReadyList.pPrev, node)` 在该节点恰为表尾/仍在表内时会**自引用破坏链表**）、`XC_Task_MoveToBlockedList`、`XC_Task_RemoveNode`。
 
 ### 4.6 通知机制（SPSC，线程安全）
 
@@ -405,11 +453,11 @@ XC_Return_t XC_Task_SendNotify(XC_TaskHandle_t phTCB, void* pNotifyData);
 
 1. `TaskState` 为 `VOID`/`SUSPEND` -> 返回 `XC_FAIL`；
 2. 写 `pNotifyData`；
-3. 任务**非等待通知**：仅 `NotifyProduced++`（满则丢弃），返回 `XC_CONTINUE`——之后 `HandleWaitNotify` 会直接消费；
-4. 任务**等待通知**且**调度运行中**（中断场景，`Lock==1`）：`NotifyProduced++` 且 `EventProduced++` 触发异步调度，返回 `XC_CONTINUE`；
+3. 任务**非等待通知**：仅置待处理标志（`NotifyPending=1`，无条件/幂等），返回 `XC_CONTINUE`——之后 `HandleWaitNotify` 会直接消费；
+4. 任务**等待通知**且**调度运行中**（中断场景，`Lock==1`）：置 `NotifyPending=1` 且 `EventPending=1` 触发异步调度，返回 `XC_CONTINUE`；
 5. 任务**等待通知**且**调度未运行**：加锁移动任务到就绪表、置 `WAKEUP`/`READY`，返回 `XC_OK`。
 
-**等待流程（`HandleWaitNotify`）**：置 `WAIT` 后检查 `Produced != Consumed`——已有通知则立即消费置 `READY`（防止中断在置 `WAIT` 前发送的通知丢失）；否则阻塞等待，由事件调度或直接路径唤醒。
+**等待流程（`HandleWaitNotify`）**：置 `WAIT` 后检查 `NotifyPending != 0`——已有通知则清零并立即置 `READY`（防止中断在置 `WAIT` 前发送的通知丢失）；否则阻塞等待，由事件调度或直接路径唤醒。
 
 **并发保证**：生产者（中断）与消费者（调度器）经 `volatile` 计数 + 框架锁协作；单生产者约束下无竞争。**注意**：框架不关中断、不做原子操作，若出现多生产者需用户加锁；CPU 内存重排序时用户需内存屏障。
 
@@ -654,13 +702,12 @@ typedef void* COR_BP_t;
 ```c
 void XC_Sch_Init(XC_OSHandle_t phXCOS)
 {
-    phXCOS->Lock = 1U;                 // 初始即锁,防止未初始化时被中断调度
-    phXCOS->pPrevReadyNode = &phXCOS->ReadyList;  // 上个就绪节点指向根
-    phXCOS->PrevTick       = 0U;                  // 上个 Tick
-    phXCOS->TaskNum        = 0U;
-    phXCOS->EventProduced  = 0U;      // 通知/挂起/恢复的异步调度触发计数
-    phXCOS->EventConsumed  = 0U;
-    phXCOS->fIdle          = NULL;
+    XC_DIAG_ASSERT(phXCOS != NULL);
+    phXCOS->Lock         = 1U;   // 初始即锁(1锁定/0解锁), 防止未初始化时被中断直接调度
+    phXCOS->PrevTick     = 0U;   // 上个 Tick(用于判时间回绕)
+    phXCOS->TaskNum      = 0U;   // 任务数量
+    phXCOS->EventPending = 0U;   // 异步调度事件-待处理标志(MPSC: 中断只写 1, 主循环写 0)
+    phXCOS->fIdle        = NULL; // 框架空闲处理回调
     XC_List_Init(&phXCOS->ReadyList);
     XC_List_Init(&phXCOS->TimeList);
     XC_List_Init(&phXCOS->TimeOverflowList);
@@ -668,45 +715,75 @@ void XC_Sch_Init(XC_OSHandle_t phXCOS)
 }
 ```
 
+> 早期实现曾含 `pPrevReadyNode`（就绪表游标）与 `EventProduced`/`EventConsumed`（事件计数对），**现均已移除**：门控改为单字节 `EventPending`（MPSC 常量写），调度改为"取表首 + 归位插尾"（见 6.2）。
+
 ### 6.2 主循环 `XC_Sch_Start`
 
 ```c
 void XC_Sch_Start(XC_OSHandle_t phXCOS)
 {
-    pIterator = XC_List_GetListStartNode(&phXCOS->ReadyList);
+    XC_DIAG_ASSERT(phXCOS != NULL);
     for(;;) {
+        /* 取任务: ListValid 在锁外判断(中断只加不减 => 判非空后不会变空) */
         if(XC_List_ListValid(&phXCOS->ReadyList)) {
-            if(XC_List_ReachEndNode(&phXCOS->ReadyList, pIterator)) {
-                pIterator = pIterator->pNext;          // 到达根节点则向前推进
-            }
-            phXCOS->pPrevReadyNode = pIterator->pPrev; // 记录上个就绪节点
-            phTCB = XC_LIST_TO_TCB(pIterator);
-            pIterator = pIterator->pNext;              // 先推进再运行(任务可能移动节点)
+            XC_Core_Lock(phXCOS);                                        // 锁: 取任务 vs 中断 SendNotify 并发
+            phTCB = XC_LIST_TO_TCB(XC_List_GetListStartNode(&phXCOS->ReadyList));
+            XC_SCH_TAKE_FIRST(phTCB);                                    // 摘表首 + 自环(游离标记)
             phTCB->TaskState = XC_TASK_RUN;
-            phTCB->fTask(phTCB);                       // 恒调当前层(顶层或子层)
+            XC_Core_Unlock(phXCOS);                                      // 解锁: 运行阶段中断可正常直接操作
+
+            /* 运行(锁外) */
+            RunStart = XC_Diag_RunStatsBegin();                          /* [统计档] 调度槽计时起点 */
+            phTCB->fTask(phTCB);                                         // 恒调当前层(顶层或子层)
             /* 同轮切父:当前层完成(DONE)且栈非空时,弹帧并立即运行父层 */
             while((phTCB->CorState == XC_COR_DONE) && (phTCB->CorDepth > 0U)) {
                 XC_Task_PopFrame(phTCB);
                 phTCB->fTask(phTCB);
             }
+            XC_Diag_RunStatsEnd(phTCB, RunStart);                        /* [统计档] 本槽内移除自身不累计 */
+
+            /* 归位: 仅"游离(自环)"任务插回就绪表尾 =>
+             *  - 覆盖 DONE 让出(Leave) 与 SUSPENDED 让出(父层 Call 后自然退出);
+             *  - 任务已被 Delay/Suspend/Reset/唤醒 API 移入其它表(非自环), 或已被移除(节点被置 NULL) => 不干预;
+             *  - 锁外快判 + 锁内复判: 防中断在两次判定之间把节点搬进就绪表;
+             *  - 状态同步为 READY(锁内, 与链表操作原子) */
+            if(phTCB->ListNode.pNext == &phTCB->ListNode) {      /* 锁外快判(可过期) */
+                XC_Core_Lock(phXCOS);
+                if(phTCB->ListNode.pNext == &phTCB->ListNode) {  /* 锁内复判(生效) */
+                    XC_SCH_PUT_TAIL(&phXCOS->ReadyList, phTCB);
+                    phTCB->TaskState = XC_TASK_READY;
+                }
+                XC_Core_Unlock(phXCOS);
+            }
         }
-        XC_Sch_TimeSched(phXCOS);                      // 时间调度
-        Trigger = phXCOS->EventProduced;               // 事件调度(通知异步触发)
-        if(Trigger != phXCOS->EventConsumed) {
-            phXCOS->EventConsumed = Trigger;
+        XC_Sch_TimeSched(phXCOS);                       // 时间调度
+        if(phXCOS->EventPending != 0U) {                // 事件调度: 先清标志后处理(处理期间再置位 => 下轮再处理)
+            phXCOS->EventPending = 0U;
             XC_Sch_EventSched(phXCOS);
         }
         /* 空闲处理:就绪表空时计算可休眠 Tick 并回调 fIdle */
         if((XC_List_ListValid(&phXCOS->ReadyList) == 0) && (phXCOS->fIdle != NULL)) {
             Tick = XC_Time_GetTick();
-            if(XC_List_ListValid(&phXCOS->TimeList))       Tick = XC_Sch_GetNextTaskWakeupTick() - Tick;
-            else if(XC_List_ListValid(&phXCOS->TimeOverflowList)) Tick = 溢出表首节点唤醒时刻 - Tick;
-            else                                            Tick = ~0U;
+            /* 取值纪律: 捕获"表首节点指针"后**只对该节点**取值(判空与取值共用同一次读表根)
+             *          ⇒ 中断即便此刻把节点搬走, 读到的仍是该 TCB 的真实字段(不会把表根当 TCB 读);
+             *          已过点(窗口内 Tick 前进)/窗口内回绕 ⇒ 一律给 0(语义: 不要休眠) */
+            if(phXCOS->PrevTick > Tick)                                                    Tick = 0U;
+            else if((pHead = XC_List_GetListStartNode(&phXCOS->TimeList)) != &phXCOS->TimeList) {
+                XC_Tick_t Next = XC_LIST_TO_TCB(pHead)->TaskWakeupTick;
+                Tick = (Next > Tick) ? (Next - Tick) : 0U;
+            }
+            else if((pHead = XC_List_GetListStartNode(&phXCOS->TimeOverflowList)) != &phXCOS->TimeOverflowList) {
+                Tick = XC_LIST_TO_TCB(pHead)->TaskWakeupTick - Tick;   /* 模块差(未回绕) */
+            }
+            else                                                                           Tick = ~0U;
+            if(XC_List_ListValid(&phXCOS->ReadyList))                                      Tick = 0U; /* 计算期间刚有任务就绪 */
             phXCOS->fIdle(phXCOS, Tick);
         }
     }
 }
 ```
+
+> **实现说明**：本版调度器**不使用就绪表游标**（早期实现用 `pPrevReadyNode` 游标推进，任务在运行中自行移表会让游标失效，是"调度器游标失效"缺陷的根因）；改为"**取表首 → 运行 → 若仍游离（自环）则插回表尾**"，节点归属由**自环判定**唯一确定；`XC_SCH_TAKE_FIRST` / `XC_SCH_PUT_TAIL` 为内联宏（4 步链表操作，无函数调用）。
 
 **任务运行语义**（调度器在每层函数返回后读 `TCB.CorState`）：
 
@@ -723,10 +800,12 @@ void XC_Sch_Start(XC_OSHandle_t phXCOS)
 每轮主循环调用，处理时间表与溢出表：
 
 1. **Tick 溢出处理**（`PrevTick > Tick`）：
-   - 时间表所有节点状态置 `READY` 并整表移入就绪表；
+   - 时间表所有节点状态置 `READY` 并**整表追加到就绪表尾**（保持原有相对顺序）；
    - 溢出表所有节点移入时间表；
    - 更新 `PrevTick`；
-2. **时间表唤醒**（时间表有效且 `Tick >= 队首唤醒时刻`）：从首节点向后轮询，唤醒时刻已到达的任务移入就绪表（**先推进迭代器再移动节点**，避免指针失效），遇未到期或表尾停止。
+2. **时间表唤醒**（时间表有效且 `Tick >= 队首唤醒时刻`）：从首节点向后轮询，把唤醒时刻已到达的任务移到**就绪表尾**（**先推进迭代器再移动节点**，避免指针失效），遇未到期或表尾停止。
+
+> 本函数**全程持锁**（`XC_Core_Lock` / `XC_Core_Unlock` 包住两个分支）。
 
 ```c
 static void XC_Sch_TimeSched(XC_OSHandle_t phXCOS)
@@ -740,7 +819,7 @@ static void XC_Sch_TimeSched(XC_OSHandle_t phXCOS)
         while(Tick >= XC_LIST_TO_TCB(pIterator)->TaskWakeupTick) {
             phTCB = XC_LIST_TO_TCB(pIterator);
             pIterator = pIterator->pNext;          // 先推进
-            XC_Task_MoveToReadyList(phTCB);
+            XC_Task_MoveToReadyListTail(phTCB);    // 移到就绪表尾(统一排队尾)
             phTCB->TaskState = XC_TASK_READY;
             if(XC_List_ReachEndNode(pTimeList, pIterator)) break;
         }
@@ -752,11 +831,24 @@ static void XC_Sch_TimeSched(XC_OSHandle_t phXCOS)
 
 ### 6.4 事件调度 `XC_Sch_EventSched`
 
-由 `EventProduced != EventConsumed` 触发（中断中 `SendNotify` 等异步操作登记），在调度器上下文中执行实际唤醒。用**局部宏 `WAKEUP_NOTIFY(pCList)`** 遍历时间表/溢出表/阻塞表，将"等待通知且需要消费"的任务消费通知并移入就绪表（先推进迭代器再操作节点）。宏设计为热路径优化：内联展开避免函数调用开销，作用域仅限本函数。
+由 `XCOS_t.EventPending != 0` **门控**触发（中断中 `SendNotify` 在锁窗口内只置该标志），在调度器上下文中执行实际唤醒；主循环**先清标志再处理** ⇒ 处理期间新到的事件会再次置位、下一轮处理，**不丢事件**。用**局部宏 `WAKEUP_NOTIFY(pCList)`** 遍历时间表/溢出表/阻塞表，把"等待通知 + 有待处理标志"且**非挂起**（挂起优先级最高）的任务消费通知并移到**就绪表尾**（先推进迭代器再操作节点）。宏设计为热路径优化：内联展开避免函数调用开销，作用域仅限本函数。
 
 ### 6.5 空闲处理与休眠
 
-就绪表为空时计算"距最近唤醒的 Tick 数"并回调 `fIdle(phXCOS, IdleTick)`：时间表/溢出表有节点 -> 队首唤醒时刻差；两表皆空 -> `~0U`（可按最大时间休眠）。回调内可休眠系统，唤醒后需按文档更新 Tick（`XC_Time_TickSet`）。
+就绪表为空时计算“距最近唤醒的 Tick 数”并回调 `fIdle(phXCOS, IdleTick)`：**时间表**有节点 -> 队首唤醒时刻差（首节点=最近唤醒任务；溢出表任务在**下一个 Tick 回绕之后**，必然更晚）；仅**溢出表**有节点 -> 队首唤醒时刻差（**模块差** = 距回绕 + 回绕后唤醒时刻）；两表皆空 -> `~0U`（可按最大时间休眠）。回调内可休眠系统，唤醒后需按文档更新 Tick（`XC_Time_TickSet`）。
+
+**取值规则（2026-09-16 起；动机与实测见 `Docs/问题跟踪/问题清单/20260916_内核缺陷-空闲Tick.md`）**：
+
+| 点 | 做法 | 理由 |
+| --- | --- | --- |
+| 取首节点 | **在锁内**读"就绪表是否空"与"时间表 / 溢出表首节点唤醒时刻" | 原写法在**锁外**两次读表根（`ListValid` → 再取一次）；空闲分支此刻未持锁，中间被中断搬空（`SendNotify` 直接搬表）就会把**表根当 TCB** 读 ⇒ 垃圾 Tick（`BlockedList.pPrev` ≈ 5.4 亿）。锁内链表不会被中断改动 ⇒ 读到的必是真实 TCB 字段 |
+| 已过点 | `Next > Tick ? Next - Tick : 0U`（给 **0**） | 该唤醒时刻已过去 = “马上要干活”，而不是“能睡 49.7 天”；无符号减法会让负值回绕成 `~0xFFFFFFFF` |
+| 窗口内回绕 | `phXCOS->PrevTick > Tick` ⇒ 给 **0** | 该轮 Tick 回绕未被时间调度处理（溢出表尚未换表）⇒ 视为“已到点” |
+| 溢出表 | **保留模块差**，不加 `Next > Tick` 判断 | 溢出表节点唤醒时刻**数值小于**当前 Tick，取模后才是“距回绕 + 唤醒时刻”的正确值 |
+| 就绪判空 | **锁内**判就绪表非空 ⇒ 给 **0** | 覆盖"外层锁外快判之后、取唤醒时刻之前"刚有任务被唤醒 |
+
+> `IdleTick` 的值域契约（`0` = 不要休眠 / `~0U` = 无待唤醒任务 / 其余 = 建议休眠上限，且是**快照**）写在
+> `Code/Inc/Internal/XC_TypeInternal.h` 的 `fIdle` 字段注释与 `Code/Inc/XC_Sch.h` 的用户说明里。
 
 
 
@@ -774,9 +866,16 @@ static void XC_Sch_TimeSched(XC_OSHandle_t phXCOS)
 
 **使用方式**：
 
-- 中断上下文（`SendNotify` 等）持锁时：只更新生产者计数并登记异步事件（`EventProduced++`），**不直接操作链表**——实际唤醒由调度器在 `EventSched` 中完成，避免中断与主循环的链表竞争；
-- 调度器上下文（任务注册/阻塞/唤醒等）：加锁后直接操作链表；
-- 锁是普通 `volatile` 标志（非原子），**主循环持锁期间若中断不访问共享链表则安全**；系统设计为单核中断场景。
+- **中断侧（唯一合法使用者：`XC_Task_SendNotify`）**：先读 `Lock` ——
+  - `Lock == 1`（主循环正在关键区）：只置 `NotifyPending = 1`（必要时再置 `EventPending = 1`）**登记**，由主循环在 `EventSched` 落地，**不动链表**；
+  - `Lock == 0`：**读到 0 才获取**（置 `Lock = 1`）→ 把目标任务移到**就绪表尾**（`XC_Task_MoveToReadyListTail`）→ **配对释放**（置 `Lock = 0`）→ 再置 `NotifyState`/`TaskState`；
+- **主循环侧**（任务注册/阻塞/唤醒/移除等）：`Lock / 改表 / Unlock` 成对使用；**中断里只允许"读 0 获取"这一种加锁方式**，且**禁止在中断里 Unlock**（会把主循环的保护提前打开）；
+- 锁是普通 `volatile` 标志（**非原子、不可重入、无等待队列**），其语义是"**主循环正处于关键区**"的握手位，**不是互斥锁**；框架定位单核中断场景。
+- **锁纪律（写链表访问时的规矩，务必遵守）**：
+  - **锁是链表访问的唯一互斥手段**：锁内的链表访问统一按"**临界区内表不会被中断改动**"编写（中断侧读到锁只会"登记"、不动链表）；
+  - **不得**为"假设锁失效 / 有人忘锁"写防御性替代写法（如：判空后捕获节点指针自保、遍历时每轮重读表头、解锁后再复检一次）；
+  - 确实需要在**锁外**访问链表时，必须依赖一条**写明的不变量**（例：就绪表在中断侧"只加不减" ⇒ 判非空后不会变空，见 `XC_Sch_Start` 取任务处的注释），而不是依赖"看起来安全"的写法；
+  - 若发现某处链表访问**既没有锁、也没有写明的不变量** ⇒ **修法是"补锁"**（把该段并入 `XC_Core_Lock` / `XC_Core_Unlock`），而不是把访问改写成防御形状。
 
 ---
 
@@ -791,12 +890,13 @@ static void XC_Sch_TimeSched(XC_OSHandle_t phXCOS)
 | 2 层嵌套任务 | 44B + 16B 帧栈（2 帧 × 8B） |
 | 4 层嵌套任务 | 44B + 32B 帧栈（4 帧 × 8B） |
 | 100 任务混合(60无/30二层/10四层) | 4400 + 480 + 320 = 5.2KB |
+| 统计档（`XC_CFG_TASK_STATS=1`） | TCB **52B**（每任务 **+8B**：`RunCnt` 4B + `MaxRunTick` 4B；100 任务 ⇒ +800B RAM） |
 
 ### 各模块数据
 
 | 模块 | 内存 |
 | --- | --- |
-| `XCOS_tag`（框架实例） | 48B（32bit） |
+| `XCOS_tag`（框架实例） | **44B**（32bit：4 张链表 32B + `PrevTick` 4B + `TaskNum`/`Lock`/`EventPending`(+1B padding) 4B + `fIdle` 4B） |
 | `XC_ListNode_t`（链表节点） | 8B |
 | `XC_CorFrame_t`（协程帧） | 8B |
 | `XC_TimerTick_t`（软件定时器） | 2 × Tick 大小（默认 8B） |
@@ -814,13 +914,14 @@ static void XC_Sch_TimeSched(XC_OSHandle_t phXCOS)
 
 1. **协作式、无抢占**：任务必须主动让出；长时间运行会阻塞其他任务（看门狗需在任务中喂狗）；
 2. **无关中断/无原子操作**：任务同步仅支持 SPSC 通知；多生产者需用户加锁；CPU 内存重排序需用户内存屏障；
-3. **最大任务数**：受 `XC_CFG_MAX_TASKS` 限制（10~255，默认 100），超出返回 `XC_FAIL`；
+3. **最大任务数**：受 `XC_CFG_MAX_TASKS` 限制（**1~255**，默认 100；上限 255 是硬约束，由 `XC_Config.h` 的**编译期断言**强制 ——
+   因为框架实例的 `TaskNum` 是 `uint8_t`，越界会让计数**回绕**、`TaskNum--` **下溢**），注册超上限返回 `XC_FAIL`；
 4. **Tick 值域**：`延时 + 查询间隔`不能超过 Tick 类型值域（默认 32 位约 49 天 @1ms）；
 5. **局部变量不保存**：协程挂起时函数局部变量丢失，需跨挂起保留的数据存 TCB/静态区；
 6. **协程嵌套**：
    - 深度超限 / 未配栈调用 `Call` -> `PushFrame` 越界保护**复位任务**（安全降级）；
    - `pCorStack`/`CorDepthMax` 是用户配置，`Reset`/`Remove`/`BasicInit` 只清 `CorDepth` 不清配置；
-   - `XC_Task_SetEntry` 不动帧栈——嵌套中换入口会使栈底帧与新入口不一致，换前须先清栈；
+   - `XC_Task_SetEntry` 会**清栈 + 重置断点**（保持"栈底帧 `[0].pfn` = 最外层入口"不变量）：嵌套中换入口的语义 = **丢弃当前嵌套层、按新入口从头运行**（旧实现只改 `fTask`，会让复位/移除把入口恢复成旧值）；
    - `Call` 是必挂起点，调用前后局部变量一律不保存；
 7. **`fTask` 可变**：`Call` 切换为子层入口，复位/移除从栈底帧 `[0].pfn` 恢复顶层；
 8. **MISRA**：ANSI 版 `goto`（Rule 15.1）纳入 DEV-XCOS-001 豁免；`goto + case __LINE__` 为顺序流不可达标签（恢复跳转目标，非死代码）；
@@ -911,6 +1012,162 @@ while(1) {
     }
 }
 ```
+
+---
+
+## 十一、诊断与错误上报（`XC_Err.h` / `XC_Diag.h`，默认关）
+
+**定位**：内核只做"安全降级"（帧栈越界 ⇒ 复位任务），**默认不留任何痕迹**；本模块提供**可选**的诊断能力，全部**默认 0 ⇒ 0 代码 / 0 RAM**，发布工程可**物理不添加** `Code/Src/XC_Diag.c`。
+
+### 11.1 分层（两个头）
+
+| 层 | 文件 | 内容 | 实现文件 |
+| --- | --- | --- | --- |
+| **错误上报设施** | `Code/Inc/XC_Err.h` | 错误码 `XC_ErrCode_t` + 用户钩子 `XC_Err_Hook` + 上报宏 `XC_Err_Report`（开关 `XC_CFG_ERR_HOOK`） | **无**（钩子由用户实现 ⇒ 本身不占 Flash/RAM） |
+| **诊断能力** | `Code/Inc/XC_Diag.h`（用户/调试可见：自检 + 统计查询） + `Code/Inc/Internal/XC_DiagInternal.h`（实现侧：断言宏 + 调度槽计时埋点） + `Code/Src/XC_Diag.c` | 断言 `XC_DIAG_ASSERT`（`XC_CFG_ASSERT`）/ 运行期自检 `XC_Diag_CheckInvariants`（`XC_CFG_DEBUG_CHECK`）/ 每任务运行统计（`XC_CFG_TASK_STATS`） | `Code/Src/XC_Diag.c`（**可按工程裁剪**） |
+
+`XC_Diag.h` 包含 `XC_Err.h`（断言失败即经钩子上报 `XC_ERR_ASSERT`）；**只做上报**的模块（如用户驱动层）只需包含 `XC_Err.h`。
+
+### 11.2 三条纪律
+
+1. **只上报 / 只读检查**：不改变内核控制流 —— 帧栈越界仍复位任务、断言**不 return**、自检**不修改**任何状态；
+2. **全部默认关闭**：关档时字段与代码都不编译 ⇒ **0 代码 / 0 RAM / 0 耗时**（断言宏连条件都不求值）；
+3. **埋点留在内核**：`XC_Task_PushFrame`（越界上报）、`XC_Sch_Start`（调度槽计时两端）、`XC_Task_AddInternal`/`XC_Task_HandleRemove`（统计清零）。
+
+### 11.3 开关依赖与成本（打开开关后多出来的代码；armcc AC5 `-O1`）
+
+| 开关 | 依赖 | 关档 | 开档增量 |
+| --- | --- | --- | --- |
+| `XC_CFG_ERR_HOOK` | — | 0 | `XC_Task.o` **+12 B**（成本全在调用点） |
+| `XC_CFG_ASSERT` | **须同时开 `XC_CFG_ERR_HOOK`**（否则 `#error`） | 0 | 相对"仅钩子" **+360 B**（内核 26 个调用点 ≈14 B/处） |
+| `XC_CFG_DEBUG_CHECK` | — | 0 | `XC_Diag.o` **+436 B**（内核侧不增加） |
+| `XC_CFG_TASK_STATS` | — | 0 | **TCB +8 B/任务** + `XC_Diag.o` 56 B、`XC_Sch.o` 20 B、`XC_Task.o` 12 B |
+
+> **精确数值以 `Tests/baseline.md` 为准**（本表只列结构与量级）。
+> **断言 vs 返回码的边界规则**（同一条件只允许一个强制点 / 参数合法性=断言 / 运行期前提=返回码）见 **§11.6**。
+
+### 11.4 运行统计（`XC_CFG_TASK_STATS`）
+
+- 字段：`TCB.RunCnt`（**饱和计数**，不回绕）、`TCB.MaxRunTick`（只增不减）；
+- 口径：一次"**调度槽**" = 摘出就绪表 → 让出；含"同轮切父"的父层；**等待期间不计时**；
+- 生命周期：注册/移除清零（**本槽内移除自身不再累计**），`XC_Task_Reset` 保留；
+- 精度：单位是系统 Tick（默认 1 ms ⇒ 短于 1 tick 记 0）；含运行期间的**中断时间** ⇒ 是"调度槽耗时"，非纯指令数。
+
+### 11.5 运行期自检（`XC_CFG_DEBUG_CHECK`）
+
+`XC_Diag_CheckInvariants(phXCOS)` 盘点四张任务表与状态标签，返回 `XC_CHK_OK` 或**首个失败项**（`XC_ChkResult_t`：1 链表损坏 / 2 状态↔表不符 / 3 重复挂表 / 4 计数不符 / 5 嵌套不自洽 / 6 归属错）。
+实现约束：**全程持锁** ⇒ **不可在已持锁的上下文**调用；不使用静态/堆内存（仅少量栈）；所有遍历有步数上限（防环）；**不会自动调用**（由用户/回归用例显式调用）。
+
+### 11.6 断言 vs 返回码：边界规则（实现纪律）
+
+> **一句话**：**同一形参的同一失效条件，只允许一个强制点** —— 要么断言，要么返回错误码，**不得叠加**；不同形参、或同一形参的**不同**条件可并存（那是两条独立契约）。
+
+| 规则 | 内容 |
+| --- | --- |
+| **R1 互斥** | 同一形参 + 同一失效条件 ⇒ **二选一**（`XC_DIAG_ASSERT` 与 `if(...) return` 不得同时出现） |
+| **R2 允许并存** | 不同形参、或同一形参的不同条件 ⇒ 可混用（例：`assert(p != NULL)` + `if(len > MAX) return XC_FAIL;`） |
+| **R3 禁止部分重叠** | 复合 `if` 中不得再 `OR` 已被断言覆盖的子条件（例：`if((n >= MAX) \|\| (p == NULL))` 的 `p == NULL` 若已断言 ⇒ 必须删掉该子条件） |
+| **R4 方向判据** | 属**前置契约/编程错误**（参数合法性：`NULL`、非法参数组合）⇒ **断言**（发布档不生效，文档标注"违背 = 未定义行为"）；属**运行期前提 / 契约承诺要报告的结果**（表满、重复注册、未挂起、自检失败项）⇒ **返回错误码** |
+| **R5 归属层级** | 契约写在**最小公共入口**（如 `XC_Task_Reg`）；包装函数（如 `XC_Task_RegExt`）只断言自己新增的契约 |
+| **R6 宏例外** | 宏类 API（`XC_Task_GetState`/`GetParam`/`ReadNotifyData`/`UpdateNotifyData`/`ClrNotify`、全部 `XC_Cor_*`）无返回路径 ⇒ **只能断言**，文档须写明"调用方保证" |
+| **R7 跨 API 一致** | 同一类失效（如"参数 `NULL`"）在各 API 间必须作**一致选择**，否则无法用一句话描述契约 |
+
+**本内核的选择（方向 A）**：**参数合法性 = 断言**（发布档 0 开销）、**运行期前提 / 承诺结果 = 返回值**。
+- 采用原因：与"发布档 0 代码 / 0 RAM"的项目基调一致；宏类 API 无需例外条款；
+- 代价：**参数写错 = 未定义行为**（DEBUG 档由断言定位现场）；
+- 例：`XC_Task_Reg` 对 `fTask == NULL` **只断言**；对"已注册 / 表满"**返回 `XC_FAIL`**；`XC_Diag_CheckInvariants` 的"句柄为空"用返回值 `XC_CHK_HANDLE` 表达（因为它本就承诺报告失败项）。
+
+**断言位置信息（已评估，不实施）**：断言只上报 `XC_ERR_ASSERT` —— 在用户钩子里对该码**打断点 + 调用栈**即可定位 `文件:行号`（信息更全，且调试档**零额外开销**）。
+实测（armcc AC5 `-O1`，**仅断言档**）：若改为携带 `__FILE__`/`__LINE__` ⇒ **+152 B**（26 处 ≈5.8 B/处）+ RO `+8~10 B`；只带行号 ⇒ **+92 B**（发布档仍 0）。
+⇒ 除非需要"**无调试器留痕**"（现场日志 / CI 输出），否则不划算；完整评估含重开条件见 `Docs/问题跟踪/`。
+
+**内核内断言调用点（26 处）**：`XC_Task_Reg/RegExt/SetEntry/Add/SetCorStack/Remove/Reset/Suspend/Resume/SendNotify`（`phTCB`/`phXCOS`/`fTask` 非空、帧栈⇔容量一致）、`XC_Sch_Init/Start/GetTaskNum/SetIdleCallback`（`phXCOS` 非空）、`XC_Diag_*` 查询（`phTCB` 非空，3 处）；
+**热路径刻意不加**（如 `XC_Diag_RunStatsEnd`）。完整调用点表见 `Docs/XC_Config.md`「XC_CFG_ASSERT」。
+
+---
+
+## 十二、并发模型与字段所有权（字段级契约）
+
+> 来源：框架级共享字段的"并发等级 / 字段所有权"声明（含中断误用防护）**合并成果**。
+> 背景：框架**不关中断、不做原子操作**；`XC_Core_Lock/Unlock` 只是"主循环 ↔ 中断"的**单一标志位**（不可重入、无等待）。
+> 因此**每个可写字段都必须明确"写者集合 + 并发模型 + 安全依据"** —— 历史上"丢唤醒"缺陷就是"框架级 MPSC + 读-改-写"的实际案例。
+> **用户侧**只需遵守的约束（中断里能调什么 / SPSC / 时延建议…）见 `Docs/XCOS.md`「🔒 并发约束」；本节保留**实现与字段级**细节。
+
+### 12.1 四种并发模型
+
+| 模型 | 含义 | 该模型下必须满足 |
+| --- | --- | --- |
+| **主上下文** | 只有主循环（任务/调度器）会写；中断不碰 | 中断只读也要谨慎（可能读到瞬时旧值） |
+| **锁串行化** | 主循环与"中断直接路径"都可能写，靠 `Lock` 握手串行化（**非无锁**） | 所有写点必须在锁窗内；中断侧只允许 `SendNotify` 的"直接搬表"分支 |
+| **SPSC（常量写）** | 单生产者 ↔ 单消费者，两侧**只写常量**（1 / 0），无读-改-写 | 严禁 `++`、位或赋值、位域；多生产者写同值幂等 |
+| **MPSC（常量写）** | 多生产者（所有中断）写同一常量、单消费者（主循环）清 0 | 生产侧只写常量 1；消费侧"先清后处理" |
+
+### 12.2 字段级矩阵（`XCOS_t` / `XC_TaskCB_t`）
+
+| 字段（声明处：`Code/Inc/Internal/XC_TypeInternal.h`） | volatile | 写者集合 | 模型 | 依据 / 纪律 |
+| --- | --- | --- | --- | --- |
+| `TCB.TaskState` | ✅ | 主循环（≈23 写点）+ 中断（仅 `SendNotify` 直接唤醒路径） | 锁串行化 | 单字节写；"锁内写 + 先置状态再移表"；`SUSPEND` 受"挂起优先级最高"保护 |
+| `TCB.NotifyState` | ✅ | **两侧**：生产者 `SendNotify`（置 `WAKEUP`）；消费者 `HandleWaitNotify`/`EventSched`/`Resume` | **协议字段**（不是纯 SPSC） | 顺序由"先置 `WAIT` 再查标志"保证；消费者侧只能在主循环上下文写 |
+| `TCB.NotifyPending` | ✅ | 生产者 = 某一个中断/任务（只写 1）；消费者 = 目标任务自身/调度器（只写 0） | **SPSC（常量写）** | 无 RMW ⇒ 无需原子/关中断；多生产者写同值幂等 |
+| `TCB.pNotifyData` | ❌ **非 volatile** | 生产者 `SendNotify` / `XC_Task_UpdateNotifyData` | **SPSC（纯契约）** | 字对齐写原子；可见性靠"标志先写/后读"的顺序；多生产者 ⇒"最后写入胜出" |
+| `XCOS_t.EventPending` | ✅ | **所有中断**（写 1）；主循环（写 0） | **MPSC（常量写）** | 任一交错结果都是 1 ⇒ 不丢更新；主循环"先清后处理" |
+| `XCOS_t.Lock` | ✅ | 主循环 + 中断直接路径 | 锁串行化握手 | 单字节写；ISR"读到 0 才获取、配对释放"；**不可重入、不关中断** |
+| `XCOS_t` 四张链表 + `TCB.ListNode` | ❌ | 主循环 + 中断直接路径 | 锁串行化（**非无锁**） | 所有表写都在锁窗内；ISR 侧只有 `SendNotify` 的直接路径允许动表 |
+| `TCB.TaskWakeupTick` | ❌ | 仅主循环（`HandleBlocking`/`TimeSched`） | 主上下文 | 中断不写，读点也只在主循环 |
+| `TCB.RunCnt` / `TCB.MaxRunTick`（仅 `XC_CFG_TASK_STATS` 档） | `RunCnt` ✅ / `MaxRunTick` ❌ | 仅主循环（`XC_Diag_RunStatsEnd`，每次调度槽一次） | **主上下文** | 统计字段：用户/调试只读；32 位对齐单字段读原子，两个字段不保证成对一致；`RunCnt` 饱和不回绕；**本槽内移除自身不累计** |
+| `TCB.phXCOS`/`pParam`/`fTask`/`BP`/`pCorStack`/`CorDepth`/`CorDepthMax`/`CorState` | ❌ | 主上下文（注册/移除/协程内） | 主上下文 | 中断不得触碰 |
+| `XCOS_t.PrevTick` / `TaskNum` / `fIdle` | ❌ | 仅主循环 | 主上下文 | `TaskNum` 为 `uint8_t`，上限受 `XC_CFG_MAX_TASKS` 约束 |
+
+> **字段位置不写行号**（行号会随注释增删漂移）：以 `Code/Inc/Internal/XC_TypeInternal.h` 的声明为准；核对方法见 §12.7。
+
+### 12.3 ISR 侧合法 / 禁止
+
+* ✅ **唯一合法**：`XC_Task_SendNotify`（生产者只写常量 1，持锁时自动降级为"只登记"）；
+* ⚠️ 有条件：写 `pNotifyData`（须与 `SendNotify` **同一生产者上下文**）；只读查询仅建议用于调试；
+* ❌ 禁止：`Suspend`/`Resume`/`Reset`/`Remove`/`Add` 等"会移表"的 API；`XC_Task_ClrNotify`（消费侧字段 ⇒ 会丢唤醒）；
+* ISR 想产生"挂起/恢复"效果 → **通知控制任务，由任务上下文执行**（范式代码见 `Docs/Skill/XCOS_Agent_Skill.md` §四.7）。
+
+### 12.4 锁的语义与契约
+
+`XC_Core_Lock/Unlock/GetLockState`（`Code/Inc/Internal/XC_Core.h`）**不是互斥锁**：
+
+| 项 | 事实 |
+| --- | --- |
+| 本质 | "**主循环正处于关键区**"的**单一标志位**（`XCOS_t.Lock`）——唯一用途是让中断侧判断"此刻能否直接改链表" |
+| 不提供 | 原子性 / 阻塞 / 等待队列 / **可重入** / 中断状态保存与恢复 |
+| 必须遵守 | ① **不可嵌套**（连续 Lock 不叠加，一次 Unlock 全开）；② **必须配对**；③ **不得在中断中 Unlock**（会把主循环的保护提前打开）；④ 中断侧只允许"读到 0 才获取、完成后配对释放" |
+| **隐式配对** | `XC_Task_HandleWaitNotify` **持锁**进入 `XC_Task_HandleBlocking`，由后者内部的 Unlock **隐式释放**外层锁（锁不可重入 ⇒ 这是刻意的"锁范围最小化"）⇒ 改动这两个函数**必须保证"每条路径恰好解锁一次"**；一旦失配，锁永久为 1 ⇒ 所有中断通知退化为"只登记"、**直接唤醒静默失效**（症状分散、极难定位） |
+| 上下文判定 | `GetLockState()` 回答的是"**能否立刻落地**"，**不是**"我是不是中断"（后者需 `__get_IPSR()`/用户钩子）——见 §12.3 |
+
+> **语义提醒**：不要按"互斥锁"使用本组宏（嵌套加锁、中断内解锁都会静默破坏）；名字虽是 `Lock`，请按"**关键区标志位**"理解。
+> 备选（**未采纳**）：重命名为 `XC_Core_EnterCritical/ExitCritical`（需改 26 处调用点）。
+
+### 12.5 协作式调度的时延约束
+
+本内核**无时间片、无优先级**：调度器只有"取首 → 运行 → 归位"，`XC_Cor_Yield()` 是唯一主动让出点。
+
+| 项 | 约束 |
+| --- | --- |
+| 推论 | **任一任务的执行时间 = 其它所有任务（含被中断唤醒的任务）的最坏额外延迟**（一个执行 1 ms 的任务会把通知处理最多推迟 1 ms） |
+| 建议 | 单次执行尽量控制在 **百微秒量级**；长计算必须**分片**（循环内周期性 `XC_Cor_Yield()`）；缓冲型外设（串口等）用 **DMA/环形缓冲**吸收延迟 |
+| 怎么量 | 自测打点（或"运行统计"能力）记录每任务最长执行时间，并把它作为回归基线 |
+| 边界 | 需要**确定性/抢占**的实时场景 ⇒ 本框架定位是"资源极小、无栈、易移植"，应改用抢占式 RTOS |
+
+### 12.6 新增/修改字段的准入规则（3 条）
+
+1. **必须登记**：任何新增/修改"可写字段"，都要在本节矩阵中声明"写者集合 + 并发模型 + 安全依据"；
+2. **禁止"多写者 + 读-改-写"**：`++`、位或赋值、位域等写法在"多写者"字段上必然丢更新（"丢唤醒"缺陷的成因）；多写者字段只能用**常量写**；
+3. **需要计数 → 用差值法**：确需"计数"语义时用 `(uint8_t)(P - C) < N` 之类的**差值判据**（溢出安全），并明确写者集合；不引入 RMW 计数器。
+
+### 12.7 怎么核对（0 运行时代价）
+
+* 评审时：改动 `XCOS_t`/`XC_TaskCB_t` 的提交必须同步更新本节矩阵（可写成评审勾选项）；
+* 可选：脚本扫描 `Code/Src/*.c` 中每个字段的写点（`->字段 =`），列出所在函数，与矩阵人工比对（2026-09-15 复核：`TaskState`=23、`NotifyState`=8、`NotifyPending`=5、`pNotifyData`=2、`EventPending`=3）。
+
+### 12.8 调度器实现纪律
+
+`XC_Task_MoveToReadyListTail`（`Code/Inc/Internal/XC_TaskInternal.h`）必须"**先摘除（`XC_List_Remove`）再插表尾**"——
+直接 `XC_List_MoveNodeAfter(ReadyList.pPrev, node)` 在该节点**恰为表尾**（或仍在表中）时会**自引用破坏链表**（实测踩坑，见宏注释与 `Docs/CHANGELOG.md`）。
 
 ---
 

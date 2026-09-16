@@ -1,0 +1,3 @@
+OLD: b_c=1 c_c=1 | B_state=4  (挂起任务被运行次数; 期望 0)
+NEW: b_c=0 c_c=0 | B_state=4  (挂起任务被运行次数; 期望 0)
+RESULT: OLD=1 NEW=0

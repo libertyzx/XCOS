@@ -14,8 +14,10 @@
  *  - 见"CHANGELOG.md"的更新说明;
  */
 //=== 头文件
+#include "XC_Sch.h"
 #include "Internal/XC_List.h"
 #include "Internal/XC_TaskInternal.h"
+#include "XC_Diag.h" //诊断能力(断言/运行统计埋点)
 #include "XC_Time.h"
 
 /*
@@ -101,13 +103,14 @@ static void XC_Sch_TimeSched(XC_OSHandle_t phXCOS)
     if(phXCOS->PrevTick > Tick) { // 保存的Tick大于当前Tick,时间溢出,需要处理
         // 时间表处理
         if(XC_List_ListValid(pTimeList)) { // 时间表有节点
-            // 所有节点移动到就绪表;
+            // 所有节点移动到就绪表(尾部);
             pIterator = XC_List_GetListStartNode(pTimeList); // 得到时间链表初始节点
             do {
                 XC_LIST_TO_TCB(pIterator)->TaskState = XC_TASK_READY;    // 任务状态:就绪
                 pIterator                            = pIterator->pNext; // 指向下个节点
             } while(!XC_List_ReachEndNode(pTimeList, pIterator)); // 到达结尾则结束
-            XC_List_MoveListToNodeAfter(&phXCOS->ReadyList, pTimeList); // 时间表所有节点移动到就绪表(表首)
+            // 时间表所有节点追加到就绪表尾(入表统一排队尾; 锚点 = 旧就绪表尾节点)
+            XC_List_MoveListToNodeAfter(phXCOS->ReadyList.pPrev, pTimeList);
         }
         // 时间溢出表处理(溢出表全部节点移动时间表)
         if(XC_List_ListValid(&phXCOS->TimeOverflowList)) {                     // 时间溢出表有节点
@@ -132,7 +135,7 @@ static void XC_Sch_TimeSched(XC_OSHandle_t phXCOS)
         while(Tick >= XC_LIST_TO_TCB(pIterator)->TaskWakeupTick) { // 唤醒时间到达
             phTCB     = XC_LIST_TO_TCB(pIterator);                 // 得到当前任务的TCB
             pIterator = pIterator->pNext;                          // 指向下个任务(必须在操作链表前)
-            XC_Task_MoveToReadyList(phTCB);                        // 唤醒任务,移到就绪表
+            XC_Task_MoveToReadyListTail(phTCB);                    // 唤醒任务,移到就绪表尾(统一排队尾)
             phTCB->TaskState = XC_TASK_READY;                      // 任务状态:就绪
             // 轮询结束判断
             if(XC_List_ReachEndNode(pTimeList, pIterator)) { // 到达结尾
@@ -151,7 +154,7 @@ static void XC_Sch_TimeSched(XC_OSHandle_t phXCOS)
  *  此函数用于:
  *      - 任务唤醒"XC_Task_SendNotify"函数触发;
  *  注意:
- *      - 在调用此函数前必须先判断"phXCOS->EventProduced != phXCOS->EventConsumed";
+ *      - 在调用此函数前必须先判断"phXCOS->EventPending != 0U"(主循环门控:先清标志后处理);
  *      - 此函数的实现主要是循环搜索链表(时间表,溢出表,阻塞表),判断是否有需要处理的任务:
  */
 static void XC_Sch_EventSched(XC_OSHandle_t phXCOS)
@@ -170,35 +173,34 @@ static void XC_Sch_EventSched(XC_OSHandle_t phXCOS)
      *  注意:
      *  - 被唤醒的节点会移动(移除)到就绪表,所以必须先保存/推进迭代器再操作节点,
      *    否则链表指针将失效(见宏体内操作顺序);
-     *  - **已知缺陷(使用注意)**: 唤醒条件未排除挂起任务(`TaskState==SUSPEND`)——
-     *    若任务在等待通知(`NotifyState==WAIT`)期间收到异步通知(中断在锁窗口
-     *    SendNotify,仅 `Produced++` 未移表),随后被挂起(挂起不清除通知),本宏会在
-     *    事件调度中误唤醒该挂起任务,破坏"挂起只能 Resume 恢复"语义;
-     *    此路径需用户使用层面保证(勿对"等待通知中且可能收到异步通知"的任务挂起),
-     *    框架暂不处理;
+     *  - **挂起优先级(最高)**: 唤醒条件**已排除** `TaskState==SUSPEND`
+     *    ⇒ 挂起任务不会被事件调度唤醒, 只能由 `XC_Task_Resume` 恢复(挂起期间到达的通知不登记);
+     *  - **入表位置**: 唤醒后**追加到就绪表尾**
+     *    ⇒ 与"提前通知 / 普通让出"一致, 唤醒不做优先级补偿, 保持严格轮转(回归 V2.0 语义);
      */
-#define WAKEUP_NOTIFY(pCList)                                                                                                                              \
-    {                                                                                                                                                      \
-        XC_ListNode_t* pList     = pCList;                          /*缓存链表*/                                                                           \
-        XC_ListNode_t* pIterator = XC_List_GetListStartNode(pList); /*得到链表初始节点*/                                                                   \
-        if(!XC_List_ReachEndNode(pList, pIterator)) {               /*判断是否有节点*/                                                                     \
-            do {                                                                                                                                           \
-                if((XC_LIST_TO_TCB(pIterator)->NotifyState == (uint8_t)XC_NOTIFY_WAIT) &&                      /*是等待唤醒*/                              \
-                   (XC_LIST_TO_TCB(pIterator)->NotifyProduced != XC_LIST_TO_TCB(pIterator)->NotifyConsumed)) { /*需要消费*/                                \
-                    /*是等待唤醒 && 需要消费*/                                                                                                             \
-                    XC_LIST_TO_TCB(pIterator)->NotifyConsumed = XC_LIST_TO_TCB(pIterator)->NotifyProduced; /*更新状态改变处理(已经唤醒,可以不用临时变量)*/ \
-                    XC_TaskHandle_t phTCB                     = XC_LIST_TO_TCB(pIterator);                 /*得到当前任务TCB*/                             \
-                    pIterator                                 = pIterator->pNext;                          /*指向下个节点(必须在操作前指向下个节点)*/      \
-                    /** 通知唤醒 */                                                                                                                        \
-                    XC_Task_MoveToReadyList(phTCB);        /*任务移动到就绪表*/                                                                            \
-                    phTCB->NotifyState = XC_NOTIFY_WAKEUP; /*通知状态:通知唤醒*/                                                                           \
-                    phTCB->TaskState   = XC_TASK_READY;    /*任务状态:就绪*/                                                                               \
-                }                                                                                                                                          \
-                else {                                                                                                                                     \
-                    pIterator = pIterator->pNext; /*指向下个节点*/                                                                                         \
-                }                                                                                                                                          \
-            } while(!XC_List_ReachEndNode(pList, pIterator));                                                                                              \
-        }                                                                                                                                                  \
+#define WAKEUP_NOTIFY(pCList)                                                                                                        \
+    {                                                                                                                                \
+        XC_ListNode_t* pList     = pCList;                          /*缓存链表*/                                                     \
+        XC_ListNode_t* pIterator = XC_List_GetListStartNode(pList); /*得到链表初始节点*/                                             \
+        if(!XC_List_ReachEndNode(pList, pIterator)) {               /*判断是否有节点*/                                               \
+            do {                                                                                                                     \
+                if((XC_LIST_TO_TCB(pIterator)->NotifyState == (uint8_t)XC_NOTIFY_WAIT) && /*是等待唤醒*/                             \
+                   (XC_LIST_TO_TCB(pIterator)->NotifyPending != 0U) &&                    /*有待处理通知*/                           \
+                   (XC_LIST_TO_TCB(pIterator)->TaskState != (uint8_t)XC_TASK_SUSPEND)) {  /*挂起优先级最高:不唤醒挂起任务*/          \
+                    /*是等待唤醒 && 有待处理通知*/                                                                                   \
+                    XC_LIST_TO_TCB(pIterator)->NotifyPending = 0U;                        /*消费:清待处理标志(常量0写)*/             \
+                    XC_TaskHandle_t phTCB                    = XC_LIST_TO_TCB(pIterator); /*得到当前任务TCB*/                        \
+                    pIterator                                = pIterator->pNext;          /*指向下个节点(必须在操作前指向下个节点)*/ \
+                    /** 通知唤醒 */                                                                                                  \
+                    XC_Task_MoveToReadyListTail(phTCB);    /*任务移动到就绪表尾(唤醒不插队)*/                                        \
+                    phTCB->NotifyState = XC_NOTIFY_WAKEUP; /*通知状态:通知唤醒*/                                                     \
+                    phTCB->TaskState   = XC_TASK_READY;    /*任务状态:就绪*/                                                         \
+                }                                                                                                                    \
+                else {                                                                                                               \
+                    pIterator = pIterator->pNext; /*指向下个节点*/                                                                   \
+                }                                                                                                                    \
+            } while(!XC_List_ReachEndNode(pList, pIterator));                                                                        \
+        }                                                                                                                            \
     }
 
     XC_Core_Lock(phXCOS);                     // 锁
@@ -224,14 +226,14 @@ static void XC_Sch_EventSched(XC_OSHandle_t phXCOS)
  */
 void XC_Sch_Init(XC_OSHandle_t phXCOS)
 {
+    XC_DIAG_ASSERT(phXCOS != NULL);
     /** 初始第一步为锁,防止出现以为中断调度的情况; */
     phXCOS->Lock = 1U; // 锁(1锁,0解锁),用于中断处理
 
-    phXCOS->PrevTick      = 0U;   // 保存上个Tick值
-    phXCOS->TaskNum       = 0U;   // 任务数量
-    phXCOS->EventProduced = 0U;   // 任务调度触发(用于通知,挂起,恢复异步操作触发)
-    phXCOS->EventConsumed = 0U;   // 任务调度处理(用于通知,挂起,恢复异步操作触发后处理)
-    phXCOS->fIdle         = NULL; // 框架空闲处理
+    phXCOS->PrevTick     = 0U;   // 保存上个Tick值
+    phXCOS->TaskNum      = 0U;   // 任务数量
+    phXCOS->EventPending = 0U;   // 异步调度事件-待处理标志(通知/挂起/恢复的异步触发)
+    phXCOS->fIdle        = NULL; // 框架空闲处理
 
     XC_List_Init(&phXCOS->ReadyList);
     XC_List_Init(&phXCOS->TimeList);
@@ -248,39 +250,52 @@ void XC_Sch_Init(XC_OSHandle_t phXCOS)
  */
 void XC_Sch_Start(XC_OSHandle_t phXCOS)
 {
-    uint8_t         Trigger;
+    XC_DIAG_ASSERT(phXCOS != NULL);
     XC_TaskHandle_t phTCB;
     XC_Tick_t       Tick;
+#if (XC_CFG_TASK_STATS != 0)
+    XC_Tick_t RunStart; // [统计] 本调度槽起始 Tick(仅统计档存在; 局部变量不占任务/框架 RAM)
+#endif
 
     for(;;) {
         /* 取任务: ListValid 锁外判断(中断仅通知类, 只加不减 -> 判断非空后不会变空, 不会取到根节点) */
         if(XC_List_ListValid(&phXCOS->ReadyList)) {                               // 就绪表有节点,处理
-            XC_Core_Lock(phXCOS);                                                 // 锁: 保护取任务链表操作 vs 中断 SendNotify 并发
+            XC_Core_Lock(phXCOS);                                                 // 锁: 保护取任务链表操作
             phTCB = XC_LIST_TO_TCB(XC_List_GetListStartNode(&phXCOS->ReadyList)); // 表首节点 = Root->pNext
             XC_SCH_TAKE_FIRST(phTCB);                                             // ★ 摘除: 节点自环 => 游离标记
             phTCB->TaskState = XC_TASK_RUN;                                       // 任务状态:运行
             XC_Core_Unlock(phXCOS);                                               // 解锁: 运行阶段中断可正常直接操作
 
             /* 运行(锁外) */
+#if (XC_CFG_TASK_STATS != 0)
+            /* [统计] 统计起点: 从"摘出就绪表"到"让出"为一次调度槽(含下面同轮切父的父层) */
+            RunStart = XC_Diag_RunStatsBegin();
+#endif
             phTCB->fTask(phTCB); // 恒调当前层(顶层或子层)
             /* 同轮切父:当前层完成(走到 Leave 置 DONE)且栈非空时,弹帧并立即运行父层 */
             while((phTCB->CorState == XC_COR_DONE) && (phTCB->CorDepth > 0U)) {
                 XC_Task_PopFrame(phTCB); // 出栈:恢复父层入口+返回点
                 phTCB->fTask(phTCB);     // 同轮切父:运行父层
             }
-            /* 归位(锁内): 仅游离(自环)任务插回就绪表尾
-             * 自环 = 运行中没被任何 API 移表(Yield/Leave/直接return);
-             * 非自环 = 已被 Delay/Suspend/Reset/唤醒 API 移入对应表, 不干预;
-             * 状态一致性: 游离任务让出后必然回就绪表, 状态同步为就绪(READY);
-             * - 覆盖 DONE 让出(Leave): 原"仅 DONE 置 READY"逻辑;
-             * - 覆盖 SUSPENDED 让出(父层 Call 后自然退出/子层 Call): 原逻辑漏置, 报 RUN;
-             * - 不再无条件置 READY: 避免覆盖运行中被中断挂起(阻塞表)任务的 SUSPEND,
-             *   造成"任务在阻塞表却报 READY"的僵尸状态(Resume 永远无法恢复) */
-            if((phTCB->TaskState != (uint8_t)XC_TASK_VOID) && // 排除已移除任务
-               (phTCB->ListNode.pNext == &phTCB->ListNode)) { // 游离判定(自环)
-                XC_Core_Lock(phXCOS);                         // 锁: 插回是链表写操作, 防中断 SendNotify 并发
-                XC_SCH_PUT_TAIL(&phXCOS->ReadyList, phTCB);   // 插就绪表尾(轮转)
-                phTCB->TaskState = XC_TASK_READY;             // 状态一致性: 锁内同步(与链表操作原子)
+#if (XC_CFG_TASK_STATS != 0)
+            /* [统计] 统计终点(归位之前): 累计运行次数与最长耗时; 任务等待期间不计时;
+             * 本槽内"移除自身"的任务(TaskState==VOID, 统计已在 HandleRemove 清零)不再累计,
+             * 否则会把"移除时清零"覆盖成 RunCnt=1 / MaxRunTick=本槽耗时 */
+            if(phTCB->TaskState != (uint8_t)XC_TASK_VOID) {
+                XC_Diag_RunStatsEnd(phTCB, RunStart);
+            }
+#endif
+            /* 归位: 仅"游离"(自环)任务插回就绪表尾
+             * 自环 = 调度器摘出后没被任何 API 移表(Yield/Leave/直接return); 非自环 = 已入别的表或已移除, 不干预;
+             * 插回时同步置 READY(不覆盖运行中被中断挂起任务的 SUSPEND, 否则出现"在阻塞表却报 READY"的僵尸状态)
+             * ⚠️ 依赖: **任务被移除时其节点被置 NULL**(见 "XC_Task_HandleRemove") ⇒ 已移除任务不会被误插回;
+             *          改这里或改那里时必须成对检查 */
+            if(phTCB->ListNode.pNext == &phTCB->ListNode) {     // 锁外快判(可过期): 决定"是否进锁"
+                XC_Core_Lock(phXCOS);                           // 锁
+                if(phTCB->ListNode.pNext == &phTCB->ListNode) { // 锁内复判(生效): 防中断在两次判定之间搬表
+                    XC_SCH_PUT_TAIL(&phXCOS->ReadyList, phTCB); // 插就绪表尾(轮转)
+                    phTCB->TaskState = XC_TASK_READY;           // 状态一致性: 锁内同步(与链表操作原子)
+                }
                 XC_Core_Unlock(phXCOS);
             }
         }
@@ -288,34 +303,45 @@ void XC_Sch_Start(XC_OSHandle_t phXCOS)
 
         XC_Sch_TimeSched(phXCOS); // 时间调度处理
 
-        // 任务异步调度处理
-        Trigger = phXCOS->EventProduced;
-        if(Trigger != phXCOS->EventConsumed) {
-            phXCOS->EventConsumed = Trigger;
+        // 任务异步调度处理(先清标志再处理: 处理期间中断再置位 => 下轮再处理, 不丢事件)
+        if(phXCOS->EventPending != 0U) {
+            phXCOS->EventPending = 0U;
             XC_Sch_EventSched(phXCOS);
         }
 
-        // 判断就绪表是否有任务(空闲处理)
+        // 判断就绪表是否有任务(空闲处理); 锁外快判依据"中断侧只加不减"⇒ 判空后不会变空(锁内会再判一次)
         if((XC_List_ListValid(&phXCOS->ReadyList) == 0) && (phXCOS->fIdle != NULL)) {
             /** 就绪表没有节点 && 有空闲处理函数*/
             /**
-             *  主要判断时间表和溢出表是否有效(1有效,0无效):
-             *  - 时间表1,溢出表0: 取数据"XC_Sch_GetNextTaskWakeupTick()"(时间表首节点);
-             *  - 时间表1,溢出表1: 取数据"XC_Sch_GetNextTaskWakeupTick()"(时间表首节点);
+             *  计算"建议休眠上限"(距最近唤醒的 Tick 数):
+             *  - 时间表1,溢出表0: 取时间表首节点唤醒时刻(最近唤醒的那个任务);
+             *  - 时间表1,溢出表1: 取时间表首节点唤醒时刻(溢出表任务在**下一个 Tick 回绕之后**, 必然更晚);
              *  - 时间表0,溢出表1: 取溢出表首节点唤醒时间;
-             *  - 时间表0,溢出表0: 系统休眠;
+             *  - 时间表0,溢出表0: 给 ~0U(无待唤醒任务, 按最大时间休眠);
+             *  - 已过点 / 窗口内 Tick 回绕 / 就绪表已有任务 ⇒ 给 0(不要休眠);
              */
-            Tick = XC_Time_GetTick();                  // 得到当前Tick
-            if(XC_List_ListValid(&phXCOS->TimeList)) { // 时间表有节点
-                Tick = XC_Sch_GetNextTaskWakeupTick() - Tick;
+            Tick = XC_Time_GetTick();     // 得到当前Tick
+            if(phXCOS->PrevTick > Tick) { // 窗口内 Tick 回绕(时间调度待处理)
+                Tick = 0U;
             }
-            else if(XC_List_ListValid(&phXCOS->TimeOverflowList)) { // 溢出表有节点
-                Tick = XC_LIST_TO_TCB(XC_List_GetListStartNode(&phXCOS->TimeOverflowList))->TaskWakeupTick - Tick;
+            else {
+                XC_Core_Lock(phXCOS);                       // 锁: 把"就绪表是否空"与"下个唤醒时刻"读成一次原子观察
+                if(XC_List_ListValid(&phXCOS->ReadyList)) { // 已有任务就绪
+                    Tick = 0U;
+                }
+                else if(XC_List_ListValid(&phXCOS->TimeList)) {          // 时间表有节点
+                    XC_Tick_t Next = XC_Sch_GetNextTaskWakeupTick();     // 首节点 = 最近唤醒时刻
+                    Tick           = (Next > Tick) ? (Next - Tick) : 0U; // 已过点 ⇒ 0(直接相减会回绕成大数)
+                }
+                else if(XC_List_ListValid(&phXCOS->TimeOverflowList)) {                                                // 溢出表有节点
+                    Tick = XC_LIST_TO_TCB(XC_List_GetListStartNode(&phXCOS->TimeOverflowList))->TaskWakeupTick - Tick; // 模块差(未回绕) = 距回绕 + 唤醒时刻
+                }
+                else {          // 时间表,溢出表都没有节点;
+                    Tick = ~0U; // 按最大时间休眠
+                }
+                XC_Core_Unlock(phXCOS);
             }
-            else {          // 时间表,溢出表都没有节点;
-                Tick = ~0U; // 按最大时间休眠
-            }
-            phXCOS->fIdle(phXCOS, Tick); // 框架空闲处理
+            phXCOS->fIdle(phXCOS, Tick); // 框架空闲处理(锁外: 回调可能休眠/阻塞)
         }
     }
 }
@@ -328,6 +354,7 @@ void XC_Sch_Start(XC_OSHandle_t phXCOS)
  */
 uint8_t XC_Sch_GetTaskNum(XC_OSHandle_t phXCOS)
 {
+    XC_DIAG_ASSERT(phXCOS != NULL);
     return (phXCOS->TaskNum);
 }
 
@@ -340,9 +367,13 @@ uint8_t XC_Sch_GetTaskNum(XC_OSHandle_t phXCOS)
  * @details
  *  用于设置框架空闲处理回调;
  *  若是需要清除回调则"fIdle"值为NULL即可;
+ * @note
+ *  回调的第二个参数"IdleTick"是"**建议休眠上限**"(距下一个任务唤醒的 Tick 数);
+ *  取值语义见 "Internal/XC_TypeInternal.h" 里 "fIdle" 字段的说明;
  */
 void XC_Sch_SetIdleCallback(XC_OSHandle_t phXCOS, void (*fIdle)(XC_OSHandle_t, XC_Tick_t))
 {
+    XC_DIAG_ASSERT(phXCOS != NULL);
     phXCOS->fIdle = fIdle;
 }
 

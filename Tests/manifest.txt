@@ -1,0 +1,30 @@
+# XCOS 回归用例清单(TSV; 以 # 开头为注释; 首列关键字: SRC / INCDIR / 用例名)
+# 列: 名字	类别	用例文件	编译开关	判定	快照文件	备注
+#     类别: marker = 输出匹配"判定"正则; snapshot = 输出与"判定"所指快照逐行一致; skip = 暂不纳入(需仿真/待修)
+SRC	Code\Src\XC_Diag.c
+SRC	Code\Src\XC_List.c
+SRC	Code\Src\XC_Sch.c
+SRC	Code\Src\XC_Task.c
+SRC	Code\Src\XC_Time.c
+INCDIR	Code\Inc
+# --- 功能回归(可自动判定) ---
+A1-通知回归	marker	Docs\问题跟踪\修正方案\20260914_通知待处理标志\测试\20260914_通知待处理标志_回归测试.c		failures 0		A1 通知计数/待处理标志回归(18 项)
+A2-挂起优先级	snapshot	Docs\问题跟踪\修正方案\20260914_A2_挂起优先级与通知交付\测试\20260914_A2_挂起优先级与通知交付_测试.c			A2-挂起优先级.txt	A2/DEF-20260824-02 语义测点(输出含 expect 文本, 用快照判定)
+B1-关闭	marker	Docs\问题跟踪\修正方案\20260914_B1_错误上报钩子\测试\20260914_B1_错误上报钩子_测试.c		failures 0		B1 帧栈越界上报: 关档(无需实现钩子)
+B1-开启	marker	Docs\问题跟踪\修正方案\20260914_B1_错误上报钩子\测试\20260914_B1_错误上报钩子_测试.c	-DXC_CFG_ERR_HOOK=1	failures 0		B1 帧栈越界上报: 开档(钩子被调用 + 错误码/TCB)
+B1-断言	marker	Docs\问题跟踪\修正方案\20260914_B1_错误上报钩子\测试\20260914_B1_错误上报钩子_测试.c	-DXC_CFG_ERR_HOOK=1 -DXC_CFG_ASSERT=1	failures 0		断言(XC_DIAG_ASSERT): 真不上报/假上报 XC_ERR_ASSERT(需与钩子同开)
+B3-关闭	marker	Docs\问题跟踪\修正方案\20260914_B3_运行期自检\测试\20260914_B3_运行期自检_测试.c		failures 0		B3 运行期自检: 关档(不编译, 工程照常构建)
+B3-开启	marker	Docs\问题跟踪\修正方案\20260914_B3_运行期自检\测试\20260914_B3_运行期自检_测试.c	-DXC_CFG_DEBUG_CHECK=1	failures 0		B3 运行期自检: 开档(正常现场 + 6 种注入)
+B4-关闭	marker	Docs\问题跟踪\修正方案\20260914_B4_运行统计\测试\20260914_B4_运行统计_测试.c		failures 0		B4 运行统计: 关档(TCB 尺寸未变 + 调度器照常)
+B4-开启	marker	Docs\问题跟踪\修正方案\20260914_B4_运行统计\测试\20260914_B4_运行统计_测试.c	-DXC_CFG_TASK_STATS=1	failures 0		B4 运行统计: 开档(13 项断言, 含真实调度器端到端)
+B4-全开	marker	Docs\问题跟踪\修正方案\20260914_B4_运行统计\测试\20260914_B4_运行统计_测试.c	-DXC_CFG_TASK_STATS=1 -DXC_CFG_ERR_HOOK=1 -DXC_CFG_DEBUG_CHECK=1	failures 0		B1+B3+B4 三开关同开(可共存/可链接)
+S1-状态一致性与挂起唤醒	marker	Docs\问题跟踪\修正方案\20260821_调度器游标失效\测试\20260824_状态一致性与挂起唤醒_回归测试.c		(?s)timeout=0 \(=0\).*Sub>=Parent, >0\).*state=2 \(expect READY=2\)		判定=不变量正则(A3/A4 含线程相关计数器 ⇒ 不适合快照)
+A9-唤醒排队尾	marker	Docs\问题跟踪\修正方案\20260914_A9_唤醒即队尾\测试\20260914_A9_唤醒公平性_测试.c		failures 0		A9: 唤醒/入表一律排队尾(trace 断言; 修复前为插队)
+A17-空闲Tick	marker	Docs\问题跟踪\修正方案\20260916_A17_空闲Tick钳位与取值纪律\测试\20260916_空闲Tick计算_复现测试.c	-include Docs\问题跟踪\修正方案\20260916_A17_空闲Tick钳位与取值纪律\测试\xc_test_tick.h -DXC_SYS_TICK_COUNT=XC_TestTickRead()	failures 0		A17 空闲 Tick: 窗口内跨 tick ⇒ 提示值必须为 0(修复前为 0xFFFFFFFF)
+S2-调度器游标失效对照	snapshot	Docs\问题跟踪\修正方案\20260821_调度器游标失效\测试\20260821_调度器游标失效_复现对比_OLD_NEW.c			S2-游标失效对照.txt	新旧实现对照(历史资料, 快照判定)
+S3-状态一致性复现	snapshot	Docs\问题跟踪\修正方案\20260821_调度器游标失效\测试\20260824_状态一致性与挂起唤醒_复现测试.c			S3-状态一致性复现.txt	原始复现用例(历史资料, 快照判定)
+# --- 暂不纳入(原因见备注) ---
+SIM-A1新旧对照	skip	Docs\问题跟踪\修正方案\20260914_通知待处理标志\测试\20260914_A1_新旧代码对照_sim.c			needs-external-tick	需外部 tick 驱动/仿真通道(本机运行超时)
+SIM-A1回归	skip	Docs\问题跟踪\修正方案\20260914_通知待处理标志\测试\20260914_通知待处理标志_回归测试_sim.c			needs-external-tick	需外部 tick 驱动/仿真通道(本机运行超时)
+SIM-A2仿真测点	skip	Docs\问题跟踪\修正方案\20260914_A2_挂起优先级与通知交付\测试\20260914_A2_挂起优先级与通知交付_仿真测点.c			sim-bench	MDK 仿真测点(bench), 走仿真通道
+S4-新调度器综合测试(V2副本)	marker	Docs\问题跟踪\修正方案\20260821_调度器游标失效\测试\20260821_调度器游标失效_新调度器综合测试.c		ALL SCHED V2 TESTS PASS		副本类用例(自带调度器复刻: TimeSched/EventSched/SchedStep); 6 场景 S1~S6; **必须与 XC_Sch.c 同步**(最后同步 2026-09-16: A1/A2/A9)

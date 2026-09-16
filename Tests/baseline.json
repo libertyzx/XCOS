@@ -1,0 +1,111 @@
+{
+    "object":  {
+                   "off":  {
+                               "XC_Diag.c":  {
+                                                 "Code":  0,
+                                                 "RO":  0,
+                                                 "RW":  0,
+                                                 "ZI":  0,
+                                                 "Debug":  0
+                                             },
+                               "XC_List.c":  {
+                                                 "Code":  80,
+                                                 "RO":  0,
+                                                 "RW":  0,
+                                                 "ZI":  0,
+                                                 "Debug":  0
+                                             },
+                               "XC_Sch.c":  {
+                                                "Code":  660,
+                                                "RO":  6,
+                                                "RW":  0,
+                                                "ZI":  0,
+                                                "Debug":  0
+                                            },
+                               "XC_Task.c":  {
+                                                 "Code":  856,
+                                                 "RO":  6,
+                                                 "RW":  0,
+                                                 "ZI":  0,
+                                                 "Debug":  0
+                                             },
+                               "XC_Time.c":  {
+                                                 "Code":  112,
+                                                 "RO":  4,
+                                                 "RW":  0,
+                                                 "ZI":  4,
+                                                 "Debug":  0
+                                             }
+                           },
+                   "diag":  {
+                                "XC_Diag.c":  {
+                                                  "Code":  532,
+                                                  "RO":  4,
+                                                  "RW":  0,
+                                                  "ZI":  0,
+                                                  "Debug":  0
+                                              },
+                                "XC_List.c":  {
+                                                  "Code":  80,
+                                                  "RO":  0,
+                                                  "RW":  0,
+                                                  "ZI":  0,
+                                                  "Debug":  0
+                                              },
+                                "XC_Sch.c":  {
+                                                 "Code":  732,
+                                                 "RO":  4,
+                                                 "RW":  0,
+                                                 "ZI":  0,
+                                                 "Debug":  0
+                                             },
+                                "XC_Task.c":  {
+                                                  "Code":  1184,
+                                                  "RO":  4,
+                                                  "RW":  0,
+                                                  "ZI":  0,
+                                                  "Debug":  0
+                                              },
+                                "XC_Time.c":  {
+                                                  "Code":  112,
+                                                  "RO":  4,
+                                                  "RW":  0,
+                                                  "ZI":  4,
+                                                  "Debug":  0
+                                              }
+                            }
+               },
+    "image":  {
+                  "default":  {
+                                  "Code":  8768,
+                                  "RO":  380,
+                                  "RW":  40,
+                                  "ZI":  1944
+                              },
+                  "stats":  {
+                                "Code":  8920,
+                                "RO":  380,
+                                "RW":  56,
+                                "ZI":  2040
+                            },
+                  "diag":  {
+                               "Code":  9868,
+                               "RO":  380,
+                               "RW":  56,
+                               "ZI":  2040
+                           }
+              },
+    "cycles":  {
+                   "insert_timelist_head":  124,
+                   "insert_timelist_tail":  334,
+                   "move_ready_tail":  52,
+                   "wake_api_direct":  119,
+                   "wake_in_lockwindow":  55,
+                   "resume_task":  96,
+                   "cyc_overhead":  12,
+                   "sizeof_tcb":  44,
+                   "sizeof_xcos":  44,
+                   "delay_roundtrip":  1282,
+                   "yield_roundtrip":  1281
+               }
+}
