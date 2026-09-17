@@ -28,6 +28,11 @@ powershell -File Tests/run_cycles.ps1 -WriteBaseline     # 重建周期基线
 powershell -File Tests/run_yield.ps1
 powershell -File Tests/run_yield.ps1 -WriteBaseline      # 只合并 yield/delay 两个键
 
+# 表格排版自检（代码注释 / 文档里的 Markdown 表格是否"源码对齐"）
+powershell -File Tests/check_tables.ps1
+powershell -File Tests/check_tables.ps1 -Verbose           # 逐块列出宽度与跳过说明
+
+
 # 怀疑环境不同 / 工具链不在默认路径
 powershell -File Tests/run_all.ps1 -Gcc "C:\Software\CLion\bin\mingw\bin\gcc.exe" -Mdk "C:\Software\Keil\MDK5"
 ```
@@ -36,24 +41,25 @@ powershell -File Tests/run_all.ps1 -Gcc "C:\Software\CLion\bin\mingw\bin\gcc.exe
 
 ## 2. 通道与判定
 
-| 通道 | 脚本 | 判定方式 | 说明 |
-| --- | --- | --- | --- |
-| 功能回归 | `run_tests.ps1` | **marker**（输出正则，如 `failures 0`）/ **snapshot**（输出与 `snapshots/*.txt` 逐行一致）/ 超时 | 单条 30s 超时（防止挂死） |
-| 体积·对象级 | `run_size.ps1` | 与 `baseline.json` 比，阈值 **±0 B** | armcc AC5 `-O1 --cpu=Cortex-M3` + fromelf |
-| 体积·镜像级 | `run_size.ps1` | 与 `baseline.json` 比，阈值 **±8 B** | 镜像 `Code/Examples` 到临时目录后用 `UV4 -b` 全量构建 |
-| 周期（关键路径） | `run_cycles.ps1` | 与 `baseline.json` 的 `cycles` 段比，阈值 **±5%** | µVision 模拟器 + SysTick 计数（技能文档 §4.1 口径）；测点 `Tests/bench/` |
-| 周期·让出往返（补充） | `run_yield.ps1` | 同上（`cycles` 段），阈值 **±5%** | 让出路径往返周期：`yield_roundtrip`（自环）/ `delay_roundtrip`（非自环）；测点 `Tests/bench/xc_yield_bench.c` |
+| 通道                   | 脚本               | 判定方式                                                                                         | 说明                                                                                                          |
+| ---------------------- | ------------------ | ------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------- |
+| 功能回归               | `run_tests.ps1`    | **marker**（输出正则，如 `failures 0`）/ **snapshot**（输出与 `snapshots/*.txt` 逐行一致）/ 超时 | 单条 30s 超时（防止挂死）                                                                                     |
+| 体积·对象级           | `run_size.ps1`     | 与 `baseline.json` 比，阈值 **±0 B**                                                            | armcc AC5 `-O1 --cpu=Cortex-M3` + fromelf                                                                     |
+| 体积·镜像级           | `run_size.ps1`     | 与 `baseline.json` 比，阈值 **±8 B**                                                            | 镜像 `Code/Examples` 到临时目录后用 `UV4 -b` 全量构建                                                         |
+| 周期（关键路径）       | `run_cycles.ps1`   | 与 `baseline.json` 的 `cycles` 段比，阈值 **±5%**                                               | µVision 模拟器 + SysTick 计数（技能文档 §4.1 口径）；测点 `Tests/bench/`                                    |
+| 周期·让出往返（补充） | `run_yield.ps1`    | 同上（`cycles` 段），阈值 **±5%**                                                               | 让出路径往返周期：`yield_roundtrip`（自环）/ `delay_roundtrip`（非自环）；测点 `Tests/bench/xc_yield_bench.c` |
+| 表格对齐（静态检查）   | `check_tables.ps1` | 每张表**各行显示宽度必须相等**（宽度口径：ASCII = 1 列 / 中文·全角 = 2 列）                     | 代码注释不渲染 Markdown ⇒ 表格须**源码对齐**；`-Verbose` 逐块列出（含被跳过的"单元格内含未转义 `\|`"行）     |
 
 * 基线数值与口径说明：见 [`baseline.md`](./baseline.md)（机器口径 = `baseline.json`）。
 * 运行产物（exe/日志/镜像工作区）全部写在 `%TEMP%\xcos_tests_*` / `%TEMP%\xcos_size_*`，**不污染仓库**。
 
 ## 3. 环境要求
 
-| 项 | 默认值 | 可否覆盖 |
-| --- | --- | --- |
-| 宿主编译器 | `C:\Software\CLion\bin\mingw\bin\gcc.exe`（其次 `C:\mingw64`、`C:\msys64`、PATH） | `-Gcc <path>` |
+| 项             | 默认值                                                                                | 可否覆盖           |
+| -------------- | ------------------------------------------------------------------------------------- | ------------------ |
+| 宿主编译器     | `C:\Software\CLion\bin\mingw\bin\gcc.exe`（其次 `C:\mingw64`、`C:\msys64`、PATH）     | `-Gcc <path>`      |
 | gcc 运行库目录 | `C:\Software\qalculate`（本机 mingw 缺 `libgmp/libmpfr/zlib`，不加会 `cc1` 启动失败） | `-ExtraPath <dir>` |
-| MDK 根目录 | `C:\Software\Keil\MDK5`（`ARM\ARMCC\bin\armcc.exe`、`UV4\UV4.exe`） | `-Mdk <path>` |
+| MDK 根目录     | `C:\Software\Keil\MDK5`（`ARM\ARMCC\bin\armcc.exe`、`UV4\UV4.exe`）                   | `-Mdk <path>`      |
 
 > 找不到工具链时脚本**跳过该通道并给出提示**（不算失败），便于在没装 MDK 的机器上只跑功能回归。
 
@@ -67,10 +73,10 @@ powershell -File Tests/run_all.ps1 -Gcc "C:\Software\CLion\bin\mingw\bin\gcc.exe
 
 ## 5. 当前跳过项（3 条）
 
-| 用例 | 原因 |
-| --- | --- |
+| 用例                                                                       | 原因                                                       |
+| -------------------------------------------------------------------------- | ---------------------------------------------------------- |
 | `20260914_A1_新旧代码对照_sim.c`、`20260914_通知待处理标志_回归测试_sim.c` | 需外部 tick 驱动（本机运行超时）⇒ 走仿真/带 tick 源的方式 |
-| `20260914_A2_挂起优先级与通知交付_仿真测点.c` | MDK 仿真测点（bench），走仿真通道 |
+| `20260914_A2_挂起优先级与通知交付_仿真测点.c`                              | MDK 仿真测点（bench），走仿真通道                          |
 
 > **副本类用例（如 `S4-新调度器综合测试(V2副本)`）**：它把调度器逻辑**复刻**进测试（不调用 `XC_Sch_Start`），因此**没有线程/中断依赖、完全确定**；
 > 但**必须与 `Code/Src/XC_Sch.c` 同步**（文件头写有"最后同步日期 + 对应的内核语义"）—— 不同步会"能编译但结论失真"。

@@ -46,6 +46,8 @@
  */
 XC_Return_t XC_Task_Reg(XC_OSHandle_t phXCOS, XC_TaskHandle_t phTCB, void (*fTask)(XC_TaskHandle_t), void* pParam);
 
+/* 协程嵌套 API: 仅在 `XC_CFG_COR_NESTING=1`(默认) 时声明; 关闭后不提供(使用即编译报错) */
+#if (XC_CFG_COR_NESTING != 0)
 /**
  * @brief       [用户]任务注册(扩展:支持协程嵌套)
  * @param[in]   phXCOS        框架句柄
@@ -80,6 +82,7 @@ XC_Return_t XC_Task_RegExt(XC_OSHandle_t phXCOS, XC_TaskHandle_t phTCB, XC_CorFn
  *  (属"编程错误" ⇒ 只由断言上报, 发布档不检查、不返回错误);
  */
 XC_Return_t XC_Task_SetCorStack(XC_TaskHandle_t phTCB, XC_CorFrame_t* pCorStack, uint8_t CorDepthMax);
+#endif
 
 /**
  * @brief       [用户]任务移除

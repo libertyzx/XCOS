@@ -31,20 +31,32 @@
 /** 协程块:开始/结束 */
 
 /**
+ * @brief       [内部]设置"本轮结果"(`XC_CorState_t`)
+ * @details
+ *  `CorState` 属**协程嵌套字段**(由 `XC_CFG_COR_NESTING` 控制):
+ *  嵌套关闭时 TCB 无该字段 ⇒ 本宏展开为**空操作**(0 代码 / 0 数据);
+ */
+#if (XC_CFG_COR_NESTING != 0)
+#define XC_COR_SET_STATE(phTCB, st) ((phTCB)->CorState = (uint8_t)(st))
+#else
+#define XC_COR_SET_STATE(phTCB, st) ((void)0)
+#endif
+
+/**
  * @brief       [用户][协程]进入
  * @param[in]   phTCB  [XC_TaskHandle_t]任务控制块
  * @details
  *  **协程块的开始;**
  *  必须搭配"XC_Cor_Leave"使用;
  *  进入即置"CorState = XC_COR_SUSPENDED"(本轮默认挂起),由"XC_Cor_Leave"置
- *  "DONE"区分"本层完成"(调度器据此决定是否同轮切父);
+ *  "DONE"区分"本层完成"(调度器据此决定是否同轮切父; 嵌套关闭时该字段不存在, 见 `XC_CFG_COR_NESTING`);
  */
 #define XC_Cor_Enter(phTCB)                            \
     {                                                  \
         /*全局变量转局部变量可加快运行速度*/           \
         XC_TaskHandle_t phXCCorTCB = (phTCB);          \
         XC_BP_t*        pXCCorPB   = &phXCCorTCB->BP;  \
-        phXCCorTCB->CorState       = XC_COR_SUSPENDED; \
+        XC_COR_SET_STATE(phXCCorTCB, XC_COR_SUSPENDED); \
         /*启动协程*/                                   \
         COR_Start(*pXCCorPB)
 
@@ -70,7 +82,7 @@
             goto COR_DONE_L;                           \
         } /* 引用下方标签,免 armcc #177-D */           \
     COR_DONE_L:; /* 标签后的语句不触发 armcc #111-D */ \
-        phXCCorTCB->CorState = XC_COR_DONE;            \
+        XC_COR_SET_STATE(phXCCorTCB, XC_COR_DONE);     \
     } while(0);                                        \
     COR_End(); /*结束*/                                \
     }
@@ -79,7 +91,7 @@
  * @brief       [用户][协程]嵌套调用子协程(登记,不做真实 C 嵌套调用)
  * @param[in]   fn  [XC_CorFn_t]子协程函数(签名同任务函数:void (XC_TaskHandle_t))
  * @details
- *  **必须在协程块中使用;**
+ *  **必须在协程块中使用;** 仅在 `XC_CFG_COR_NESTING=1`(默认) 时提供(关闭后本宏不定义);
  *  登记子协程:入栈保存"父层入口+返回点",入口切换为子函数后跳出,由调度器下一轮
  *  进入子层;子层完成后调度器弹帧恢复父层,同轮切父;
  *  需要嵌套的任务必须用"XC_Task_RegExt"/"XC_Task_SetCorStack"配置帧栈,
@@ -87,11 +99,13 @@
  *  **注意**:Call 是必挂起点,调用前后局部变量一律不保存,需跨调用保留的数据
  *  放 TCB/静态区;
  */
+#if (XC_CFG_COR_NESTING != 0)
 #define XC_Cor_Call(fn)                                      \
     {                                                        \
         XC_Task_PushFrame(phXCCorTCB, (fn), COR_RetPoint()); \
         COR_BreakLabel();                                    \
     }
+#endif
 
 /************************************************ 我是分割线 ************************************************/
 /** 协程块:协程控制,必须在协程块中调用 */

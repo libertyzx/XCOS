@@ -22,12 +22,12 @@
 
 ### 💾 超低资源占用
 
-| 场景          | RAM 占用      | ROM 占用      |
-| ---           | ---           | ---           |
-| 框架核心      | 48 Bytes（`XCOS_t` 44 + `g_SysTickCount` 4） | ≈ 0.9 KB（+876 B，见 [`Docs/Examples.md`](./Docs/Examples.md)） |
-| +1个任务      | +44 Bytes（TCB）  | +~260 Bytes（12 任务平均，见 [`Docs/Examples.md`](./Docs/Examples.md)） |
-| 无任务堆栈    | 共享系统堆栈  | 无额外开销    |
-| +协程嵌套     | 8 Bytes/层     | 极少量指令     |
+| 场景       | RAM 占用                                     | ROM 占用                                                                |
+| ---------- | -------------------------------------------- | ----------------------------------------------------------------------- |
+| 框架核心   | 48 Bytes（`XCOS_t` 44 + `g_SysTickCount` 4） | ≈ 0.9 KB（+876 B，见 [`Docs/Examples.md`](./Docs/Examples.md)）        |
+| +1个任务   | +44 Bytes（TCB）                             | +~260 Bytes（12 任务平均，见 [`Docs/Examples.md`](./Docs/Examples.md)） |
+| 无任务堆栈 | 共享系统堆栈                                 | 无额外开销                                                              |
+| +协程嵌套  | 8 Bytes/层                                   | 极少量指令                                                              |
 
 ### ⚡ 高效协作式调度
 - **纯协作式调度** - 无优先级抢占, 简化设计

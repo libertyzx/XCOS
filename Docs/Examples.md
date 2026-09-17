@@ -17,13 +17,13 @@
 
 ### 开发环境配置
 
-| 项目          | 配置                      |
-| ---           | ---                       |
-| **IDE**       | Keil MDK                  |
-| **版本**      | V5.39.0.0                 |
-| **工具链**    | ARM Compiler V5.06        |
-| **目标芯片**  | STM32F103ZE (软件模拟)    |
-| **优化等级**  | -O1（优化大小；工程 `<Optim>1</Optim>`） |
+| 项目         | 配置                                     |
+| ------------ | ---------------------------------------- |
+| **IDE**      | Keil MDK                                 |
+| **版本**     | V5.39.0.0                                |
+| **工具链**   | ARM Compiler V5.06                       |
+| **目标芯片** | STM32F103ZE (软件模拟)                   |
+| **优化等级** | -O1（优化大小；工程 `<Optim>1</Optim>`） |
 
 ### MDK配置截图
 
@@ -45,20 +45,21 @@
 
 > 读法：**Code** = Flash 里的代码；**RO/RW** = 常量与已初始化变量；**ZI** = 零初始化变量（开机后占 RAM）。
 
-| 配置      | Code  | RO-data | RW-data | ZI-data | 说明 |
-| ---       | ---   | ---     | ---     | ---     | ---  |
-| **默认档** | **8768** | 380 | 40 | **1944** | 完整功能（12 任务 A0~A11；诊断开关全关） |
-| **+ 运行统计** | **8920** | 380 | 56 | **2040** | `XC_CFG_TASK_STATS=1`：内核埋点 + 示例诊断演示；RAM 增量 = 12 × TCB **+8 B** + 示例 4 个观测变量（16 B） |
-| **+ 四开关全开** | **9868** | 380 | 56 | **2040** | `ERR_HOOK` + `DEBUG_CHECK` + `TASK_STATS` + `ASSERT` |
+| 配置             | Code     | RO-data | RW-data | ZI-data  | 说明                                                                                                      |
+| ---------------- | -------- | ------- | ------- | -------- | --------------------------------------------------------------------------------------------------------- |
+| **默认档**       | **8768** | 380     | 40      | **1944** | 完整功能（12 任务 A0~A11；诊断开关全关）                                                                  |
+| **+ 运行统计**   | **8920** | 380     | 56      | **2040** | `XC_CFG_TASK_STATS=1`：内核埋点 + 示例诊断演示；RAM 增量 = 12 × TCB **+8 B** + 示例 4 个观测变量（16 B） |
+| **+ 四开关全开** | **9868** | 380     | 56      | **2040** | `ERR_HOOK` + `DEBUG_CHECK` + `TASK_STATS` + `ASSERT`                                                      |
 
 ### 关键尺寸（当前实测）
 
-| 项 | 值 | 依据 |
-| --- | --- | --- |
-| 框架实例 `XCOS_t` | **44 B** | `sizeof()`（周期基线 `sizeof_xcos`） |
-| 任务控制块 TCB（`XC_TaskCB_t`） | **44 B** | `sizeof()`（周期基线 `sizeof_tcb`） |
-| TCB（打开 `XC_CFG_TASK_STATS`） | **52 B**（+8 B/任务） | 追加 `RunCnt`(4B) + `MaxRunTick`(4B) |
-| 协程帧（`XC_CorFrame_t`） | **8 B/层** | 用户按需定义帧栈数组（每层一个），不占框架 RAM |
+| 项                                         | 值                     | 依据                                                          |
+| ------------------------------------------ | ---------------------- | ------------------------------------------------------------- |
+| 框架实例 `XCOS_t`                          | **44 B**               | `sizeof()`（周期基线 `sizeof_xcos`）                          |
+| 任务控制块 TCB（`XC_TaskCB_t`）            | **44 B**               | `sizeof()`（周期基线 `sizeof_tcb`）                           |
+| TCB（打开 `XC_CFG_TASK_STATS`）            | **52 B**（+8 B/任务）  | 追加 `RunCnt`(4B) + `MaxRunTick`(4B)                          |
+| TCB（关闭协程嵌套 `XC_CFG_COR_NESTING=0`） | **36 B**（−8 B/任务） | 省去嵌套字段（无 `RegExt`/`SetCorStack`/`Cor_Call`/同轮切父） |
+| 协程帧（`XC_CorFrame_t`）                  | **8 B/层**             | 用户按需定义帧栈数组（每层一个），不占框架 RAM                |
 
 **资源效率**: 默认档下 12 个测试任务（含中断通知、协程嵌套、分步注册）的完整固件为 **Flash 8768 B / RAM 1944 B**，适合资源受限的嵌入式环境。
 
@@ -90,18 +91,18 @@
 
 ### 任务清单 (V2.1.0)
 
-| 任务 | 测试内容 | 关键API |
-| --- | --- | --- |
-| `Task_A0` | 基础延时 | `XC_Cor_Enter`/`XC_Cor_DelayMs`/`XC_Cor_Leave` |
-| `Task_A1`/`Task_A2` | 任务通知（提前通知 + 正常通知 + 超时） | `XC_Task_SendNotify`/`XC_Cor_WaitNotifyMs`/`XC_Cor_IsNotifyTimeout`/`XC_Cor_GetNotifyData` |
-| `Task_A3`/`Task_A4` | 任务挂起与恢复 | `XC_Task_Suspend`/`XC_Task_Resume` |
-| `Task_A5` | 任务复位 | `XC_Cor_Reset` |
-| `Task_A6` | 任务移除 | `XC_Cor_Remove` |
-| `Task_A7` | 中断通知唤醒（TIM2 随机周期） | `XC_Task_SendNotify`（中断中） |
-| `Task_A8` | 中断通知唤醒（TIM3 4参数轮换） | `XC_Task_SendNotify`（中断中，携带数据） |
-| `Task_A9` | 外部中断（EXTI0~3）手动通知唤醒 | `XC_Task_SendNotify`（中断中） |
-| `Task_A10` | **协程嵌套**：顶层任务 `XC_Cor_Call` 子协程，子层延时/等通知后同轮切父返回 | `XC_Task_RegExt`/`XC_Cor_Call`/`XC_Cor_DelayMs` |
-| `Task_A11` | **分步注册 + 帧栈设置** | `XC_Task_SetEntry`/`XC_Task_SetCorStack`/`XC_Task_Add` |
+| 任务                | 测试内容                                                                   | 关键API                                                                                    |
+| ------------------- | -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `Task_A0`           | 基础延时                                                                   | `XC_Cor_Enter`/`XC_Cor_DelayMs`/`XC_Cor_Leave`                                             |
+| `Task_A1`/`Task_A2` | 任务通知（提前通知 + 正常通知 + 超时）                                     | `XC_Task_SendNotify`/`XC_Cor_WaitNotifyMs`/`XC_Cor_IsNotifyTimeout`/`XC_Cor_GetNotifyData` |
+| `Task_A3`/`Task_A4` | 任务挂起与恢复                                                             | `XC_Task_Suspend`/`XC_Task_Resume`                                                         |
+| `Task_A5`           | 任务复位                                                                   | `XC_Cor_Reset`                                                                             |
+| `Task_A6`           | 任务移除                                                                   | `XC_Cor_Remove`                                                                            |
+| `Task_A7`           | 中断通知唤醒（TIM2 随机周期）                                              | `XC_Task_SendNotify`（中断中）                                                             |
+| `Task_A8`           | 中断通知唤醒（TIM3 4参数轮换）                                             | `XC_Task_SendNotify`（中断中，携带数据）                                                   |
+| `Task_A9`           | 外部中断（EXTI0~3）手动通知唤醒                                            | `XC_Task_SendNotify`（中断中）                                                             |
+| `Task_A10`          | **协程嵌套**：顶层任务 `XC_Cor_Call` 子协程，子层延时/等通知后同轮切父返回 | `XC_Task_RegExt`/`XC_Cor_Call`/`XC_Cor_DelayMs`                                            |
+| `Task_A11`          | **分步注册 + 帧栈设置**                                                    | `XC_Task_SetEntry`/`XC_Task_SetCorStack`/`XC_Task_Add`                                     |
 
 ### 演示功能完整性
 - ✅ 协程基本操作(进入/离开/让出)
@@ -119,10 +120,10 @@
 
 `Code/Main/main.c` 的**空闲回调 `Idle()`** 里演示了两类可选诊断能力，**由编译开关控制、默认全关 ⇒ 相关代码不编译（0 代码 / 0 开销）**：
 
-| 开关 | 示例调用 | 观测变量（调试器里看） |
-| --- | --- | --- |
-| `XC_CFG_DEBUG_CHECK` | `XC_Diag_CheckInvariants(&s_hXCOS0)`（每 256 次空闲抽查一次） | `s_DiagChkLast` = `XC_CHK_OK` 或"首个失败项编号"（1 链表损坏 / 2 状态↔表 / 3 重复挂表 / 4 计数不符 / 5 嵌套不自洽 / 6 归属错） |
-| `XC_CFG_TASK_STATS` | `XC_Diag_GetRunCnt(&s_hTCBn[0])` / `XC_Diag_GetMaxRunTick(&s_hTCBn[0])` | `s_DiagRunCnt`（A0 运行次数）、`s_DiagMaxRunTick`（A0 最长一次调度槽耗时，单位 Tick） |
+| 开关                 | 示例调用                                                                | 观测变量（调试器里看）                                                                                                          |
+| -------------------- | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `XC_CFG_DEBUG_CHECK` | `XC_Diag_CheckInvariants(&s_hXCOS0)`（每 256 次空闲抽查一次）           | `s_DiagChkLast` = `XC_CHK_OK` 或"首个失败项编号"（1 链表损坏 / 2 状态↔表 / 3 重复挂表 / 4 计数不符 / 5 嵌套不自洽 / 6 归属错） |
+| `XC_CFG_TASK_STATS`  | `XC_Diag_GetRunCnt(&s_hTCBn[0])` / `XC_Diag_GetMaxRunTick(&s_hTCBn[0])` | `s_DiagRunCnt`（A0 运行次数）、`s_DiagMaxRunTick`（A0 最长一次调度槽耗时，单位 Tick）                                           |
 
 **怎么打开**（三选一）：
 1. **MDK**：`Options for Target → C/C++ → Define` 追加（如 `XC_CFG_DEBUG_CHECK=1`、`XC_CFG_TASK_STATS=1`）；

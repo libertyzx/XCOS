@@ -272,11 +272,14 @@ void XC_Sch_Start(XC_OSHandle_t phXCOS)
             RunStart = XC_Diag_RunStatsBegin();
 #endif
             phTCB->fTask(phTCB); // 恒调当前层(顶层或子层)
-            /* 同轮切父:当前层完成(走到 Leave 置 DONE)且栈非空时,弹帧并立即运行父层 */
+                                 /* 同轮切父:当前层完成(走到 Leave 置 DONE)且栈非空时,弹帧并立即运行父层
+                                  * (仅在 XC_CFG_COR_NESTING=1 时存在; 关闭后 TCB 无 CorState/CorDepth 字段) */
+#if (XC_CFG_COR_NESTING != 0)
             while((phTCB->CorState == XC_COR_DONE) && (phTCB->CorDepth > 0U)) {
                 XC_Task_PopFrame(phTCB); // 出栈:恢复父层入口+返回点
                 phTCB->fTask(phTCB);     // 同轮切父:运行父层
             }
+#endif
 #if (XC_CFG_TASK_STATS != 0)
             /* [统计] 统计终点(归位之前): 累计运行次数与最长耗时; 任务等待期间不计时;
              * 本槽内"移除自身"的任务(TaskState==VOID, 统计已在 HandleRemove 清零)不再累计,

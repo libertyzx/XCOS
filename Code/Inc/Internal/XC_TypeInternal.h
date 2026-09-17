@@ -63,7 +63,7 @@ typedef enum {
  */
 struct XCOS_tag {
     /**
-     * [并发] 字段级契约(2026-09-14; 完整矩阵见 `Docs/架构概览/XCOS_V2.1.0_架构概览.md`「并发模型与字段所有权」):
+     * [并发] 字段级契约(完整矩阵见 `Docs/架构概览/XCOS_V2.1.0_架构概览.md`「并发模型与字段所有权」):
      *  - ReadyList / TimeList / TimeOverflowList / BlockedList : 锁串行化(主循环 + 中断直接路径; Lock 保护, 非无锁)
      *  - PrevTick / TaskNum / fIdle                            : 主上下文(仅主循环; TaskNum 为 uint8_t, 受 XC_CFG_MAX_TASKS 约束)
      *  - Lock                                                  : 串行化握手(不可重入; ISR "读到 0 才获取、配对释放")
@@ -171,8 +171,9 @@ struct XC_CorFrame_tag {
  * @brief   [内部]协程任务控制块(Task Control Block)
  * @details
  *  用于记录任务控制相关的数据,每个任务都需要一个独立的TCB;
- *  类型占字节数(32bit): 36→44Byte(+8B;7B 字段 + 1B 对齐 padding,整体仍 4B 对齐);
- *  通知字段由 2Byte 计数对改为 1Byte 标志后(偏移 34 起),偏移 35 转为对齐 padding,总字节数仍为 44Byte;
+ *  类型占字节数(32bit): **44Byte**(嵌套开启, 默认) / **36Byte**(`XC_CFG_COR_NESTING=0`, 每任务 −8B);
+ *  构成: 基础字段 36B + 嵌套字段 7B + 1B 对齐 padding, 整体 4B 对齐;
+ *  通知字段由 2Byte 计数对改为 1Byte 标志后(偏移 34 起),偏移 35 转为对齐 padding;
  *  **打开 `XC_CFG_TASK_STATS` 时**再追加 `RunCnt`(4B) + `MaxRunTick`(4B) ⇒ 44 → **52Byte**(+8B/任务);
  *  ---
  *  基础数据(在"XC_Task_BasicInit"中被初始化)
@@ -225,11 +226,13 @@ struct XC_TaskCB_tag {
      */
     volatile uint8_t NotifyPending; // 通知-待处理(1:有未消费通知;0:无)
 
-    /* 协程嵌套支持 */
+    /* 协程嵌套支持: 由 `XC_CFG_COR_NESTING` 控制(关闭时本段整体不编译 ⇒ TCB 44 → 36 Byte) */
+#if (XC_CFG_COR_NESTING != 0)
     struct XC_CorFrame_tag* pCorStack;   // 用户按需提供的帧栈(NULL=无嵌套)
     uint8_t                 CorDepth;    // 当前子层深度(0=在顶层)
     uint8_t                 CorDepthMax; // 栈容量(越界检查)
     uint8_t                 CorState;    // 本轮结果(值域:XC_CorState_t;填补对齐padding)
+#endif
 
 #if (XC_CFG_TASK_STATS != 0)
     /**

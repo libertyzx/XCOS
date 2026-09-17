@@ -48,9 +48,13 @@ static void XC_Task_BasicInit(XC_TaskHandle_t phTCB)
     phTCB->NotifyState    = XC_NOTIFY_WAKEUP; // 通知状态:通知唤醒(没有通知)
     // 清除通知(待处理标志清0; 生产侧只写1/消费侧只写0,此处为消费侧)
     phTCB->NotifyPending = 0U;
+#if (XC_CFG_COR_NESTING != 0)
     phTCB->CorDepth      = 0U; // 清协程深度(pCorStack/CorDepthMax 保留)
+#endif
 }
 
+/* 协程嵌套: 帧入栈/出栈 (仅 `XC_CFG_COR_NESTING != 0`; 关闭时本段不编译) */
+#if (XC_CFG_COR_NESTING != 0)
 /**
  * @brief       [内部]协程帧入栈
  * @param[in]   phTCB     任务句柄
@@ -100,6 +104,7 @@ void XC_Task_PopFrame(XC_TaskHandle_t phTCB)
     phTCB->fTask = phTCB->pCorStack[phTCB->CorDepth].pfn; // 恢复父层入口
     phTCB->BP    = phTCB->pCorStack[phTCB->CorDepth].BP;  // 恢复父层返回点
 }
+#endif
 
 /**
  * @brief       [私有]添加任务内部实现
@@ -147,10 +152,12 @@ void XC_Task_HandleRemove(XC_TaskHandle_t phTCB)
     }
     XC_Core_Unlock(phTCB->phXCOS); // 解锁
     /* 清栈并恢复最外层入口(栈底帧 [0].pfn 恒为最外层) */
+#if (XC_CFG_COR_NESTING != 0)
     if(phTCB->CorDepth > 0U) {
         phTCB->fTask = phTCB->pCorStack[0].pfn;
     }
     phTCB->CorDepth = 0U;
+#endif
     XC_Task_BasicInit(phTCB); // 基本数据初始化
 #if (XC_CFG_TASK_STATS != 0)
     XC_Diag_ClrRunStats(phTCB); // 运行统计清零(移除=生命周期结束)
@@ -172,10 +179,12 @@ void XC_Task_HandleReset(XC_TaskHandle_t phTCB)
     XC_Task_MoveToReadyListTail(phTCB); // 移动到就绪表尾(统一排队尾; 复位不插队)
     XC_Core_Unlock(phTCB->phXCOS);      // 解锁
     /* 清栈并恢复最外层入口(栈底帧 [0].pfn 恒为最外层) */
+#if (XC_CFG_COR_NESTING != 0)
     if(phTCB->CorDepth > 0U) {
         phTCB->fTask = phTCB->pCorStack[0].pfn;
     }
     phTCB->CorDepth = 0U;
+#endif
     XC_Task_BasicInit(phTCB); // 基本数据初始化
 }
 
@@ -363,6 +372,8 @@ XC_Return_t XC_Task_Reg(XC_OSHandle_t phXCOS, XC_TaskHandle_t phTCB, void (*fTas
     return (XC_OK);
 }
 
+/* 协程嵌套 API (仅 `XC_CFG_COR_NESTING != 0`; 关闭时本段不编译 ⇒ 使用即编译报错) */
+#if (XC_CFG_COR_NESTING != 0)
 /**
  * @brief       [用户]任务注册(扩展:支持协程嵌套)
  * @param[in]   phXCOS        框架句柄
@@ -412,6 +423,7 @@ XC_Return_t XC_Task_SetCorStack(XC_TaskHandle_t phTCB, XC_CorFrame_t* pCorStack,
     phTCB->CorDepth    = 0U;          // 清当前深度
     return (XC_OK);
 }
+#endif
 
 /**
  * @brief       [用户]任务移除
@@ -452,12 +464,14 @@ void XC_Task_SetEntry(XC_TaskHandle_t phTCB, void (*fTask)(XC_TaskHandle_t), voi
     XC_DIAG_ASSERT(phTCB != NULL);
     XC_DIAG_ASSERT(fTask != NULL);
     phTCB->TaskState = XC_TASK_VOID; // 任务状态清除
+#if (XC_CFG_COR_NESTING != 0)
     /**
      *  嵌套中换入口: 必须先"清栈 + 重置断点", 否则栈底帧 pCorStack[0].pfn(旧入口)
      *  会在 Reset/Remove/嵌套越界保护 时被用来恢复 fTask => 新入口静默失效/跳回旧函数;
      *  语义: **嵌套中换入口 = 丢弃当前嵌套层, 按新入口从头运行**;
      */
     phTCB->CorDepth = 0U;   // 丢弃当前嵌套帧(栈底帧不变量: [0].pfn == 最外层入口)
+#endif
     COR_Init(phTCB->BP);    // 重置断点(避免脏断点跳入新函数的非法位置)
     phTCB->fTask  = fTask;  // 更新任务入口
     phTCB->pParam = pParam; // 传递给任务的参数

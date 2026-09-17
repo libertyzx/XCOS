@@ -100,7 +100,8 @@ static XC_ChkResult_t XC_Diag_ChkOneList(XC_OSHandle_t  phXCOS,
                 return (XC_CHK_STATE_TABLE);
             }
         }
-        /** 4) 协程嵌套不变量: 帧栈与容量必须同为"有"/同为"无"; 深度不得越界 */
+        /** 4) 协程嵌套不变量: 帧栈与容量必须同为"有"/同为"无"; 深度不得越界(仅 `XC_CFG_COR_NESTING=1`) */
+#if (XC_CFG_COR_NESTING != 0)
         if((phTCB->pCorStack == NULL) != (phTCB->CorDepthMax == 0U)) {
             return (XC_CHK_NESTING);
         }
@@ -108,6 +109,7 @@ static XC_ChkResult_t XC_Diag_ChkOneList(XC_OSHandle_t  phXCOS,
            ((phTCB->CorDepth > 0U) && (phTCB->pCorStack == NULL))) {
             return (XC_CHK_NESTING);
         }
+#endif
         pIter = pIter->pNext;
         n++;
         /** 5) 步数上限: 超过最大任务数 => 表成环(结构损坏) */

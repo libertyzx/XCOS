@@ -71,76 +71,77 @@ int main(void) {
 
 ### 调度器（XC_Sch）
 
-| API | 说明 |
-| --- | --- |
-| `void XC_Sch_Init(XC_OSHandle_t phXCOS)` | 初始化锁、四表、事件计数；启动前必须调用 |
-| `void XC_Sch_Start(XC_OSHandle_t phXCOS)` | 启动调度器（阻塞，不返回） |
-| `uint8_t XC_Sch_GetTaskNum(XC_OSHandle_t phXCOS)` | 获取任务数 |
+| API                                                                             | 说明                                                                 |
+| ------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| `void XC_Sch_Init(XC_OSHandle_t phXCOS)`                                        | 初始化锁、四表、事件计数；启动前必须调用                             |
+| `void XC_Sch_Start(XC_OSHandle_t phXCOS)`                                       | 启动调度器（阻塞，不返回）                                           |
+| `uint8_t XC_Sch_GetTaskNum(XC_OSHandle_t phXCOS)`                               | 获取任务数                                                           |
 | `void XC_Sch_SetIdleCallback(XC_OSHandle_t, void(*)(XC_OSHandle_t, XC_Tick_t))` | 设置空闲回调；参数 IdleTick 为可休眠 Tick 数（`~0U` 表示可无限休眠） |
 
 ### 任务（XC_Task）
 
-| API | 调用等级 | 说明 |
-| --- | --- | --- |
-| `XC_Return_t XC_Task_Reg(phXCOS, phTCB, fTask, pParam)` | 初始化/非协程 | 注册任务（无嵌套） |
-| `XC_Return_t XC_Task_RegExt(phXCOS, phTCB, fTask, pParam, pCorStack, CorDepthMax)` | 初始化/非协程 | 注册任务（支持协程嵌套，需配帧栈） |
-| `XC_Return_t XC_Task_SetCorStack(phTCB, pCorStack, CorDepthMax)` | 非协程 | 配置/撤销嵌套帧栈 |
-| `void XC_Task_SetEntry(phTCB, fTask, pParam)` / `XC_Return_t XC_Task_Add(phXCOS, phTCB)` | 非协程 | 分步注册（先设入口再添加）；嵌套中换入口会自动清栈（按新入口从头运行） |
-| `void XC_Task_Reset(phTCB)` | 任务/主循环（非协程内，**不可中断**） | 复位任务（清断点/清栈，从头运行）；复位自身用 `XC_Cor_Reset` |
-| `XC_Return_t XC_Task_Suspend(phTCB)` | 任务/主循环（非协程内，**不可中断**） | 挂起任务（挂起后不调度） |
-| `XC_Return_t XC_Task_Resume(phTCB)` | 任务/主循环（非协程内，**不可中断**） | 恢复挂起任务（并交付挂起前已登记的通知） |
-| `void XC_Task_Remove(phTCB)` | 任务/主循环（非协程内，**不可中断**） | 移除任务；移除自身用 `XC_Cor_Remove` |
-| `XC_Return_t XC_Task_SendNotify(phTCB, void* pData)` | 任意 / **中断（ISR 唯一合法的框架调用）** | 发送通知唤醒任务（SPSC）；ISR 只走这一条路，见 §四.7 |
-| `XC_Task_ClrNotify(phTCB)`（宏） | **任务上下文（消费侧；不可中断）** | 清除通知（写消费侧字段，ISR 调用会丢唤醒） |
-| `XC_Task_UpdateNotifyData(phTCB, data)`（宏） | **生产者上下文（与 `SendNotify` 同上下文）** | 写通知数据（生产侧字段） |
-| `XC_Task_ReadNotifyData(phTCB)`（宏） | 任意（只读） | 读通知数据；可能读到瞬时旧值 |
-| `XC_Task_GetParam(phTCB)` / `XC_Task_GetState(phTCB)`（宏） | 任意 | 参数 / 状态查询 |
-| `XC_Diag_GetRunCnt(phTCB)` / `XC_Diag_GetMaxRunTick(phTCB)` / `XC_Diag_ClrRunStats(phTCB)` | 任意（读）/ 非协程（清零） | **可选统计**（`XC_CFG_TASK_STATS`）：运行次数 / 最长一次耗时 / 清零；见陷阱 20 |
+| API                                                                                        | 调用等级                                     | 说明                                                                           |
+| ------------------------------------------------------------------------------------------ | -------------------------------------------- | ------------------------------------------------------------------------------ |
+| `XC_Return_t XC_Task_Reg(phXCOS, phTCB, fTask, pParam)`                                    | 初始化/非协程                                | 注册任务（无嵌套）                                                             |
+| `XC_Return_t XC_Task_RegExt(phXCOS, phTCB, fTask, pParam, pCorStack, CorDepthMax)`         | 初始化/非协程                                | 注册任务（支持协程嵌套，需配帧栈）                                             |
+| `XC_Return_t XC_Task_SetCorStack(phTCB, pCorStack, CorDepthMax)`                           | 非协程                                       | 配置/撤销嵌套帧栈                                                              |
+| `void XC_Task_SetEntry(phTCB, fTask, pParam)` / `XC_Return_t XC_Task_Add(phXCOS, phTCB)`   | 非协程                                       | 分步注册（先设入口再添加）；嵌套中换入口会自动清栈（按新入口从头运行）         |
+| `void XC_Task_Reset(phTCB)`                                                                | 任务/主循环（非协程内，**不可中断**）        | 复位任务（清断点/清栈，从头运行）；复位自身用 `XC_Cor_Reset`                   |
+| `XC_Return_t XC_Task_Suspend(phTCB)`                                                       | 任务/主循环（非协程内，**不可中断**）        | 挂起任务（挂起后不调度）                                                       |
+| `XC_Return_t XC_Task_Resume(phTCB)`                                                        | 任务/主循环（非协程内，**不可中断**）        | 恢复挂起任务（并交付挂起前已登记的通知）                                       |
+| `void XC_Task_Remove(phTCB)`                                                               | 任务/主循环（非协程内，**不可中断**）        | 移除任务；移除自身用 `XC_Cor_Remove`                                           |
+| `XC_Return_t XC_Task_SendNotify(phTCB, void* pData)`                                       | 任意 / **中断（ISR 唯一合法的框架调用）**    | 发送通知唤醒任务（SPSC）；ISR 只走这一条路，见 §四.7                          |
+| `XC_Task_ClrNotify(phTCB)`（宏）                                                           | **任务上下文（消费侧；不可中断）**           | 清除通知（写消费侧字段，ISR 调用会丢唤醒）                                     |
+| `XC_Task_UpdateNotifyData(phTCB, data)`（宏）                                              | **生产者上下文（与 `SendNotify` 同上下文）** | 写通知数据（生产侧字段）                                                       |
+| `XC_Task_ReadNotifyData(phTCB)`（宏）                                                      | 任意（只读）                                 | 读通知数据；可能读到瞬时旧值                                                   |
+| `XC_Task_GetParam(phTCB)` / `XC_Task_GetState(phTCB)`（宏）                                | 任意                                         | 参数 / 状态查询                                                                |
+| `XC_Diag_GetRunCnt(phTCB)` / `XC_Diag_GetMaxRunTick(phTCB)` / `XC_Diag_ClrRunStats(phTCB)` | 任意（读）/ 非协程（清零）                   | **可选统计**（`XC_CFG_TASK_STATS`）：运行次数 / 最长一次耗时 / 清零；见陷阱 20 |
 
 ### 协程块（XC_Cor，全部为宏，必须在协程块内使用）
 
-| 宏 | 说明 |
-| --- | --- |
-| `XC_Cor_Enter(phTCB)` / `XC_Cor_Leave()` | 协程块头 / 尾（必须成对） |
-| `XC_Cor_Call(fn)` | 嵌套调用子协程（需 `XC_Task_RegExt`/`SetCorStack` 配置帧栈；未配栈则触发任务复位保护） |
-| `XC_Cor_Yield()` | 让出 CPU（下一次从此处继续） |
-| `XC_Cor_Suspend()` | 挂起自身（只能被 `XC_Task_Resume` 恢复） |
-| `XC_Cor_Reset()` | 复位自身（从头运行） |
-| `XC_Cor_Remove()` | 移除自身 |
-| `XC_Cor_GetParam()` | 获取任务注册参数 |
-| `XC_Cor_DelayTick(n)` / `DelayUs` / `DelayMs` / `DelaySec` | 延时后继续（时间单位宏自动换算） |
-| `XC_Cor_WaitNotify(timeout)` / `XC_Cor_WaitNotifyMs(ms)` | 等待通知（timeout=0 为死等；超时后 `IsNotifyTimeout` 为真） |
-| `XC_Cor_ClrNotify()` | 清除通知（等待前调用防提前通知） |
-| `XC_Cor_IsNotifyTimeout()` | 等待通知后判断是否超时（1=超时，0=收到通知） |
-| `XC_Cor_GetNotifyData()` | 获取通知数据指针 |
+| 宏                                                         | 说明                                                                                   |
+| ---------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| `XC_Cor_Enter(phTCB)` / `XC_Cor_Leave()`                   | 协程块头 / 尾（必须成对）                                                              |
+| `XC_Cor_Call(fn)`                                          | 嵌套调用子协程（需 `XC_Task_RegExt`/`SetCorStack` 配置帧栈；未配栈则触发任务复位保护） |
+| `XC_Cor_Yield()`                                           | 让出 CPU（下一次从此处继续）                                                           |
+| `XC_Cor_Suspend()`                                         | 挂起自身（只能被 `XC_Task_Resume` 恢复）                                               |
+| `XC_Cor_Reset()`                                           | 复位自身（从头运行）                                                                   |
+| `XC_Cor_Remove()`                                          | 移除自身                                                                               |
+| `XC_Cor_GetParam()`                                        | 获取任务注册参数                                                                       |
+| `XC_Cor_DelayTick(n)` / `DelayUs` / `DelayMs` / `DelaySec` | 延时后继续（时间单位宏自动换算）                                                       |
+| `XC_Cor_WaitNotify(timeout)` / `XC_Cor_WaitNotifyMs(ms)`   | 等待通知（timeout=0 为死等；超时后 `IsNotifyTimeout` 为真）                            |
+| `XC_Cor_ClrNotify()`                                       | 清除通知（等待前调用防提前通知）                                                       |
+| `XC_Cor_IsNotifyTimeout()`                                 | 等待通知后判断是否超时（1=超时，0=收到通知）                                           |
+| `XC_Cor_GetNotifyData()`                                   | 获取通知数据指针                                                                       |
 
 ### 时间（XC_Time）
 
-| API | 说明 |
-| --- | --- |
-| `XC_Time_GetTick()` | 当前 Tick |
-| `XC_Time_TickInc()` / `XC_Time_TickSet(t)` | 中断递增 / 设置 Tick（休眠唤醒后校正） |
-| `XC_Time_GetTickUnit()` / `XC_Time_GetMs()` | Tick 最小单位(us) / 运行 ms |
-| `XC_Time_CheckTimeout(last, count)` / `Ms` / `Sec` | 溢出安全超时判断（`GetTick()-last >= count`） |
-| `XC_Time_GetRemain(last, count)` / `GetElapsed(last, count)` | 剩余 / 已运行 Tick（溢出安全） |
-| `XC_Time_MsToTicks/UsToTicks/SecToTicks`、`TicksToMs/Us/Sec` | 时间单位换算宏 |
-| `XC_Time_TimerSet/TimerSetMs/TimerSetSec/TimerRepeat/TimerCheck/TimerClr` | 软件定时器宏 |
-| `XC_Time_TimerGetRemain/TimerGetElapsed/TimerGetElapsedMs` | 定时器查询 |
-| `XC_Time_BlockDelay(ticks)` / `BlockDelayMs(ms)` | 死循环阻塞延时（非协程，会占住 CPU） |
+| API                                                                       | 说明                                          |
+| ------------------------------------------------------------------------- | --------------------------------------------- |
+| `XC_Time_GetTick()`                                                       | 当前 Tick                                     |
+| `XC_Time_TickInc()` / `XC_Time_TickSet(t)`                                | 中断递增 / 设置 Tick（休眠唤醒后校正）        |
+| `XC_Time_GetTickUnit()` / `XC_Time_GetMs()`                               | Tick 最小单位(us) / 运行 ms                   |
+| `XC_Time_CheckTimeout(last, count)` / `Ms` / `Sec`                        | 溢出安全超时判断（`GetTick()-last >= count`） |
+| `XC_Time_GetRemain(last, count)` / `GetElapsed(last, count)`              | 剩余 / 已运行 Tick（溢出安全）                |
+| `XC_Time_MsToTicks/UsToTicks/SecToTicks`、`TicksToMs/Us/Sec`              | 时间单位换算宏                                |
+| `XC_Time_TimerSet/TimerSetMs/TimerSetSec/TimerRepeat/TimerCheck/TimerClr` | 软件定时器宏                                  |
+| `XC_Time_TimerGetRemain/TimerGetElapsed/TimerGetElapsedMs`                | 定时器查询                                    |
+| `XC_Time_BlockDelay(ticks)` / `BlockDelayMs(ms)`                          | 死循环阻塞延时（非协程，会占住 CPU）          |
 
 ### 配置（XC_Config.h）
 
-| 宏 | 默认 | 说明 |
-| --- | --- | --- |
-| `XC_CFG_TICK_TYPE` | `uint32_t` | Tick 数据类型 |
-| `XC_CFG_MAX_TASKS` | 100 | 最大任务数（**1~255**；上限由**编译期断言**拦截，建议 ≥10） |
-| `XC_CFG_TICKS_PER_SEC` | 1000 | Tick 频率（Hz），1ms/tick |
-| `XC_SYS_TICK_COUNT` / `XC_SYS_TICK_INT_INC_MODE` | 中断累加 | Tick 计数方式（中断累加 / 外部计数器） |
-| `XC_CFG_ERR_HOOK` | 0（关） | 错误上报钩子（诊断）：置 1 后**必须实现** `XC_Err_Hook(phTCB, ErrCode)`；见陷阱 18 |
-| `XC_CFG_DEBUG_CHECK` | 0（关） | 运行期不变量自检（调试）：置 1 后可用 `XC_Diag_CheckInvariants`；见陷阱 19 |
-| `XC_CFG_TASK_STATS` | 0（关） | 每任务运行统计（可选）：置 1 后 TCB **+8B/任务**，可用 `XC_Diag_GetRunCnt/GetMaxRunTick`；见陷阱 20 |
-| `XC_CFG_ASSERT` | 0（关） | 参数/状态断言（诊断）：置 1 后可用 `XC_DIAG_ASSERT(cond)`；**必须同时开 `XC_CFG_ERR_HOOK`**；见陷阱 21 |
-| `XCOS_CFG` / `XCOS_Cfg.h` | — | 独立配置文件方式 |
+| 宏                                               | 默认       | 说明                                                                                                           |
+| ------------------------------------------------ | ---------- | -------------------------------------------------------------------------------------------------------------- |
+| `XC_CFG_TICK_TYPE`                               | `uint32_t` | Tick 数据类型                                                                                                  |
+| `XC_CFG_MAX_TASKS`                               | 100        | 最大任务数（**1~255**；上限由**编译期断言**拦截，建议 ≥10）                                                   |
+| `XC_CFG_TICKS_PER_SEC`                           | 1000       | Tick 频率（Hz），1ms/tick                                                                                      |
+| `XC_SYS_TICK_COUNT` / `XC_SYS_TICK_INT_INC_MODE` | 中断累加   | Tick 计数方式（中断累加 / 外部计数器）                                                                         |
+| `XC_CFG_ERR_HOOK`                                | 0（关）    | 错误上报钩子（诊断）：置 1 后**必须实现** `XC_Err_Hook(phTCB, ErrCode)`；见陷阱 18                             |
+| `XC_CFG_DEBUG_CHECK`                             | 0（关）    | 运行期不变量自检（调试）：置 1 后可用 `XC_Diag_CheckInvariants`；见陷阱 19                                     |
+| `XC_CFG_TASK_STATS`                              | 0（关）    | 每任务运行统计（可选）：置 1 后 TCB **+8B/任务**，可用 `XC_Diag_GetRunCnt/GetMaxRunTick`；见陷阱 20            |
+| `XC_CFG_ASSERT`                                  | 0（关）    | 参数/状态断言（诊断）：置 1 后可用 `XC_DIAG_ASSERT(cond)`；**必须同时开 `XC_CFG_ERR_HOOK`**；见陷阱 21         |
+| `XC_CFG_COR_NESTING`                             | 1（开）    | 协程嵌套支持：置 **0** 后 TCB **44→36 B/任务**、无 `RegExt`/`SetCorStack`/`Cor_Call`/同轮切父（基本协程不变） |
+| `XCOS_CFG` / `XCOS_Cfg.h`                        | —         | 独立配置文件方式                                                                                               |
 
 ### 类型与枚举
 
@@ -262,12 +263,12 @@ void Task_Ctrl(XC_TaskHandle_t t)
 
 对照表（**为什么不能在 ISR 里直接调**）：
 
-| ISR 里想做的事 | 禁止直接调用 | 正确做法 |
-| --- | --- | --- |
-| 让某任务"恢复/就绪" | `XC_Task_Resume` | 通知目标任务或控制任务，由任务上下文调用 |
-| 挂起/复位/移除某任务 | `XC_Task_Suspend` / `Reset` / `Remove` | 同上（用通知把"意图"传出去） |
-| 清除通知 | `XC_Task_ClrNotify`（消费侧字段） | 由目标任务自身在等待前 `XC_Cor_ClrNotify()` |
-| 传递数据 | `XC_Task_UpdateNotifyData`（生产侧字段，仅可与 `SendNotify` 同上下文） | 在 ISR 内紧随 `SendNotify` 之前写（同一生产者） |
+| ISR 里想做的事       | 禁止直接调用                                                           | 正确做法                                        |
+| -------------------- | ---------------------------------------------------------------------- | ----------------------------------------------- |
+| 让某任务"恢复/就绪"  | `XC_Task_Resume`                                                       | 通知目标任务或控制任务，由任务上下文调用        |
+| 挂起/复位/移除某任务 | `XC_Task_Suspend` / `Reset` / `Remove`                                 | 同上（用通知把"意图"传出去）                    |
+| 清除通知             | `XC_Task_ClrNotify`（消费侧字段）                                      | 由目标任务自身在等待前 `XC_Cor_ClrNotify()`     |
+| 传递数据             | `XC_Task_UpdateNotifyData`（生产侧字段，仅可与 `SendNotify` 同上下文） | 在 ISR 内紧随 `SendNotify` 之前写（同一生产者） |
 
 > 机理：`XC_Core_Lock/Unlock` 只是"主循环 ↔ 中断"的**单一标志位**（不可重入、不关中断）。ISR 里调用 `Suspend/Resume` 这类 API 会**把主循环正在持有的锁提前打开**，造成**静默**的链表损坏（不立刻报错，之后某次调度才崩）。
 
@@ -359,21 +360,21 @@ void Task_Ctrl(XC_TaskHandle_t t)
 
 ## 六、文件索引（仓库结构）
 
-| 路径 | 内容 |
-| --- | --- |
-| `Code/Inc/XCOS.h` | 总头文件（含版本宏 `XCOS_VER_*`、`XCOS_API_LEVEL`） |
-| `Code/Inc/XC_Config.h` | 配置（`XC_CFG_*`、`XC_SYS_TICK_*`） |
-| `Code/Inc/XC_Type.h` / `Internal/XC_TypeInternal.h` | 用户类型 / 内部类型（TCB、枚举、协程帧） |
-| `Code/Inc/XC_Sch.h` / `XC_Task.h` / `XC_Cor.h` / `XC_Time.h` | 调度 / 任务 / 协程 / 时间 API 声明 |
-| `Code/Inc/XC_Err.h` | **错误上报设施**（无实现文件）：错误码 `XC_ErrCode_t`、用户钩子 `XC_Err_Hook`、上报宏 `XC_Err_Report`（`XC_CFG_ERR_HOOK`，默认关）；只做上报的模块可只包含本头 |
-| `Code/Inc/XC_Diag.h` (+ `Code/Inc/Internal/XC_DiagInternal.h`) + `Code/Src/XC_Diag.c` | **诊断能力**（与内核解耦，含 `XC_Err.h`）：自检 `XC_Diag_CheckInvariants`（`XC_CFG_DEBUG_CHECK`）、统计查询 `XC_Diag_GetRunCnt/GetMaxRunTick/ClrRunStats`（`XC_CFG_TASK_STATS`）；断言 `XC_DIAG_ASSERT`（`XC_CFG_ASSERT`）与调度槽埋点在**内部头**里；全部默认关；**可按工程裁剪该 .c** |
-| `Code/Inc/Internal/XC_List.h` / `XC_Core.h` | 内部链表 / 锁（用户一般不用） |
-| `Code/Src/XC_Diag.c` / `XC_Sch.c` / `XC_Task.c` / `XC_Time.c` / `XC_List.c` | 实现（诊断实现集中在 `XC_Diag.c`） |
-| `Docs/XCOS.md` | API 参考手册（函数级文档） |
-| `Docs/架构概览/XCOS_V2.1.0_架构概览.md` | 完整实现说明 |
-| `Examples/CortexM3_Test/` | 12 任务示例工程（A0~A11，含嵌套/通知/分步注册） |
-| `Docs/Skill/XCOS_Agent_Skill.md` · `XCOS_Dev_Agent_Skill.md` · `MDK_Sim_Agent_Skill.md` | 三份技能文档：**用**框架 / **开发内核** / **MDK 仿真实测** |
-| `Tests/` | 一条命令自测三件事：功能（20 条用例：**PASS 17 / FAIL 0 / SKIP 3**）/ 固件大小 / 关键路径耗时 —— `powershell -File Tests/run_all.ps1`（数值见 `Tests/baseline.md`） |
+| 路径                                                                                      | 内容                                                                                                                                                                                                                                                                                    |
+| ----------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Code/Inc/XCOS.h`                                                                         | 总头文件（含版本宏 `XCOS_VER_*`、`XCOS_API_LEVEL`）                                                                                                                                                                                                                                     |
+| `Code/Inc/XC_Config.h`                                                                    | 配置（`XC_CFG_*`、`XC_SYS_TICK_*`）                                                                                                                                                                                                                                                     |
+| `Code/Inc/XC_Type.h` / `Internal/XC_TypeInternal.h`                                       | 用户类型 / 内部类型（TCB、枚举、协程帧）                                                                                                                                                                                                                                                |
+| `Code/Inc/XC_Sch.h` / `XC_Task.h` / `XC_Cor.h` / `XC_Time.h`                              | 调度 / 任务 / 协程 / 时间 API 声明                                                                                                                                                                                                                                                      |
+| `Code/Inc/XC_Err.h`                                                                       | **错误上报设施**（无实现文件）：错误码 `XC_ErrCode_t`、用户钩子 `XC_Err_Hook`、上报宏 `XC_Err_Report`（`XC_CFG_ERR_HOOK`，默认关）；只做上报的模块可只包含本头                                                                                                                          |
+| `Code/Inc/XC_Diag.h` (+ `Code/Inc/Internal/XC_DiagInternal.h`) + `Code/Src/XC_Diag.c`     | **诊断能力**（与内核解耦，含 `XC_Err.h`）：自检 `XC_Diag_CheckInvariants`（`XC_CFG_DEBUG_CHECK`）、统计查询 `XC_Diag_GetRunCnt/GetMaxRunTick/ClrRunStats`（`XC_CFG_TASK_STATS`）；断言 `XC_DIAG_ASSERT`（`XC_CFG_ASSERT`）与调度槽埋点在**内部头**里；全部默认关；**可按工程裁剪该 .c** |
+| `Code/Inc/Internal/XC_List.h` / `XC_Core.h`                                               | 内部链表 / 锁（用户一般不用）                                                                                                                                                                                                                                                           |
+| `Code/Src/XC_Diag.c` / `XC_Sch.c` / `XC_Task.c` / `XC_Time.c` / `XC_List.c`               | 实现（诊断实现集中在 `XC_Diag.c`）                                                                                                                                                                                                                                                      |
+| `Docs/XCOS.md`                                                                            | API 参考手册（函数级文档）                                                                                                                                                                                                                                                              |
+| `Docs/架构概览/XCOS_V2.1.0_架构概览.md`                                                   | 完整实现说明                                                                                                                                                                                                                                                                            |
+| `Examples/CortexM3_Test/`                                                                 | 12 任务示例工程（A0~A11，含嵌套/通知/分步注册）                                                                                                                                                                                                                                         |
+| `Docs/Skill/XCOS_Agent_Skill.md` · `XCOS_Dev_Agent_Skill.md` · `MDK_Sim_Agent_Skill.md` | 三份技能文档：**用**框架 / **开发内核** / **MDK 仿真实测**                                                                                                                                                                                                                              |
+| `Tests/`                                                                                  | 一条命令自测三件事：功能（20 条用例：**PASS 17 / FAIL 0 / SKIP 3**）/ 固件大小 / 关键路径耗时 —— `powershell -File Tests/run_all.ps1`（数值见 `Tests/baseline.md`）                                                                                                                   |
 
 ## 七、已知缺陷与限制
 

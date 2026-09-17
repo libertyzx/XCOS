@@ -10,12 +10,12 @@
 
 ## Deviation 汇总
 
-| ID | 规则 | 级别 | 主题 | 记录日期 |
-|----|------|------|------|:----:|
-| DEV-XCOS-001 | Rule 11.5 / Rule 20.10 / Rule 15.1 | Advisory | 协程底层设计约束（`void*`过渡 + `##` + `goto`） | 2026-08-14 |
-| DEV-XCOS-002 | Rule 8.7 | Advisory | 全局滴答计数外部链接 | 2026-08-14 |
-| DEV-XCOS-003 | Rule 2.3 | Advisory | 未使用的类型声明（用户 API） | 2026-08-14 |
-| DEV-XCOS-004 | Rule 8.13 | Advisory/Undecidable | 指针 const 限定 | 2026-08-14 |
+| ID           | 规则                               | 级别                 | 主题                                            | 记录日期   |
+| ------------ | ---------------------------------- | -------------------- | ----------------------------------------------- | :--------: |
+| DEV-XCOS-001 | Rule 11.5 / Rule 20.10 / Rule 15.1 | Advisory             | 协程底层设计约束（`void*`过渡 + `##` + `goto`） | 2026-08-14 |
+| DEV-XCOS-002 | Rule 8.7                           | Advisory             | 全局滴答计数外部链接                            | 2026-08-14 |
+| DEV-XCOS-003 | Rule 2.3                           | Advisory             | 未使用的类型声明（用户 API）                    | 2026-08-14 |
+| DEV-XCOS-004 | Rule 8.13                          | Advisory/Undecidable | 指针 const 限定                                 | 2026-08-14 |
 
 ---
 
@@ -23,13 +23,13 @@
 
 ### 基本信息
 
-| 字段 | 内容 |
-|------|------|
-| Deviation ID | DEV-XCOS-001 |
-| 规则 | Rule 11.5（void 指针转换对象指针）/ Rule 20.10（`##` 运算符）/ Rule 15.1（goto 语句） |
-| 级别 | 🟡 Advisory |
-| 文件 | `Code/Inc/Internal/XC_List.h`、`Code/Inc/Internal/XC_CorGNU.h`、`Code/Inc/Internal/XC_CorANSI.h`（嵌套协程 v2.1.0 起） |
-| 记录日期 | 2026-08-14 |
+| 字段         | 内容                                                                                                                   |
+| ------------ | ---------------------------------------------------------------------------------------------------------------------- |
+| Deviation ID | DEV-XCOS-001                                                                                                           |
+| 规则         | Rule 11.5（void 指针转换对象指针）/ Rule 20.10（`##` 运算符）/ Rule 15.1（goto 语句）                                  |
+| 级别         | 🟡 Advisory                                                                                                          |
+| 文件         | `Code/Inc/Internal/XC_List.h`、`Code/Inc/Internal/XC_CorGNU.h`、`Code/Inc/Internal/XC_CorANSI.h`（嵌套协程 v2.1.0 起） |
+| 记录日期     | 2026-08-14                                                                                                             |
 
 ### 违规描述
 
@@ -58,11 +58,11 @@ if(0) { goto COR_DONE_L; } COR_DONE_L:;
 
 ### 偏差理由
 
-| 规则 | 理由 |
-|------|------|
-| Rule 11.5 | `XC_LIST_TO_TCB` 是 container_of 专用宏。C 标准（C89~C23 §6.7.2.1）保证结构体指针与首成员指针地址相同，`void*` 过渡语义完全安全。且已从原 Rule 11.3（Required）降级为 Rule 11.5（Advisory） |
-| Rule 20.10 | GNU 协程必须用 `##` 拼接 `__func__` 与 `__LINE__` 生成唯一 goto 标签名，这是计算跳转协程的核心机制，无替代方案 |
-| Rule 15.1 | 协程使用 `goto *BP` 计算跳转实现上下文切换（GNU），`goto COR_GOTO_END` 是向前跳转至函数末尾（cleanup 模式），符合 Rule 15.2 要求，无替代方案。**ANSI 版自嵌套协程 v2.1.0 起回退使用同一 `goto COR_GOTO_END` 模式**（`COR_Break`/`COR_SetBPBreak`/`COR_End`/`COR_BreakLabel`）：`break` 在循环体内跳出的是循环而非协程 `switch`，控制流会落入 `XC_Cor_Leave` 误置 `CorState=DONE`，使调度器"同轮切父"误判弹帧（方案附例 `for(;;)+Call` 实测死循环、子协程从不运行），故 ANSI 版必须与 GNU 版一致使用 `goto`。**另**：`XC_Cor_Leave` 宏内 `if(0){ goto COR_DONE_L; } COR_DONE_L:;` 为编译器可达性提示（`goto` 在常量假分支内、永不执行），用于消除 armcc 对协程标准写法 `while(1){...}XC_Cor_Leave()` 的 #111-D 告警，与协程挂起/完成 `goto` 同类，一并纳入本 Deviation |
+| 规则       | 理由                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Rule 11.5  | `XC_LIST_TO_TCB` 是 container_of 专用宏。C 标准（C89~C23 §6.7.2.1）保证结构体指针与首成员指针地址相同，`void*` 过渡语义完全安全。且已从原 Rule 11.3（Required）降级为 Rule 11.5（Advisory）                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| Rule 20.10 | GNU 协程必须用 `##` 拼接 `__func__` 与 `__LINE__` 生成唯一 goto 标签名，这是计算跳转协程的核心机制，无替代方案                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| Rule 15.1  | 协程使用 `goto *BP` 计算跳转实现上下文切换（GNU），`goto COR_GOTO_END` 是向前跳转至函数末尾（cleanup 模式），符合 Rule 15.2 要求，无替代方案。**ANSI 版自嵌套协程 v2.1.0 起回退使用同一 `goto COR_GOTO_END` 模式**（`COR_Break`/`COR_SetBPBreak`/`COR_End`/`COR_BreakLabel`）：`break` 在循环体内跳出的是循环而非协程 `switch`，控制流会落入 `XC_Cor_Leave` 误置 `CorState=DONE`，使调度器"同轮切父"误判弹帧（方案附例 `for(;;)+Call` 实测死循环、子协程从不运行），故 ANSI 版必须与 GNU 版一致使用 `goto`。**另**：`XC_Cor_Leave` 宏内 `if(0){ goto COR_DONE_L; } COR_DONE_L:;` 为编译器可达性提示（`goto` 在常量假分支内、永不执行），用于消除 armcc 对协程标准写法 `while(1){...}XC_Cor_Leave()` 的 #111-D 告警，与协程挂起/完成 `goto` 同类，一并纳入本 Deviation |
 
 ### 缓解措施
 
@@ -79,13 +79,13 @@ if(0) { goto COR_DONE_L; } COR_DONE_L:;
 
 ### 基本信息
 
-| 字段 | 内容 |
-|------|------|
-| Deviation ID | DEV-XCOS-002 |
-| 规则 | Rule 8.7（外部链接但仅单 TU 引用） |
-| 级别 | 🟡 Advisory |
-| 文件 | `Code/Src/XC_Time.c`、`Code/Inc/XC_Config.h` |
-| 记录日期 | 2026-08-14 |
+| 字段         | 内容                                         |
+| ------------ | -------------------------------------------- |
+| Deviation ID | DEV-XCOS-002                                 |
+| 规则         | Rule 8.7（外部链接但仅单 TU 引用）           |
+| 级别         | 🟡 Advisory                                |
+| 文件         | `Code/Src/XC_Time.c`、`Code/Inc/XC_Config.h` |
+| 记录日期     | 2026-08-14                                   |
 
 ### 违规描述
 
@@ -134,13 +134,13 @@ extern volatile XC_Tick_t g_SysTickCount; // 外部声明全局滴答时间计�
 
 ### 基本信息
 
-| 字段 | 内容 |
-|------|------|
-| Deviation ID | DEV-XCOS-003 |
-| 规则 | Rule 2.3（项目不应包含未使用的类型声明） |
-| 级别 | 🟡 Advisory |
-| 文件 | `Code/Inc/XC_Type.h` |
-| 记录日期 | 2026-08-14 |
+| 字段         | 内容                                     |
+| ------------ | ---------------------------------------- |
+| Deviation ID | DEV-XCOS-003                             |
+| 规则         | Rule 2.3（项目不应包含未使用的类型声明） |
+| 级别         | 🟡 Advisory                            |
+| 文件         | `Code/Inc/XC_Type.h`                     |
+| 记录日期     | 2026-08-14                               |
 
 ### 违规描述
 
@@ -177,13 +177,13 @@ typedef struct {
 
 ### 基本信息
 
-| 字段 | 内容 |
-|------|------|
-| Deviation ID | DEV-XCOS-004 |
-| 规则 | Rule 8.13（只要可能，指针应指向 const 限定类型） |
-| 级别 | 🟡 Advisory / Undecidable |
-| 文件 | `Code/Inc/XC_Sch.h`、`Code/Inc/XC_Task.h`、`Code/Inc/XC_Time.h` 等 API 头文件 |
-| 记录日期 | 2026-08-14 |
+| 字段         | 内容                                                                          |
+| ------------ | ----------------------------------------------------------------------------- |
+| Deviation ID | DEV-XCOS-004                                                                  |
+| 规则         | Rule 8.13（只要可能，指针应指向 const 限定类型）                              |
+| 级别         | 🟡 Advisory / Undecidable                                                   |
+| 文件         | `Code/Inc/XC_Sch.h`、`Code/Inc/XC_Task.h`、`Code/Inc/XC_Time.h` 等 API 头文件 |
+| 记录日期     | 2026-08-14                                                                    |
 
 ### 违规描述
 
@@ -226,12 +226,12 @@ XC_Return_t XC_Task_SendNotify(XC_TaskHandle_t phTCB, void* pNotifyData);
 
 本文件所有 Deviation 均为**通知记录**，记录日期见各条目基本信息表与顶部汇总表。
 
-| Deviation ID | 规则 | 记录日期 |
-|--------------|------|----------|
+| Deviation ID | 规则                     | 记录日期   |
+| ------------ | ------------------------ | ---------- |
 | DEV-XCOS-001 | Rule 11.5 / 20.10 / 15.1 | 2026-08-14 |
-| DEV-XCOS-002 | Rule 8.7 | 2026-08-14 |
-| DEV-XCOS-003 | Rule 2.3 | 2026-08-14 |
-| DEV-XCOS-004 | Rule 8.13 | 2026-08-14 |
+| DEV-XCOS-002 | Rule 8.7                 | 2026-08-14 |
+| DEV-XCOS-003 | Rule 2.3                 | 2026-08-14 |
+| DEV-XCOS-004 | Rule 8.13                | 2026-08-14 |
 
 ---
 
@@ -243,23 +243,23 @@ XC_Return_t XC_Task_SendNotify(XC_TaskHandle_t phTCB, void* pNotifyData);
 
 ### A. Deviation → 代码位置
 
-| Deviation | 规则 | 级别 | 代码位置（锚点） | 复核要点 |
-| --- | --- | --- | --- | --- |
-| DEV-XCOS-001 | Rule 11.5 | Advisory | `Code/Inc/Internal/XC_List.h`（`XC_LIST_TO_TCB`，`void*` 过渡；宏内已有 MISRA 合规注释） | 宏与合规注释仍在；新增 `void*`↔对象指针转换需先查本表 |
-| DEV-XCOS-001 | Rule 20.10 | Advisory | `Code/Inc/Internal/XC_CorGNU.h`（`COR_BP2`，`##` 标签拼接） | `##` 仅用于协程标签拼接 |
-| DEV-XCOS-001 | Rule 15.1 | Advisory | `Code/Inc/Internal/XC_CorGNU.h`、`Code/Inc/Internal/XC_CorANSI.h`（`goto COR_GOTO_END`）、`Code/Inc/XC_Cor.h`（`XC_Cor_Leave` 可达性提示） | `goto` 只允许出现在上述协程底层白名单位置 |
-| DEV-XCOS-002 | Rule 8.7 | Advisory | `Code/Src/XC_Time.c`（`g_SysTickCount` 定义）、`Code/Inc/XC_Config.h`（`extern volatile XC_Tick_t g_SysTickCount`） | 该变量是**用户 API**（ISR 直接累加）⇒ 不得改 `static` |
-| DEV-XCOS-003 | Rule 2.3 | Advisory | `Code/Inc/XC_Type.h`（`XC_TimerTick_t`） | 该类型仍被 `XC_Time.c` 的定时器 API 使用（非真正"未使用"） |
-| DEV-XCOS-004 | Rule 8.13 | Advisory / Undecidable | `Code/Inc/XC_Sch.h`、`Code/Inc/XC_Task.h`、`Code/Inc/XC_Time.h`（句柄参数：`XC_OSHandle_t`/`XC_TaskHandle_t`） | 句柄 typedef 设计未变；如引入 `const` 句柄需整体评估 |
+| Deviation    | 规则       | 级别                   | 代码位置（锚点）                                                                                                                           | 复核要点                                                   |
+| ------------ | ---------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------- |
+| DEV-XCOS-001 | Rule 11.5  | Advisory               | `Code/Inc/Internal/XC_List.h`（`XC_LIST_TO_TCB`，`void*` 过渡；宏内已有 MISRA 合规注释）                                                   | 宏与合规注释仍在；新增 `void*`↔对象指针转换需先查本表     |
+| DEV-XCOS-001 | Rule 20.10 | Advisory               | `Code/Inc/Internal/XC_CorGNU.h`（`COR_BP2`，`##` 标签拼接）                                                                                | `##` 仅用于协程标签拼接                                    |
+| DEV-XCOS-001 | Rule 15.1  | Advisory               | `Code/Inc/Internal/XC_CorGNU.h`、`Code/Inc/Internal/XC_CorANSI.h`（`goto COR_GOTO_END`）、`Code/Inc/XC_Cor.h`（`XC_Cor_Leave` 可达性提示） | `goto` 只允许出现在上述协程底层白名单位置                  |
+| DEV-XCOS-002 | Rule 8.7   | Advisory               | `Code/Src/XC_Time.c`（`g_SysTickCount` 定义）、`Code/Inc/XC_Config.h`（`extern volatile XC_Tick_t g_SysTickCount`）                        | 该变量是**用户 API**（ISR 直接累加）⇒ 不得改 `static`     |
+| DEV-XCOS-003 | Rule 2.3   | Advisory               | `Code/Inc/XC_Type.h`（`XC_TimerTick_t`）                                                                                                   | 该类型仍被 `XC_Time.c` 的定时器 API 使用（非真正"未使用"） |
+| DEV-XCOS-004 | Rule 8.13  | Advisory / Undecidable | `Code/Inc/XC_Sch.h`、`Code/Inc/XC_Task.h`、`Code/Inc/XC_Time.h`（句柄参数：`XC_OSHandle_t`/`XC_TaskHandle_t`）                             | 句柄 typedef 设计未变；如引入 `const` 句柄需整体评估       |
 
 ### B. 同步流程（每次改动 `Code/` 后 4 步）
 
-| # | 步骤 | 做法 |
-| --- | --- | --- |
-| 1 | **编译 0 告警** | 用工程实际编译器（AC5/AC6）或 `armclang --target=arm-arm-none-eabi -mcpu=cortex-m3 -Wall -Wextra -c` 全量编译，确认 **0 告警** |
-| 2 | **锚点抽查** | 按上表 A 核对"代码位置"的锚点（宏名/标签名而非行号），确认偏差条目仍成立 |
-| 3 | **新偏差先登记** | 新增 `void*` 转换、`goto`、`##`、外部链接变量、位运算/联合体等构造前先查本表；构成新偏差 ⇒ 新增 `DEV-XCOS-00x`（规则/级别/代码位置/理由/缓解措施） |
-| 4 | **记录与脚本化** | 偏差增减写入 `CHANGELOG.md`；把第 2 步固化为脚本，纳入**回归 / CI 通道**（顶层 `Tests/`） |
+| #   | 步骤             | 做法                                                                                                                                                |
+| --- | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | **编译 0 告警**  | 用工程实际编译器（AC5/AC6）或 `armclang --target=arm-arm-none-eabi -mcpu=cortex-m3 -Wall -Wextra -c` 全量编译，确认 **0 告警**                      |
+| 2   | **锚点抽查**     | 按上表 A 核对"代码位置"的锚点（宏名/标签名而非行号），确认偏差条目仍成立                                                                            |
+| 3   | **新偏差先登记** | 新增 `void*` 转换、`goto`、`##`、外部链接变量、位运算/联合体等构造前先查本表；构成新偏差 ⇒ 新增 `DEV-XCOS-00x`（规则/级别/代码位置/理由/缓解措施） |
+| 4   | **记录与脚本化** | 偏差增减写入 `CHANGELOG.md`；把第 2 步固化为脚本，纳入**回归 / CI 通道**（顶层 `Tests/`）                                                           |
 
 ---
 

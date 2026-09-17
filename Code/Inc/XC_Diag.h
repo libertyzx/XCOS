@@ -13,12 +13,12 @@
  *  「**错误上报设施**」(错误码 / 用户钩子 / 上报宏)在独立头 `XC_Err.h` 里 —— 本头包含它(断言失败即经其上
  *  报 `XC_ERR_ASSERT`), 但**只做错误上报**的用户/模块无需包含本头;
  *
- *  | 子功能 | 开关(见 `XC_Config.h`) | 关闭时 | 打开时成本 | 头/实现 |
- *  | --- | --- | --- | --- | --- |
- *  | 错误上报钩子 | `XC_CFG_ERR_HOOK` | 0 | `XC_Task.o` +12 B(对象级) | `XC_Err.h`(无实现) |
- *  | 参数/状态断言 | `XC_CFG_ASSERT`(须同时开 `XC_CFG_ERR_HOOK`) | 0 | 每处 1 次判空 + 调用 | `Internal/XC_DiagInternal.h`(宏) |
- *  | 运行期不变量自检 | `XC_CFG_DEBUG_CHECK` | 0 | `XC_Diag.o` 约 +0.5 KB | 本头 + `XC_Diag.c` |
- *  | 每任务运行统计 | `XC_CFG_TASK_STATS` | 0 | **TCB +8 B/任务** | 本头 + `Internal/XC_DiagInternal.h`(埋点) + `XC_Diag.c` |
+ *  | 子功能           | 开关(见 `XC_Config.h`)                      | 关闭时 | 打开时成本                | 头/实现                                                 |
+ *  | ---------------- | ------------------------------------------- | ------ | ------------------------- | ------------------------------------------------------- |
+ *  | 错误上报钩子     | `XC_CFG_ERR_HOOK`                           | 0      | `XC_Task.o` +12 B(对象级) | `XC_Err.h`(无实现)                                      |
+ *  | 参数/状态断言    | `XC_CFG_ASSERT`(须同时开 `XC_CFG_ERR_HOOK`) | 0      | 每处 1 次判空 + 调用      | `Internal/XC_DiagInternal.h`(宏)                        |
+ *  | 运行期不变量自检 | `XC_CFG_DEBUG_CHECK`                        | 0      | `XC_Diag.o` 约 +0.5 KB    | 本头 + `XC_Diag.c`                                      |
+ *  | 每任务运行统计   | `XC_CFG_TASK_STATS`                         | 0      | **TCB +8 B/任务**         | 本头 + `Internal/XC_DiagInternal.h`(埋点) + `XC_Diag.c` |
  *  ---
  *  **三条纪律**:
  *  1. **只上报/只读检查**: 不改变内核控制流(帧栈越界仍复位、断言不 return);

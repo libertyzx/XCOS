@@ -7,12 +7,12 @@
 
 帧栈越界（未配帧栈就 `XC_Cor_Call` / 嵌套超过 `CorDepthMax`）原本是**静默复位**（任务从头运行、现场无痕迹）；本方案增加**编译期可开关的错误上报钩子**，把现场报给用户：
 
-| 文件 | 内容 |
-| --- | --- |
+| 文件                         | 内容                                                                                                   |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------ |
 | `Code/Inc/XC_Diag.h`（新增） | `XC_ErrCode_t`（`XC_ERR_NONE` / `XC_ERR_FRAME_OVERFLOW`）+ 钩子 `XC_Err_Hook` + 上报宏 `XC_Err_Report` |
-| `Code/Inc/XC_Config.h` | 开关 `XC_CFG_ERR_HOOK`（默认 `0`） |
-| `Code/Inc/XCOS.h` | 包含 `XC_Diag.h` |
-| `Code/Src/XC_Task.c` | `XC_Task_PushFrame` 越界分支：**先上报、后降级**（钩子内可见 `CorDepth`/`CorDepthMax`/`fTask`） |
+| `Code/Inc/XC_Config.h`       | 开关 `XC_CFG_ERR_HOOK`（默认 `0`）                                                                     |
+| `Code/Inc/XCOS.h`            | 包含 `XC_Diag.h`                                                                                       |
+| `Code/Src/XC_Task.c`         | `XC_Task_PushFrame` 越界分支：**先上报、后降级**（钩子内可见 `CorDepth`/`CorDepthMax`/`fTask`）        |
 
 开关关闭时 `XC_Err_Report` 为 `((void)0)`：**0 代码 / 0 RAM**，且无需实现钩子。
 
@@ -40,9 +40,9 @@ gcc -std=gnu99 -O1 -Wall -Wextra -DXC_CFG_ERR_HOOK=1 -I Code/Inc `
 
 ## 实测结果（2026-09-14）
 
-| 项 | 结果 |
-| --- | --- |
-| 宿主（开关关/开） | 7 项 PASS / 11 项 PASS，两套 **failures = 0** |
-| 行为 | 原有"静默复位"表现**保持**（复位后任务从头再次运行） |
-| 体积·对象级（`XC_Task.o`，AC5 `-O1`） | 改前 **884** → 关 **884（一致）** → 开 **896（+12 B）** |
+| 项                                                | 结果                                                                                                   |
+| ------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| 宿主（开关关/开）                                 | 7 项 PASS / 11 项 PASS，两套 **failures = 0**                                                          |
+| 行为                                              | 原有"静默复位"表现**保持**（复位后任务从头再次运行）                                                   |
+| 体积·对象级（`XC_Task.o`，AC5 `-O1`）            | 改前 **884** → 关 **884（一致）** → 开 **896（+12 B）**                                              |
 | 体积·镜像级（`Examples/CortexM3_Test` 全量构建） | 改前 **Code 8684** → 关 **8684（一致）**；`i.XC_Task_PushFrame` 段 **66 B 亦同**；0 Error / 0 Warning |
