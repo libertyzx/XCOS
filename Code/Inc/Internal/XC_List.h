@@ -1,144 +1,163 @@
 /**
  * @file        XC_List.h
- * @brief       ��������������
+ * @brief       链表操作的声明
  * @author      libertyzx (libertyzx@163.com)
- * @version     2.0.0
- * @date        2026/01/06
+ * @version     2.1.0
+ * @date        2026/08/14
  * **********************************************
  * @copyright   Copyright (c) 2024 libertyzx. All rights reserved.
  * @license     This project is released under the MIT License.
  * **********************************************
- * @details     ���������ĺ������������Ͷ���;
- *  ���ļ����������Ͷ����ڲ�ʹ��;�û���Ҫʹ��;
+ * @details     链表操作的函数声明及类型定义;
+ *  本文件中所有类型都是内部使用;用户不要使用;
  * **********************************************
- *  �޸���־
- *  - ��"CHANGELOG.md"�ĸ���˵��;
+ *  修改日志
+ *  - 见"CHANGELOG.md"的更新说明;
  */
-//=== ���ظ�����
-#ifndef _XC_List_H_
-#define _XC_List_H_
+//=== 防重复定义
+#ifndef XC_List_h
+#define XC_List_h
 
 /*
  ************************************************************************************************************|
- ************************************************ ���Ƿָ��� ************************************************|
+ ************************************************ 我是分割线 ************************************************|
  ************************************************************************************************************|
  */
-/**�������� */
+/**数据类型 */
 
 /**
- * @brief   [�ڲ�]˫�������ڵ�����
+ * @brief   [内部]双向链表节点类型
  * @details
- *  ��ͨ�ڵ�͸��ڵ㶼ʹ�ô�����;
- *  ���ڵ�ֻ�Ǳ�ǵ���ͨ�ڵ�;
- *  32λ��ռ8�ֽ�;
+ *  普通节点和根节点都使用此类型;
+ *  根节点只是标记的普通节点;
+ *  32位下占8字节;
  */
-typedef struct XCListNode_t {
-    struct XCListNode_t* pNext; // ָ���¸��ڵ�
-    struct XCListNode_t* pPrev; // ָ���ϸ��ڵ�
-} XCListNode_t;
+typedef struct XC_ListNode_tag {
+    struct XC_ListNode_tag* pNext; // 指向下个节点
+    struct XC_ListNode_tag* pPrev; // 指向上个节点
+} XC_ListNode_t;
 
 /*
  ************************************************************************************************************|
- ************************************************ ���Ƿָ��� ************************************************|
+ ************************************************ 我是分割线 ************************************************|
  ************************************************************************************************************|
  */
-/**��ʼ������ */
+/**初始化操作 */
 
 /**
- * @brief       [�ڲ�]��ʼ���ڵ�
- * @param[in]   pNode   [XCListNode_t*]��Ҫ��ʼ���Ľڵ�
- * @details     ��ʼ���ڵ�ʱʹ��,ָ���Լ�,�Ż�Ϊ��;
+ * @brief       [内部]初始化节点
+ * @param[in]   pNode   [XC_ListNode_t*]需要初始化的节点
+ * @details     初始化节点时使用,指向自己,优化为宏;
  */
-#define XCList_InitNode(_pNode)     \
-    {                               \
-        (_pNode)->pNext = (_pNode); \
-        (_pNode)->pPrev = (_pNode); \
-    }
+#define XC_List_InitNode(pNode)   \
+    do {                          \
+        (pNode)->pNext = (pNode); \
+        (pNode)->pPrev = (pNode); \
+    } while(0)
 
 /**
- * @brief       [�ڲ�]��ʼ������
- * @param[in]   pList   ��Ҫ��ʼ��������
- * @details     ��ʼ������ʱʹ��
+ * @brief       [内部]初始化链表
+ * @param[in]   pList   需要初始化的链表
+ * @details     初始化链表时使用
  */
-#define XCList_Init(_pList) XCList_InitNode(_pList)
+#define XC_List_Init(pList) XC_List_InitNode(pList)
 
-/************************************************ ���Ƿָ��� ************************************************/
-/**�����ڵ���� */
+/************************************************ 我是分割线 ************************************************/
+/**链表节点操作 */
 
 /**
- * @brief       [�ڲ�]���½ڵ����ĳ�ڵ�֮��
- * @param[in]   pListNode   Ҫ����λ�õĽڵ�
- * @param[in]   pNewNode    �½ڵ�
- * @details     ֻ����ڵ�;
+ * @brief       [内部]将新节点插入某节点之后
+ * @param[in]   pListNode   要插入位置的节点
+ * @param[in]   pNewNode    新节点
+ * @details     只插入节点;
  */
-void XCList_InsertNodeAfter(XCListNode_t* pListNode, XCListNode_t* pNewNode);
+void XC_List_InsertNodeAfter(XC_ListNode_t* pListNode, XC_ListNode_t* pNewNode);
 
 /**
- * @brief       [�ڲ�]���ڵ��ƶ���ĳ���ڵ�֮��
- * @param[in]   pDestNode   Ŀ��ڵ�
- * @param[in]   pSrcNode    ��Ҫ�ƶ��Ľڵ�
+ * @brief       [内部]将节点移动到某个节点之后
+ * @param[in]   pDestNode   目标节点
+ * @param[in]   pSrcNode    需要移动的节点
  * @details
- *  ���ڵ��ԭ���������Ƴ�,���ƶ���Ŀ��ڵ�֮��;
+ *  将节点从原先链表中移除,并移动到目标节点之后;
  */
-void XCList_MoveNodeAfter(XCListNode_t* pDestNode, XCListNode_t* pSrcNode);
+void XC_List_MoveNodeAfter(XC_ListNode_t* pDestNode, XC_ListNode_t* pSrcNode);
 
 /**
- * @brief       [�ڲ�]���������Ƴ�һ���ڵ�
- * @param[in]   pNode   [XCListNode_t*]��Ҫɾ���Ľڵ�
- * @details     ֻ���������ڵ㲿��,��Ӱ��ڵ���ص���������;
+ * @brief       [内部]从链表中移除一个节点
+ * @param[in]   pNode   [XC_ListNode_t*]需要删除的节点
+ * @details     只处理链表节点部分,不影响节点挂载的其他数据;
  */
-void XCList_Remove(XCListNode_t* pNode);
+void XC_List_Remove(XC_ListNode_t* pNode);
 
-/************************************************ ���Ƿָ��� ************************************************/
-/**�����ж� */
+/************************************************ 我是分割线 ************************************************/
+/**基础判断 */
 
 /**
- * @brief       [�ڲ�]�����Ƿ���Ч
- * @param[in]   _pList [XCListNode_t*]����ָ��
- * @return      boot
- * @retval      0 : û�нڵ�
- * @retval      1 : �нڵ�
- * @details     �ж�һ���������Ƿ���Ч(�Ƿ��нڵ�)
+ * @brief       [内部]链表是否有效
+ * @param[in]   pList [XC_ListNode_t*]链表指针
+ * @return      bool
+ * @retval      0 : 没有节点
+ * @retval      1 : 有节点
+ * @details     判断一个链表的是否有效(是否有节点)
  */
-#define XCList_ListValid(_pList)            ((_pList) != ((_pList)->pNext))
+#define XC_List_ListValid(pList)           ((pList) != ((pList)->pNext))
 
 /**
- * @brief       [�ڲ�]�ڵ��Ƿ񵽴��β�ڵ�
- * @param[in]   _pList  [XCListNode_t*]����ָ��
- * @param[in]   _pNode  [XCListNode_t*]�ڵ�ָ��
- * @return      boot
- * @retval      0 : û�е����β�ڵ�
- * @retval      1 : �����β�ڵ�(�ڵ����������ַ��ͬ)
- * @details     ���ڱ�������ʱ,�жϱ����Ľڵ��Ƿ񵽴���ڵ�(���Ƿ��������)
+ * @brief       [内部]节点是否到达结尾节点
+ * @param[in]   pList  [XC_ListNode_t*]链表指针
+ * @param[in]   pNode  [XC_ListNode_t*]节点指针
+ * @return      bool
+ * @retval      0 : 没有到达结尾节点
+ * @retval      1 : 到达结尾节点(节点和链表根地址相同)
+ * @details     用于遍历链表时,判断遍历的节点是否到达根节点(既是否结束遍历)
  */
-#define XCList_ReachEndNode(_pList, _pNode) ((_pList) == (_pNode))
+#define XC_List_ReachEndNode(pList, pNode) ((pList) == (pNode))
 
 /**
- * @brief       [�ڲ�]��ȡ�����Ŀ�ʼ�ڵ�
- * @param[in]   _pList  [XCListNode_t*]������ַ
- * @return      XCListNode_t*   ���ؽڵ��ַ
- * @details     �õ���ǰ�����Ŀ�ʼ��ַ
+ * @brief       [内部]获取链表的开始节点
+ * @param[in]   pList  [XC_ListNode_t*]链表地址
+ * @return      XC_ListNode_t*   返回节点地址
+ * @details     得到当前链表的开始地址
  */
-#define XCList_GetListStartNode(_pList)     ((_pList)->pNext)
+#define XC_List_GetListStartNode(pList)    ((pList)->pNext)
 
-/************************************************ ���Ƿָ��� ************************************************/
-/**�������� */
+/************************************************ 我是分割线 ************************************************/
+/**链表操作 */
 
 /**
- * @brief       [�ڲ�]��һ������ȫ���ƶ�������������һ���ڵ��
- * @param[in]   pDestNode   ��Ҫ���������Ľڵ�(�������ƶ����˽ڵ��)
- * @param[in]   pSrcList    ��Ҫ�ƶ�������
+ * @brief       [内部]将一个链表全部移动到另个链表的一个节点后
+ * @param[in]   pDestNode   需要移入链表的节点(链表将移动到此节点后)
+ * @param[in]   pSrcList    需要移动的链表
  * @details
- *  - ת����ڵ��������ᱻ���;
- *  - ע��:��Ҫ�ƶ��Լ�;
+ *  - 转移完节点后的链表会被清除;
+ *  - 注意:不要移动自己;
  */
-void XCList_MoveListToNodeAfter(XCListNode_t* pDestNode, XCListNode_t* pSrcList);
+void XC_List_MoveListToNodeAfter(XC_ListNode_t* pDestNode, XC_ListNode_t* pSrcList);
 
-/************************************************ ���Ƿָ��� ************************************************/
+/************************************************ 我是分割线 ************************************************/
+
+/** 前向声明，供 XC_LIST_TO_TCB 宏使用 */
+struct XC_TaskCB_tag;
+
+/**
+ * @brief       [内部]从链表节点获取所属的任务控制块(TCB)
+ * @param[in]   pNode  链表节点指针
+ * @return      XC_TaskCB_t*  返回所属的 TCB 指针
+ * @details
+ *  container_of 的专用变体，XC_TaskCB_t 的第一个成员是 XC_ListNode_t，
+ *  通过 void* 过渡获取容器地址。
+ *  C 标准保证结构体指针与首成员指针地址相同。
+ *
+ *  MISRA-C 合规说明：
+ *  - 直接转换(XC_ListNode_t* → XC_TaskCB_t*)会违反 Rule 11.3 (Required)
+ *  - 通过 void* 间接转换仅触发 Rule 11.5 (Advisory)，可申请 Deviation 接受
+ */
+#define XC_LIST_TO_TCB(pNode) ((struct XC_TaskCB_tag*)(void*)(pNode))
+
 /*
  ************************************************************************************************************|
- ************************************************ ���Ƿָ��� ************************************************|
+ ************************************************ 我是分割线 ************************************************|
  ************************************************************************************************************|
  */
-//=== �ļ�����
+//=== 文件结束
 #endif

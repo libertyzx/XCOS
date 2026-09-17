@@ -1,0 +1,2 @@
+===== XCOS Bug Repro (current kernel, unmodified) =====
+[Bug#1] Check: Parent state after Call-yield = 2 (expect READY=2, RUN=1)

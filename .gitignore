@@ -2,6 +2,7 @@
 
 #忽略文件夹
 **/bak
+**/.bak
 doxygen
 
 #文件类型
@@ -16,3 +17,52 @@ Examples/CortexM3_Test/DebugConfig/*
 Examples/CortexM3_Test/CortexM3_Test.uvguix.*
 Examples/CortexM3_Test/.vscode/uv4.log.lock
 Examples/CortexM3_Test/EventRecorderStub.scvd
+
+# —— 构建产物（MDK/armcc/gcc；任意例子工程通用；Debug/ 整目录忽略）——
+# 注: 已在仓库里的 RTE/…/**.dbgconf 等配置**要保留**，故不忽略 RTE/
+**/Debug/
+**/DebugConfig/
+Examples/*/*/*.uvguix.*
+**/.vscode/uv4.log.lock
+**/EventRecorderStub.scvd
+*.o
+*.d
+*.crf
+*.dep
+*.axf
+*.elf
+*.hex
+*.bin
+*.map
+*.lnp
+*.plg
+*.lst
+*.build_log.htm
+JLinkLog.txt
+
+# —— IDE / 编辑器本地产物（`.vscode/` 下已提交的配置不受影响）——
+.vscode/ipch/
+.vscode/.cache/
+.vscode/.history/
+.vscode/*.log
+.history/
+.clangd/
+compile_commands.json
+.vs/
+*.suo
+*.user
+
+# —— 临时 / 备份 ——
+*.tmp
+*.bak
+*.orig
+*.rej
+*~
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# —— 自测工具（Tests/）的说明 ——
+# 运行产物（exe/日志/镜像工作区）全部写在 %TEMP%\xcos_tests_* / xcos_size_* / xcos_cycles_*，**不落仓库**；
+# 故 Tests/ 下只有源码/脚本/基线/快照需要提交，无需忽略规则。
+

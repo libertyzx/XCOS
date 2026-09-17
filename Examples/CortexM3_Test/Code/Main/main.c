@@ -1,529 +1,683 @@
 
 /**
  * @file        main.c
- * @brief       Ö÷ÎÄ¼ş
+ * @brief       ä¸»æ–‡ä»¶
  * @author      libertyzx (libertyzx@163.com)
- * @version     2.00
- * @date        2025/11/21
+ * @version     2.1.0
+ * @date        2026/08/20
  * **********************************************
  * @copyright   Copyright (c) 2023 libertyzx. All rights reserved.
  * @license     This project is released under the MIT License.
  * **********************************************
- * @details     ÑİÊ¾XCOSµÄÖ÷ÎÄ¼ş
+ * @details     æ¼”ç¤ºXCOSçš„ä¸»æ–‡ä»¶
  * **********************************************
- *  ĞŞ¸ÄÈÕÖ¾
- *  - 2026/01/06
- *      - ³õÊ¼±àĞ´
+ *  ä¿®æ”¹æ—¥å¿—
+ *  - è§"CHANGELOG.md"çš„æ›´æ–°è¯´æ˜;
  */
-//=== Í·ÎÄ¼ş
+//=== å¤´æ–‡ä»¶
 #include "main.h"
 #include <stdint.h>
 #include <stdlib.h>
 
 /*
  ************************************************************************************************************|
- ************************************************ ÎÒÊÇ·Ö¸îÏß ************************************************|
+ ************************************************ æˆ‘æ˜¯åˆ†å‰²çº¿ ************************************************|
  ************************************************************************************************************|
  */
 
-/** ÅäÖÃ¿ª¹Ø¼û"main.h"ÎÄ¼ş */
+/** é…ç½®å¼€å…³è§"main.h"æ–‡ä»¶ */
 
-/************************************************ ÎÒÊÇ·Ö¸îÏß ************************************************/
+/************************************************ æˆ‘æ˜¯åˆ†å‰²çº¿ ************************************************/
 
-// Ğ¾Æ¬ÓÃ
+// èŠ¯ç‰‡ç”¨
 TIM_HandleTypeDef htim2;
 TIM_HandleTypeDef htim3;
 
 #if (_Cnf_Examples > 0)
-// XCOS±äÁ¿
-XCOS_t s_hXCOS0; // XCOS¾ä±ú
+// XCOSå˜é‡
+XCOS_t s_hXCOS0; // XCOSå¥æŸ„
 
 #if (_Cnf_Examples > 1)
-// ÈÎÎñ
-XC_TaskCB_t s_hTCBn[10] = { 0 }; // ÈÎÎñ¿ØÖÆ¿é
+// ä»»åŠ¡
+XC_TaskCB_t s_hTCBn[12] = { 0 }; // ä»»åŠ¡æ§åˆ¶å—(12ä¸ª:A0~A11)
 
-uint32_t s_A0TaskCount = 0; // A0¼ÆÊı
+uint32_t s_A0TaskCount = 0; // A0è®¡æ•°
 /**
- * A1ºÍA2ÔËĞĞ¼ÆÊı
- * ²âÊÔA1·¢ËÍÍ¨Öª¸øA2;
+ * A1å’ŒA2è¿è¡Œè®¡æ•°
+ * æµ‹è¯•A1å‘é€é€šçŸ¥ç»™A2;
  */
 struct {
-    // ÌáÇ°Í¨Öª
-    uint32_t A1_PreNotifyCount;          // A1 ÌáÇ°Í¨Öª¼ÆÊı
-    uint32_t A2_PreNotifyRxTimeoutCouut; // A2 ÌáÇ°Í¨Öª½ÓÊÕ³¬Ê±¼ÆÊı
-    uint32_t A2_PreNotifyRxCount;        // A2 ÌáÇ°Í¨Öª½ÓÊÕ³É¹¦¼ÆÊı
-    // Õı³£Í¨Öª
-    uint32_t A1_NotifyCount;             // A1 Í¨Öª¼ÆÊı
-    uint32_t A2_NotifyRxCount;           // A2 Í¨Öª½ÓÊÕ³É¹¦¼ÆÊı
-    uint32_t A2_NotifyRxErrorCount;      // A2 Í¨Öª½ÓÊÕ´íÎó¼ÆÊı(·ÇÍ¨Öª»½ĞÑ)
-    uint32_t A2_NotifyRxParamErrorCount; // A2 Í¨Öª½ÓÊÕ²ÎÊı´íÎó¼ÆÊı
+    // æå‰é€šçŸ¥
+    uint32_t A1_PreNotifyCount;          // A1 æå‰é€šçŸ¥è®¡æ•°
+    uint32_t A2_PreNotifyRxTimeoutCouut; // A2 æå‰é€šçŸ¥æ¥æ”¶è¶…æ—¶è®¡æ•°
+    uint32_t A2_PreNotifyRxCount;        // A2 æå‰é€šçŸ¥æ¥æ”¶æˆåŠŸè®¡æ•°
+    // æ­£å¸¸é€šçŸ¥
+    uint32_t A1_NotifyCount;             // A1 é€šçŸ¥è®¡æ•°
+    uint32_t A2_NotifyRxCount;           // A2 é€šçŸ¥æ¥æ”¶æˆåŠŸè®¡æ•°
+    uint32_t A2_NotifyRxErrorCount;      // A2 é€šçŸ¥æ¥æ”¶é”™è¯¯è®¡æ•°(éé€šçŸ¥å”¤é†’)
+    uint32_t A2_NotifyRxParamErrorCount; // A2 é€šçŸ¥æ¥æ”¶å‚æ•°é”™è¯¯è®¡æ•°
 } s_A1A2Data = { 0 };
 
 /**
- * A3ºÍA4ÔËĞĞ¼ÆÊı
- * ²âÊÔA3¹ÒÆğºÍ»Ö¸´A4;
+ * A3å’ŒA4è¿è¡Œè®¡æ•°
+ * æµ‹è¯•A3æŒ‚èµ·å’Œæ¢å¤A4;
  */
 struct {
-    uint32_t A3_SuspendCount; // A3¹ÒÆğA4¼ÆÊı;
-    uint32_t A3_ResumeCount;  // A3»Ö¸´A4¼ÆÊı;
-    uint32_t A4_ResumeCount;  // A4»½ĞÑ¼ÆÊı
+    uint32_t A3_SuspendCount; // A3æŒ‚èµ·A4è®¡æ•°;
+    uint32_t A3_ResumeCount;  // A3æ¢å¤A4è®¡æ•°;
+    uint32_t A4_ResumeCount;  // A4å”¤é†’è®¡æ•°
 } s_A3A4Data = { 0 };
 
-uint32_t s_A5_ResetCount  = 0; // A5¸´Î»¼ÆÊı
-uint32_t s_A6_RemoveCount = 0; // A6ÒÆ³ı¼ÆÊı
+uint32_t s_A5_ResetCount  = 0; // A5å¤ä½è®¡æ•°
+uint32_t s_A6_RemoveCount = 0; // A6ç§»é™¤è®¡æ•°
 
 /**
- * ²âÊÔÖĞ¶ÏÍ¨Öª»½ĞÑ
+ * æµ‹è¯•ä¸­æ–­é€šçŸ¥å”¤é†’
  */
 struct {
-    uint32_t Int_NotifyCount;         // ÖĞ¶Ï·¢ËÍÍ¨Öª¼ÆÊı
-    uint32_t A7_NotifyRxCount;        // ÖĞ¶Ï½ÓÊÕ»½ĞÑ³É¹¦¼ÆÊı
-    uint32_t A7_NotifyRxTimeoutCount; // ÖĞ¶Ï½ÓÊÕ»½ĞÑ³¬Ê±¼ÆÊı
+    uint32_t Int_NotifyCount;         // ä¸­æ–­å‘é€é€šçŸ¥è®¡æ•°
+    uint32_t A7_NotifyRxCount;        // ä¸­æ–­æ¥æ”¶å”¤é†’æˆåŠŸè®¡æ•°
+    uint32_t A7_NotifyRxTimeoutCount; // ä¸­æ–­æ¥æ”¶å”¤é†’è¶…æ—¶è®¡æ•°
 } s_A7Data = { 0 };
 
 /**
- * ²âÊÔÖĞ¶ÏÍ¨Öª»½ĞÑ
+ * æµ‹è¯•ä¸­æ–­é€šçŸ¥å”¤é†’
  */
 struct {
-    uint32_t Int1_NotifyCount; // ÖĞ¶Ï»½ĞÑ1
-    uint32_t Int2_NotifyCount; // ÖĞ¶Ï»½ĞÑ2
-    uint32_t Int3_NotifyCount; // ÖĞ¶Ï»½ĞÑ3
-    uint32_t Int4_NotifyCount; // ÖĞ¶Ï»½ĞÑ4
+    uint32_t Int1_NotifyCount; // ä¸­æ–­å”¤é†’1
+    uint32_t Int2_NotifyCount; // ä¸­æ–­å”¤é†’2
+    uint32_t Int3_NotifyCount; // ä¸­æ–­å”¤é†’3
+    uint32_t Int4_NotifyCount; // ä¸­æ–­å”¤é†’4
 
-    uint32_t A8_NotifyRxTimeoutCount;    // ÖĞ¶Ï½ÓÊÕ»½ĞÑ³¬Ê±¼ÆÊı
-    uint32_t A8_NotifyRx1Count;          // ÖĞ¶Ï½ÓÊÕ²ÎÊı1¼ÆÊı
-    uint32_t A8_NotifyRx2Count;          // ÖĞ¶Ï½ÓÊÕ²ÎÊı2¼ÆÊı
-    uint32_t A8_NotifyRx3Count;          // ÖĞ¶Ï½ÓÊÕ²ÎÊı3¼ÆÊı
-    uint32_t A8_NotifyRx4Count;          // ÖĞ¶Ï½ÓÊÕ²ÎÊı4¼ÆÊı
-    uint32_t A8_NotifyRxParamErrorCount; // ÖĞ¶Ï½ÓÊÕ²ÎÊı´íÎó¼ÆÊı
+    uint32_t A8_NotifyRxTimeoutCount;    // ä¸­æ–­æ¥æ”¶å”¤é†’è¶…æ—¶è®¡æ•°
+    uint32_t A8_NotifyRx1Count;          // ä¸­æ–­æ¥æ”¶å‚æ•°1è®¡æ•°
+    uint32_t A8_NotifyRx2Count;          // ä¸­æ–­æ¥æ”¶å‚æ•°2è®¡æ•°
+    uint32_t A8_NotifyRx3Count;          // ä¸­æ–­æ¥æ”¶å‚æ•°3è®¡æ•°
+    uint32_t A8_NotifyRx4Count;          // ä¸­æ–­æ¥æ”¶å‚æ•°4è®¡æ•°
+    uint32_t A8_NotifyRxParamErrorCount; // ä¸­æ–­æ¥æ”¶å‚æ•°é”™è¯¯è®¡æ•°
 } s_A8Data = { 0 };
 
 /**
- * ²âÊÔÊÖ¶¯ÖĞ¶ÏÍ¨Öª»½ĞÑ
+ * æµ‹è¯•æ‰‹åŠ¨ä¸­æ–­é€šçŸ¥å”¤é†’
  */
 struct {
-    uint32_t Int1_NotifyCount; // ÖĞ¶Ï»½ĞÑ1
-    uint32_t Int2_NotifyCount; // ÖĞ¶Ï»½ĞÑ2
-    uint32_t Int3_NotifyCount; // ÖĞ¶Ï»½ĞÑ3
-    uint32_t Int4_NotifyCount; // ÖĞ¶Ï»½ĞÑ4
+    uint32_t Int1_NotifyCount; // ä¸­æ–­å”¤é†’1
+    uint32_t Int2_NotifyCount; // ä¸­æ–­å”¤é†’2
+    uint32_t Int3_NotifyCount; // ä¸­æ–­å”¤é†’3
+    uint32_t Int4_NotifyCount; // ä¸­æ–­å”¤é†’4
 
-    uint32_t A9_NotifyRxParamErrorCount; // ÖĞ¶Ï½ÓÊÕÎ´Öª¼ÆÊı
-    uint32_t A9_NotifyRxTimeoutCount;    // ÖĞ¶Ï½ÓÊÕ»½ĞÑ³¬Ê±¼ÆÊı
-    uint32_t A9_NotifyRx1Count;          // ÖĞ¶Ï½ÓÊÕ²ÎÊı1¼ÆÊı
-    uint32_t A9_NotifyRx2Count;          // ÖĞ¶Ï½ÓÊÕ²ÎÊı2¼ÆÊı
-    uint32_t A9_NotifyRx3Count;          // ÖĞ¶Ï½ÓÊÕ²ÎÊı3¼ÆÊı
-    uint32_t A9_NotifyRx4Count;          // ÖĞ¶Ï½ÓÊÕ²ÎÊı4¼ÆÊı
+    uint32_t A9_NotifyRxParamErrorCount; // ä¸­æ–­æ¥æ”¶æœªçŸ¥è®¡æ•°
+    uint32_t A9_NotifyRxTimeoutCount;    // ä¸­æ–­æ¥æ”¶å”¤é†’è¶…æ—¶è®¡æ•°
+    uint32_t A9_NotifyRx1Count;          // ä¸­æ–­æ¥æ”¶å‚æ•°1è®¡æ•°
+    uint32_t A9_NotifyRx2Count;          // ä¸­æ–­æ¥æ”¶å‚æ•°2è®¡æ•°
+    uint32_t A9_NotifyRx3Count;          // ä¸­æ–­æ¥æ”¶å‚æ•°3è®¡æ•°
+    uint32_t A9_NotifyRx4Count;          // ä¸­æ–­æ¥æ”¶å‚æ•°4è®¡æ•°
 } s_A9Data = { 0 };
 
 #endif
 #endif
-/************************************************ ÎÒÊÇ·Ö¸îÏß ************************************************/
-/** º¯ÊıÉùÃ÷ */
+/************************************************ æˆ‘æ˜¯åˆ†å‰²çº¿ ************************************************/
+/** å‡½æ•°å£°æ˜ */
 
-uint32_t GetRand(void); // »ñÈ¡Ëæ»úÊı
+uint32_t GetRand(void); // è·å–éšæœºæ•°
 
 /*
  ************************************************************************************************************|
- ************************************************ ÎÒÊÇ·Ö¸îÏß ************************************************|
+ ************************************************ æˆ‘æ˜¯åˆ†å‰²çº¿ ************************************************|
  ************************************************************************************************************|
  */
 #if (_Cnf_Examples > 1)
 /**
- * @brief       ÈÎÎñ0
- * @param[in]   phTCB   ÈÎÎñ¿ØÖÆ¿é
- * @details     »ù´¡¿ò¼Ü,ÑİÊ¾ÑÓÊ±;
+ * @brief       ä»»åŠ¡0
+ * @param[in]   phTCB   ä»»åŠ¡æ§åˆ¶å—
+ * @details     åŸºç¡€æ¡†æ¶,æ¼”ç¤ºå»¶æ—¶;
  */
 void Task_A0(XC_TaskHandle_t phTCB)
 {
     uint32_t Delay;
 
-    XC_Enter(phTCB); // Ğ­³ÌÈÎÎñ¿é¿ªÊ¼±êÖ¾
+    XC_Cor_Enter(phTCB); // åç¨‹ä»»åŠ¡å—å¼€å§‹æ ‡å¿—
     /** --- */
     while(1) {
-        Delay = GetRand(); // µÃµ½Ëæ»úÊı
-        XC_DelayMs(Delay); // ÑÓÊ±
-        s_A0TaskCount++;   // ¼ÆÊı,ÑÓÊ±ÁË¼¸´Î
+        Delay = GetRand();     // å¾—åˆ°éšæœºæ•°
+        XC_Cor_DelayMs(Delay); // å»¶æ—¶
+        s_A0TaskCount++;       // è®¡æ•°,å»¶æ—¶äº†å‡ æ¬¡
     }
     /** --- */
-    XC_Leave(); // Ğ­³ÌÈÎÎñ¿é½áÊø±êÖ¾
+    XC_Cor_Leave(); // åç¨‹ä»»åŠ¡å—ç»“æŸæ ‡å¿—
 }
 
-/************************************************ ÎÒÊÇ·Ö¸îÏß ************************************************/
+/************************************************ æˆ‘æ˜¯åˆ†å‰²çº¿ ************************************************/
 
 /**
- * @brief       ÈÎÎñ1
- * @param[in]   phTCB   ÈÎÎñ¿ØÖÆ¿é
- * @details     ²âÊÔA1·¢ËÍÍ¨Öª¸øA2-·¢ËÍ;
+ * @brief       ä»»åŠ¡1
+ * @param[in]   phTCB   ä»»åŠ¡æ§åˆ¶å—
+ * @details     æµ‹è¯•A1å‘é€é€šçŸ¥ç»™A2-å‘é€;
  */
 void Task_A1(XC_TaskHandle_t phTCB)
 {
     uint32_t Delay;
 
-    XC_Enter(phTCB);
+    XC_Cor_Enter(phTCB);
     /** --- */
     while(1) {
-        /**ÕâÀïÁ¢¿Ì·¢ËÍÍ¨Öª,ÑİÊ¾Í¨Öª±ÈµÈ´ıÍ¨ÖªÏÈµ½ */
-        XCTask_SendNotify(&s_hTCBn[2], (void*)1); // »½ĞÑÈÎÎñ2,´«µİ²ÎÊı1
-        s_A1A2Data.A1_PreNotifyCount++;           // ÌáÇ°Í¨Öª¼ÆÊı
-        Delay = GetRand();                        // µÃµ½Ëæ»úÊı
-        XC_DelayMs(Delay);                        // ÑÓÊ±(´óÓÚA2ÌáÇ°Í¨Öª´¦Àí:ÑÓÊ±+³¬Ê±)
-        /**ÕâÀïÕı³£Í¨Öª */
-        XCTask_SendNotify(&s_hTCBn[2], (void*)2); // »½ĞÑÈÎÎñ2,´«µİ²ÎÊı2
-        s_A1A2Data.A1_NotifyCount++;              // A1 Í¨Öª¼ÆÊı
-        XC_Yield();                               // ÈÃ³ö¿ØÖÆ
+        /**è¿™é‡Œç«‹åˆ»å‘é€é€šçŸ¥,æ¼”ç¤ºé€šçŸ¥æ¯”ç­‰å¾…é€šçŸ¥å…ˆåˆ° */
+        XC_Task_SendNotify(&s_hTCBn[2], (void*)1); // å”¤é†’ä»»åŠ¡2,ä¼ é€’å‚æ•°1
+        s_A1A2Data.A1_PreNotifyCount++;            // æå‰é€šçŸ¥è®¡æ•°
+        Delay = GetRand();                         // å¾—åˆ°éšæœºæ•°
+        XC_Cor_DelayMs(Delay);                     // å»¶æ—¶(å¤§äºA2æå‰é€šçŸ¥å¤„ç†:å»¶æ—¶+è¶…æ—¶)
+        /**è¿™é‡Œæ­£å¸¸é€šçŸ¥ */
+        XC_Task_SendNotify(&s_hTCBn[2], (void*)2); // å”¤é†’ä»»åŠ¡2,ä¼ é€’å‚æ•°2
+        s_A1A2Data.A1_NotifyCount++;               // A1 é€šçŸ¥è®¡æ•°
+        XC_Cor_Yield();                            // è®©å‡ºæ§åˆ¶
     }
     /** --- */
-    XC_Leave();
+    XC_Cor_Leave();
 }
 
 /**
- * @brief       ÈÎÎñ2
- * @param[in]   phTCB   ÈÎÎñ¿ØÖÆ¿é
+ * @brief       ä»»åŠ¡2
+ * @param[in]   phTCB   ä»»åŠ¡æ§åˆ¶å—
  * @details
- *  ²âÊÔA1·¢ËÍÍ¨Öª¸øA2-µÈ´ıÍ¨Öª;
- *  ²âÊÔ½á¹û:
- *  - ÌáÇ°Í¨Öª
- *      A1_PreNotifyCount == A2_PreNotifyRxCount    Ô¤ÏÈÍ¨Öª³É¹¦
- *      A2_PreNotifyRxTimeoutCouut > 0              ËµÃ÷Ô¤ÏÈÍ¨ÖªÓĞ´íÎó,ÓĞbug
- *  - Õı³£Í¨Öª
- *      A1_NotifyCount == A2_NotifyRxCount          Õı³£Í¨Öª³É¹¦
- *      A2_NotifyRxParamErrorCount > 0              ÊÕµ½²ÎÊı´íÎó,ÓĞbug
- *      A2_NotifyRxErrorCount > 0                   ±»·ÇÍ¨Öª»½ĞÑ,ÓĞbug
+ *  æµ‹è¯•A1å‘é€é€šçŸ¥ç»™A2-ç­‰å¾…é€šçŸ¥;
+ *  æµ‹è¯•ç»“æœ:
+ *  - æå‰é€šçŸ¥
+ *      A1_PreNotifyCount == A2_PreNotifyRxCount    é¢„å…ˆé€šçŸ¥æˆåŠŸ
+ *      A2_PreNotifyRxTimeoutCouut > 0              è¯´æ˜é¢„å…ˆé€šçŸ¥æœ‰é”™è¯¯,æœ‰bug
+ *  - æ­£å¸¸é€šçŸ¥
+ *      A1_NotifyCount == A2_NotifyRxCount          æ­£å¸¸é€šçŸ¥æˆåŠŸ
+ *      A2_NotifyRxParamErrorCount > 0              æ”¶åˆ°å‚æ•°é”™è¯¯,æœ‰bug
+ *      A2_NotifyRxErrorCount > 0                   è¢«éé€šçŸ¥å”¤é†’,æœ‰bug
  */
 void Task_A2(XC_TaskHandle_t phTCB)
 {
-    XC_Enter(phTCB);
+    XC_Cor_Enter(phTCB);
     /** --- */
     while(1) {
-        /** ÌáÇ°Í¨ÖªÑİÊ¾ */
-        XC_DelayMs(7);                               // ÑÓÊ±
-        XC_WaitForNotifyMs(10);                      // µÈ´ıÍ¨Öª
-        if(XC_CheckNotifyWakeupTimeout()) {          // ³¬Ê±
-            s_A1A2Data.A2_PreNotifyRxTimeoutCouut++; // A2 ½ÓÊÕÌáÇ°Í¨Öª³¬Ê±
+        /** æå‰é€šçŸ¥æ¼”ç¤º */
+        XC_Cor_DelayMs(7);                           // å»¶æ—¶
+        XC_Cor_WaitNotifyMs(10);                     // ç­‰å¾…é€šçŸ¥
+        if(XC_Cor_IsNotifyTimeout()) {               // è¶…æ—¶
+            s_A1A2Data.A2_PreNotifyRxTimeoutCouut++; // A2 æ¥æ”¶æå‰é€šçŸ¥è¶…æ—¶
         }
-        else {                                // ½ÓÊÕ³É¹¦´¦Àí
-            s_A1A2Data.A2_PreNotifyRxCount++; // A2 ÌáÇ°Í¨Öª½ÓÊÕ³É¹¦¼ÆÊı
+        else {                                // æ¥æ”¶æˆåŠŸå¤„ç†
+            s_A1A2Data.A2_PreNotifyRxCount++; // A2 æå‰é€šçŸ¥æ¥æ”¶æˆåŠŸè®¡æ•°
         }
-        /** Õı³£Í¨ÖªÑİÊ¾ */
-        XC_WaitForNotifyMs(0);                  // µÈ´ıÍ¨Öª,×èÈûµÈ
-        if(XC_CheckNotifyWakeupTimeout()) {     // ·ÇÍ¨Öª»½ĞÑ
-            s_A1A2Data.A2_NotifyRxErrorCount++; // A2 Í¨Öª½ÓÊÕ´íÎó¼ÆÊı(·ÇÍ¨Öª»½ĞÑ)
+        /** æ­£å¸¸é€šçŸ¥æ¼”ç¤º */
+        XC_Cor_WaitNotifyMs(0);                 // ç­‰å¾…é€šçŸ¥,é˜»å¡ç­‰
+        if(XC_Cor_IsNotifyTimeout()) {          // éé€šçŸ¥å”¤é†’
+            s_A1A2Data.A2_NotifyRxErrorCount++; // A2 é€šçŸ¥æ¥æ”¶é”™è¯¯è®¡æ•°(éé€šçŸ¥å”¤é†’)
         }
         else {
-            if((uint32_t)XC_GetNotifyData() == 2) { // A1 ·¢ËÍµÄÊÇ2
-                s_A1A2Data.A2_NotifyRxCount++;      // A2 Í¨Öª½ÓÊÕ³É¹¦¼ÆÊı
+            if((uint32_t)XC_Cor_GetNotifyData() == 2) { // A1 å‘é€çš„æ˜¯2
+                s_A1A2Data.A2_NotifyRxCount++;          // A2 é€šçŸ¥æ¥æ”¶æˆåŠŸè®¡æ•°
             }
             else {
-                s_A1A2Data.A2_NotifyRxParamErrorCount++; // A2 Í¨Öª½ÓÊÕ²ÎÊı´íÎó¼ÆÊı(²ÎÊı´íÎó)
+                s_A1A2Data.A2_NotifyRxParamErrorCount++; // A2 é€šçŸ¥æ¥æ”¶å‚æ•°é”™è¯¯è®¡æ•°(å‚æ•°é”™è¯¯)
             }
         }
     }
     /** --- */
-    XC_Leave();
+    XC_Cor_Leave();
 }
 
-/************************************************ ÎÒÊÇ·Ö¸îÏß ************************************************/
+/************************************************ æˆ‘æ˜¯åˆ†å‰²çº¿ ************************************************/
 
 /**
- * @brief       ÈÎÎñ3
- * @param[in]   phTCB   ÈÎÎñ¿ØÖÆ¿é
- * @details     ²âÊÔA3¹ÒÆğºÍ»Ö¸´A4-´¥·¢;
+ * @brief       ä»»åŠ¡3
+ * @param[in]   phTCB   ä»»åŠ¡æ§åˆ¶å—
+ * @details     æµ‹è¯•A3æŒ‚èµ·å’Œæ¢å¤A4-è§¦å‘;
  */
 void Task_A3(XC_TaskHandle_t phTCB)
 {
     uint32_t Delay;
 
-    XC_Enter(phTCB);
+    XC_Cor_Enter(phTCB);
     /** --- */
     while(1) {
-        Delay = GetRand();            // µÃµ½Ëæ»úÊı
-        XC_DelayMs(Delay);            // ÑÓÊ±
-        XCTask_Suspend(&s_hTCBn[4]);  // ¹ÒÆğÈÎÎñ4
-        s_A3A4Data.A3_SuspendCount++; // A3¹ÒÆğA4¼ÆÊı;
+        Delay = GetRand();            // å¾—åˆ°éšæœºæ•°
+        XC_Cor_DelayMs(Delay);        // å»¶æ—¶
+        XC_Task_Suspend(&s_hTCBn[4]); // æŒ‚èµ·ä»»åŠ¡4
+        s_A3A4Data.A3_SuspendCount++; // A3æŒ‚èµ·A4è®¡æ•°;
 
-        Delay = GetRand();           // µÃµ½Ëæ»úÊı
-        XC_DelayMs(Delay);           // ÑÓÊ±
-        XCTask_Resume(&s_hTCBn[4]);  // »Ö¸´ÈÎÎñ4
-        s_A3A4Data.A3_ResumeCount++; // A3»Ö¸´A4¼ÆÊı;
+        Delay = GetRand();           // å¾—åˆ°éšæœºæ•°
+        XC_Cor_DelayMs(Delay);       // å»¶æ—¶
+        XC_Task_Resume(&s_hTCBn[4]); // æ¢å¤ä»»åŠ¡4
+        s_A3A4Data.A3_ResumeCount++; // A3æ¢å¤A4è®¡æ•°;
     }
     /** --- */
-    XC_Leave();
+    XC_Cor_Leave();
 }
 
 /**
- * @brief       ÈÎÎñ4
- * @param[in]   phTCB   ÈÎÎñ¿ØÖÆ¿é
+ * @brief       ä»»åŠ¡4
+ * @param[in]   phTCB   ä»»åŠ¡æ§åˆ¶å—
  * @details
- *  ²âÊÔA3¹ÒÆğºÍ»Ö¸´A4-´¦Àí;
- *  ²âÊÔ½á¹û:
- *  "A3_SuspendCount","A3_ResumeCount","A4_ResumeCount" Ó¦ÏàÍ¬,Èô²»Í¬ÔòÓĞbug;
+ *  æµ‹è¯•A3æŒ‚èµ·å’Œæ¢å¤A4-å¤„ç†;
+ *  æµ‹è¯•ç»“æœ:
+ *  "A3_SuspendCount","A3_ResumeCount","A4_ResumeCount" åº”ç›¸åŒ,è‹¥ä¸åŒåˆ™æœ‰bug;
  */
 void Task_A4(XC_TaskHandle_t phTCB)
 {
-    XC_Enter(phTCB);
+    XC_Cor_Enter(phTCB);
     /** --- */
     while(1) {
-        XC_DelayMs(0);               // ÑÓÊ±(×èÈû)
-        s_A3A4Data.A4_ResumeCount++; // A4»½ĞÑ¼ÆÊı
+        XC_Cor_DelayMs(0);           // å»¶æ—¶(é˜»å¡)
+        s_A3A4Data.A4_ResumeCount++; // A4å”¤é†’è®¡æ•°
     }
     /** --- */
-    XC_Leave();
+    XC_Cor_Leave();
 }
 
-/************************************************ ÎÒÊÇ·Ö¸îÏß ************************************************/
+/************************************************ æˆ‘æ˜¯åˆ†å‰²çº¿ ************************************************/
 
 /**
- * @brief       ÈÎÎñ5
- * @param[in]   phTCB   ÈÎÎñ¿ØÖÆ¿é
+ * @brief       ä»»åŠ¡5
+ * @param[in]   phTCB   ä»»åŠ¡æ§åˆ¶å—
  * @details
- *  ÑİÊ¾¸´Î»;
- *  Ëæ»úÊ±¼ä¸´Î»,¸´Î»ºóÈÎÎñÖØĞÂÔËĞĞ,¼ÆÊı»á+1;
+ *  æ¼”ç¤ºå¤ä½;
+ *  éšæœºæ—¶é—´å¤ä½,å¤ä½åä»»åŠ¡é‡æ–°è¿è¡Œ,è®¡æ•°ä¼š+1;
  */
 void Task_A5(XC_TaskHandle_t phTCB)
 {
     uint32_t Delay;
 
-    XC_Enter(phTCB);
+    XC_Cor_Enter(phTCB);
     /** --- */
-    s_A5_ResetCount++; // A5¸´Î»¼ÆÊı
+    s_A5_ResetCount++; // A5å¤ä½è®¡æ•°
     while(1) {
-        Delay = GetRand(); // µÃµ½Ëæ»úÊı
-        XC_DelayMs(Delay); // ÑÓÊ±
-        XC_Reset();        // Ã¿10s¸´Î»Ò»´Î
+        Delay = GetRand();     // å¾—åˆ°éšæœºæ•°
+        XC_Cor_DelayMs(Delay); // å»¶æ—¶
+        XC_Cor_Reset();        // æ¯10så¤ä½ä¸€æ¬¡
     }
     /** --- */
-    XC_Leave();
+    XC_Cor_Leave();
 }
 
 /**
- * @brief       ÈÎÎñ6
- * @param[in]   phTCB   ÈÎÎñ¿ØÖÆ¿é
+ * @brief       ä»»åŠ¡6
+ * @param[in]   phTCB   ä»»åŠ¡æ§åˆ¶å—
  * @details
- *  ÑİÊ¾ÒÆ³ıÈÎÎñ;
- *  Ëæ»úÊ±¼äÒÆ³ı×Ô¼º,¼ÆÊıÓ¦¹Ì¶¨Îª10;
+ *  æ¼”ç¤ºç§»é™¤ä»»åŠ¡;
+ *  éšæœºæ—¶é—´ç§»é™¤è‡ªå·±,è®¡æ•°åº”å›ºå®šä¸º10;
  */
 void Task_A6(XC_TaskHandle_t phTCB)
 {
     uint32_t Delay;
 
-    XC_Enter(phTCB);
+    XC_Cor_Enter(phTCB);
     /** --- */
     s_A6_RemoveCount = 0;
     while(1) {
-        Delay = GetRand(); // µÃµ½Ëæ»úÊı
-        XC_DelayMs(Delay); // ÑÓÊ±
+        Delay = GetRand();     // å¾—åˆ°éšæœºæ•°
+        XC_Cor_DelayMs(Delay); // å»¶æ—¶
         s_A6_RemoveCount++;
         if(s_A6_RemoveCount >= 10) {
-            XC_Remove(); // ÒÆ³ı×Ô¼º
+            XC_Cor_Remove(); // ç§»é™¤è‡ªå·±
         }
     }
     /** --- */
-    XC_Leave();
+    XC_Cor_Leave();
 }
 
-/************************************************ ÎÒÊÇ·Ö¸îÏß ************************************************/
+/************************************************ æˆ‘æ˜¯åˆ†å‰²çº¿ ************************************************/
 
 /**
- * @brief       ÈÎÎñ7
- * @param[in]   phTCB   ÈÎÎñ¿ØÖÆ¿é
+ * @brief       ä»»åŠ¡7
+ * @param[in]   phTCB   ä»»åŠ¡æ§åˆ¶å—
  * @details
- *  ²âÊÔÖĞ¶ÏÍ¨Öª»½ĞÑ
- *  ²âÊÔ½á¹û:ÖĞ¶Ï·¢ËÍÊ±¼äºÍ³¬Ê±µÈ´ı¶¼ÊÇËæ»úµÄ,ÕâÀï¼ÆÊıÒ²ÎªËæ»ú;
+ *  æµ‹è¯•ä¸­æ–­é€šçŸ¥å”¤é†’
+ *  æµ‹è¯•ç»“æœ:ä¸­æ–­å‘é€æ—¶é—´å’Œè¶…æ—¶ç­‰å¾…éƒ½æ˜¯éšæœºçš„,è¿™é‡Œè®¡æ•°ä¹Ÿä¸ºéšæœº;
  */
 void Task_A7(XC_TaskHandle_t phTCB)
 {
     uint32_t Delay;
 
-    XC_Enter(phTCB);
+    XC_Cor_Enter(phTCB);
     /** --- */
     while(1) {
-        Delay = GetRand() / 10;                 // µÃµ½Ëæ»úÊı
-        XC_WaitForNotifyMs(Delay);              // µÈ´ıÍ¨Öª,Ëæ»ú³¬Ê±3-30
-        if(XC_CheckNotifyWakeupTimeout()) {     // ³¬Ê±
-            s_A7Data.A7_NotifyRxTimeoutCount++; // ÖĞ¶Ï½ÓÊÕ»½ĞÑ³¬Ê±¼ÆÊı
+        Delay = GetRand() / 10;                 // å¾—åˆ°éšæœºæ•°
+        XC_Cor_WaitNotifyMs(Delay);             // ç­‰å¾…é€šçŸ¥,éšæœºè¶…æ—¶3-30
+        if(XC_Cor_IsNotifyTimeout()) {          // è¶…æ—¶
+            s_A7Data.A7_NotifyRxTimeoutCount++; // ä¸­æ–­æ¥æ”¶å”¤é†’è¶…æ—¶è®¡æ•°
         }
-        else {                           // ½ÓÊÕ³É¹¦´¦Àí
-            s_A7Data.A7_NotifyRxCount++; // ÖĞ¶Ï½ÓÊÕ»½ĞÑ³É¹¦¼ÆÊı
+        else {                           // æ¥æ”¶æˆåŠŸå¤„ç†
+            s_A7Data.A7_NotifyRxCount++; // ä¸­æ–­æ¥æ”¶å”¤é†’æˆåŠŸè®¡æ•°
         }
     }
     /** --- */
-    XC_Leave();
+    XC_Cor_Leave();
 }
 
 /**
- * @brief       ÈÎÎñ8
- * @param[in]   phTCB   ÈÎÎñ¿ØÖÆ¿é
+ * @brief       ä»»åŠ¡8
+ * @param[in]   phTCB   ä»»åŠ¡æ§åˆ¶å—
  * @details
- *  ²âÊÔÖĞ¶ÏÍ¨Öª»½ĞÑ
- *  ½á¹û:
- *  - Int1_NotifyCount == A8_NotifyRx1Count 4¸ö¼ÆÊıÓ¦ÏàÍ¬,²»Í¬ÔòÓĞbug;
- *  - A8_NotifyRxTimeoutCount               Ó¦Îª0,·ñÔòÓĞbug;
- *  - A8_NotifyRxParamErrorCount            Ó¦Îª0,·ñÔòÓĞbug;
+ *  æµ‹è¯•ä¸­æ–­é€šçŸ¥å”¤é†’
+ *  ç»“æœ:
+ *  - Int1_NotifyCount == A8_NotifyRx1Count 4ä¸ªè®¡æ•°åº”ç›¸åŒ,ä¸åŒåˆ™æœ‰bug;
+ *  - A8_NotifyRxTimeoutCount               åº”ä¸º0,å¦åˆ™æœ‰bug;
+ *  - A8_NotifyRxParamErrorCount            åº”ä¸º0,å¦åˆ™æœ‰bug;
  */
 void Task_A8(XC_TaskHandle_t phTCB)
 {
     uint32_t Delay;
 
-    XC_Enter(phTCB);
+    XC_Cor_Enter(phTCB);
     /** --- */
     while(1) {
-        Delay = GetRand();                      // µÃµ½Ëæ»úÊı
-        XC_WaitForNotifyMs(1 + Delay);          // ¶¨Ê±Æ÷ÖĞ¶ÏÊ±¼äÊÇ3-30,ÕâÀï³¬Ê±´óÓÚ30,±Ø¶¨ÄÜÊÕµ½Í¨Öª
-        if(XC_CheckNotifyWakeupTimeout()) {     // ³¬Ê±
-            s_A8Data.A8_NotifyRxTimeoutCount++; // ÖĞ¶Ï½ÓÊÕ»½ĞÑ³¬Ê±¼ÆÊı
+        Delay = GetRand();                      // å¾—åˆ°éšæœºæ•°
+        XC_Cor_WaitNotifyMs(1 + Delay);         // å®šæ—¶å™¨ä¸­æ–­æ—¶é—´æ˜¯3-30,è¿™é‡Œè¶…æ—¶å¤§äº30,å¿…å®šèƒ½æ”¶åˆ°é€šçŸ¥
+        if(XC_Cor_IsNotifyTimeout()) {          // è¶…æ—¶
+            s_A8Data.A8_NotifyRxTimeoutCount++; // ä¸­æ–­æ¥æ”¶å”¤é†’è¶…æ—¶è®¡æ•°
         }
-        else { // ³É¹¦
-            switch((uint32_t)XC_GetNotifyData()) {
+        else { // æˆåŠŸ
+            switch((uint32_t)XC_Cor_GetNotifyData()) {
                 case 1:
-                    s_A8Data.A8_NotifyRx1Count++; // ÖĞ¶Ï½ÓÊÕ²ÎÊı1¼ÆÊı
+                    s_A8Data.A8_NotifyRx1Count++; // ä¸­æ–­æ¥æ”¶å‚æ•°1è®¡æ•°
                     break;
                 case 2:
-                    s_A8Data.A8_NotifyRx2Count++; // ÖĞ¶Ï½ÓÊÕ²ÎÊı2¼ÆÊı
+                    s_A8Data.A8_NotifyRx2Count++; // ä¸­æ–­æ¥æ”¶å‚æ•°2è®¡æ•°
                     break;
                 case 3:
-                    s_A8Data.A8_NotifyRx3Count++; // ÖĞ¶Ï½ÓÊÕ²ÎÊı3¼ÆÊı
+                    s_A8Data.A8_NotifyRx3Count++; // ä¸­æ–­æ¥æ”¶å‚æ•°3è®¡æ•°
                     break;
                 case 4:
-                    s_A8Data.A8_NotifyRx4Count++; // ÖĞ¶Ï½ÓÊÕ²ÎÊı4¼ÆÊı
+                    s_A8Data.A8_NotifyRx4Count++; // ä¸­æ–­æ¥æ”¶å‚æ•°4è®¡æ•°
                     break;
                 default:
-                    s_A8Data.A8_NotifyRxParamErrorCount++; // ÖĞ¶Ï½ÓÊÕÎ´Öª¼ÆÊı
+                    s_A8Data.A8_NotifyRxParamErrorCount++; // ä¸­æ–­æ¥æ”¶æœªçŸ¥è®¡æ•°
                     break;
             }
         }
     }
     /** --- */
-    XC_Leave();
+    XC_Cor_Leave();
 }
 
 /**
- * @brief       ÈÎÎñ9
- * @param[in]   phTCB   ÈÎÎñ¿ØÖÆ¿é
+ * @brief       ä»»åŠ¡9
+ * @param[in]   phTCB   ä»»åŠ¡æ§åˆ¶å—
  * @details
- *  ²âÊÔÖĞ¶ÏÍ¨Öª»½ĞÑ
- *  ÕâÀïĞèÒªÊÖ¶¯»½ĞÑ;
- *  ÈôÎŞÊÖ¶¯,"A9_NotifyRxTimeoutCount"Ò»Ö±ÀÛ¼Ó;
+ *  æµ‹è¯•ä¸­æ–­é€šçŸ¥å”¤é†’
+ *  è¿™é‡Œéœ€è¦æ‰‹åŠ¨å”¤é†’;
+ *  è‹¥æ— æ‰‹åŠ¨,"A9_NotifyRxTimeoutCount"ä¸€ç›´ç´¯åŠ ;
  */
 void Task_A9(XC_TaskHandle_t phTCB)
 {
     uint32_t Delay;
 
-    XC_Enter(phTCB);
+    XC_Cor_Enter(phTCB);
     /** --- */
     while(1) {
-        Delay = GetRand();                      // µÃµ½Ëæ»úÊı
-        XC_WaitForNotifyMs(300 + Delay);        // µÈ´ıÍ¨Öª
-        if(XC_CheckNotifyWakeupTimeout()) {     // ³¬Ê±
-            s_A9Data.A9_NotifyRxTimeoutCount++; // ÖĞ¶Ï½ÓÊÕ»½ĞÑ³¬Ê±¼ÆÊı
+        Delay = GetRand();                      // å¾—åˆ°éšæœºæ•°
+        XC_Cor_WaitNotifyMs(300 + Delay);       // ç­‰å¾…é€šçŸ¥
+        if(XC_Cor_IsNotifyTimeout()) {          // è¶…æ—¶
+            s_A9Data.A9_NotifyRxTimeoutCount++; // ä¸­æ–­æ¥æ”¶å”¤é†’è¶…æ—¶è®¡æ•°
         }
-        else { // ³É¹¦
-            switch((uint32_t)XC_GetNotifyData()) {
+        else { // æˆåŠŸ
+            switch((uint32_t)XC_Cor_GetNotifyData()) {
                 case 1:
-                    s_A9Data.A9_NotifyRx1Count++; // ÖĞ¶Ï½ÓÊÕ²ÎÊı1¼ÆÊı
+                    s_A9Data.A9_NotifyRx1Count++; // ä¸­æ–­æ¥æ”¶å‚æ•°1è®¡æ•°
                     break;
                 case 2:
-                    s_A9Data.A9_NotifyRx2Count++; // ÖĞ¶Ï½ÓÊÕ²ÎÊı2¼ÆÊı
+                    s_A9Data.A9_NotifyRx2Count++; // ä¸­æ–­æ¥æ”¶å‚æ•°2è®¡æ•°
                     break;
                 case 3:
-                    s_A9Data.A9_NotifyRx3Count++; // ÖĞ¶Ï½ÓÊÕ²ÎÊı3¼ÆÊı
+                    s_A9Data.A9_NotifyRx3Count++; // ä¸­æ–­æ¥æ”¶å‚æ•°3è®¡æ•°
                     break;
                 case 4:
-                    s_A9Data.A9_NotifyRx4Count++; // ÖĞ¶Ï½ÓÊÕ²ÎÊı4¼ÆÊı
+                    s_A9Data.A9_NotifyRx4Count++; // ä¸­æ–­æ¥æ”¶å‚æ•°4è®¡æ•°
                     break;
                 default:
-                    s_A9Data.A9_NotifyRxParamErrorCount++; // ÖĞ¶Ï½ÓÊÕÎ´Öª¼ÆÊı
+                    s_A9Data.A9_NotifyRxParamErrorCount++; // ä¸­æ–­æ¥æ”¶æœªçŸ¥è®¡æ•°
                     break;
             }
         }
     }
     /** --- */
-    XC_Leave();
+    XC_Cor_Leave();
 }
 
-/************************************************ ÎÒÊÇ·Ö¸îÏß ************************************************/
+/************************************************ æˆ‘æ˜¯åˆ†å‰²çº¿ ************************************************/
 
 /**
- * @brief       ¿ÕÏĞ´¦Àí
- * @param[in]   phXCOS      ¿ò¼Ü¾ä±ú
- * @param[in]   IdleTick    ¿ÕÏĞµÄTick
- * @details     ¿ÕÏĞ´¦Àí
+ * åç¨‹åµŒå¥—æµ‹è¯•(V2.1.0)
+ * é¡¶å±‚ä»»åŠ¡ Task_A10 ç”¨"XC_Task_RegExt"æ³¨å†Œ(å¸¦å¸§æ ˆ),å¾ªç¯è°ƒç”¨"XC_Cor_Call(Sub_A10)";
+ * å­åç¨‹ Sub_A10 å»¶æ—¶/è®©å‡ºæŒ‚èµ·,å®Œæˆå"XC_Cor_Leave"ç½®DONE,è°ƒåº¦å™¨"åŒè½®åˆ‡çˆ¶"å¼¹å¸§è¿”å›çˆ¶å±‚;
+ * é¢„æœŸç»“æœ:
+ * - CallCount(çˆ¶å±‚Callæ¬¡æ•°) == SubRunCount(å­å±‚è¿è¡Œæ¬¡æ•°) == ParentAfterCount(çˆ¶å±‚è¿”å›è®¡æ•°)
+ *   (æ­£å¸¸è¿è¡Œä¸‹ä¸‰è€…é€’å¢ä¸€è‡´;è‹¥ä¸ä¸€è‡´åˆ™æœ‰bug)
+ */
+XC_CorFrame_t s_hA10Stack[3] = { 0 }; // A10å¸§æ ˆ(å®¹é‡3,é¡¶å±‚ä¸å æ ˆ)
+
+struct {
+    uint32_t CallCount;        // çˆ¶å±‚ Call æ¬¡æ•°
+    uint32_t SubRunCount;      // å­åç¨‹è¿›å…¥æ¬¡æ•°
+    uint32_t ParentAfterCount; // çˆ¶å±‚ Call è¿”å›åæ‰§è¡Œæ¬¡æ•°(åŒè½®åˆ‡çˆ¶éªŒè¯)
+} s_A10Data = { 0 };
+
+/**
+ * @brief       å­åç¨‹A10
+ * @param[in]   phTCB   ä»»åŠ¡æ§åˆ¶å—
+ * @details     å­å±‚:å»¶æ—¶æŒ‚èµ·,è®©å‡º,å®Œæˆåè¿”å›çˆ¶å±‚;
+ */
+void Sub_A10(XC_TaskHandle_t phTCB)
+{
+    XC_Cor_Enter(phTCB);
+    /** --- */
+    s_A10Data.SubRunCount++; // å­å±‚è¿›å…¥è®¡æ•°(æ¯æ¬¡ Call è¿›å…¥æ‰§è¡Œä¸€æ¬¡)
+    XC_Cor_DelayMs(5);       // å­å±‚å»¶æ—¶(æŒ‚èµ·)
+    XC_Cor_Yield();          // å­å±‚è®©å‡º
+    XC_Cor_Leave();          // å­å±‚å®Œæˆ -> è°ƒåº¦å™¨åŒè½®åˆ‡çˆ¶å¼¹å¸§è¿”å›çˆ¶å±‚
+    /** --- */
+}
+
+/**
+ * @brief       ä»»åŠ¡10(åç¨‹åµŒå¥—-é¡¶å±‚)
+ * @param[in]   phTCB   ä»»åŠ¡æ§åˆ¶å—
+ * @details
+ *  ç”¨"XC_Task_RegExt"æ³¨å†Œ(å¸¦å¸§æ ˆ);
+ *  å¾ªç¯:å»¶æ—¶å Call å­åç¨‹,å­å±‚å®Œæˆå"åŒè½®åˆ‡çˆ¶"å›åˆ°æ­¤å¤„;
+ */
+void Task_A10(XC_TaskHandle_t phTCB)
+{
+    XC_Cor_Enter(phTCB);
+    /** --- */
+    while(1) {
+        XC_Cor_DelayMs(10);           // é¡¶å±‚å»¶æ—¶
+        XC_Cor_Call(Sub_A10);         // ç™»è®°å­åç¨‹(ä¸‹è½®è¿›å…¥å­å±‚)
+        s_A10Data.ParentAfterCount++; // å­å±‚å®ŒæˆåŒè½®åˆ‡çˆ¶åæ‰§è¡Œ
+        s_A10Data.CallCount++;        // Call æ¬¡æ•°
+    }
+    /** --- */
+    XC_Cor_Leave();
+}
+
+/************************************************ æˆ‘æ˜¯åˆ†å‰²çº¿ ************************************************/
+
+/**
+ * åˆ†æ­¥æ³¨å†Œ + å¸§æ ˆè®¾ç½®æµ‹è¯•(V2.1.0)
+ * ç”¨"XC_Task_SetEntry" + "XC_Task_SetCorStack" + "XC_Task_Add" åˆ†æ­¥æ³¨å†Œä»»åŠ¡;
+ * éªŒè¯ SetCorStack é…ç½®çš„å¸§æ ˆå¯ç”¨(å­åç¨‹å¯æ­£å¸¸è°ƒç”¨/è¿”å›);
+ */
+XC_CorFrame_t s_hA11Stack[3] = { 0 }; // A11å¸§æ ˆ(å®¹é‡3,é¡¶å±‚ä¸å æ ˆ)
+
+struct {
+    uint32_t RunCount;     // ä»»åŠ¡è¿è¡Œè®¡æ•°
+    uint32_t SubCallCount; // å­åç¨‹è°ƒç”¨è®¡æ•°
+    uint32_t SubRunCount;  // å­åç¨‹è¿è¡Œè®¡æ•°
+} s_A11Data = { 0 };
+
+/**
+ * @brief       å­åç¨‹A11
+ * @param[in]   phTCB   ä»»åŠ¡æ§åˆ¶å—
+ */
+void Sub_A11(XC_TaskHandle_t phTCB)
+{
+    XC_Cor_Enter(phTCB);
+    /** --- */
+    s_A11Data.SubRunCount++; // å­å±‚è¿è¡Œè®¡æ•°(æ¯æ¬¡ Call è¿›å…¥æ‰§è¡Œä¸€æ¬¡)
+    XC_Cor_DelayMs(6);       // å­å±‚å»¶æ—¶
+    XC_Cor_Leave();          // å­å±‚å®Œæˆ,åŒè½®åˆ‡çˆ¶è¿”å›
+    /** --- */
+}
+
+/**
+ * @brief       ä»»åŠ¡11(åˆ†æ­¥æ³¨å†Œ+å¸§æ ˆè®¾ç½®)
+ * @param[in]   phTCB   ä»»åŠ¡æ§åˆ¶å—
+ * @details
+ *  ç”¨"XC_Task_SetEntry" + "XC_Task_SetCorStack" + "XC_Task_Add" æ³¨å†Œ;
+ *  å¾ªç¯ Call å­åç¨‹;
+ */
+void Task_A11(XC_TaskHandle_t phTCB)
+{
+    XC_Cor_Enter(phTCB);
+    /** --- */
+    while(1) {
+        s_A11Data.RunCount++;     // ä»»åŠ¡è¿è¡Œè®¡æ•°
+        XC_Cor_DelayMs(8);        // å»¶æ—¶
+        XC_Cor_Call(Sub_A11);     // è°ƒç”¨å­åç¨‹
+        s_A11Data.SubCallCount++; // å­åç¨‹è¿”å›è®¡æ•°
+    }
+    /** --- */
+    XC_Cor_Leave();
+}
+
+/************************************************ æˆ‘æ˜¯åˆ†å‰²çº¿ ************************************************/
+
+#if ((XC_CFG_DEBUG_CHECK != 0) || (XC_CFG_TASK_STATS != 0))
+/**
+ * @brief       è¯Šæ–­æ¼”ç¤º(å¯é€‰èƒ½åŠ›: ç”±"XC_Config.h"çš„è¯Šæ–­å¼€å…³æ§åˆ¶)
+ * @details
+ *  æœ¬æ®µæ¼”ç¤ºä¸¤ç±»**å¯é€‰è¯Šæ–­èƒ½åŠ›**, é»˜è®¤å…¨å…³ â‡’ **æœ¬æ®µä¸ç¼–è¯‘(0 ä»£ç  / 0 å¼€é”€)**:
+ *  - `XC_CFG_DEBUG_CHECK`: è¿è¡ŒæœŸä¸å˜é‡è‡ªæ£€ `XC_Diag_CheckInvariants`(åªè¯»æ£€æŸ¥, è¿”å›"é¦–ä¸ªå¤±è´¥é¡¹");
+ *  - `XC_CFG_TASK_STATS` : æ¯ä»»åŠ¡è¿è¡Œç»Ÿè®¡ `XC_Diag_GetRunCnt` / `XC_Diag_GetMaxRunTick`(è°ƒåº¦æ§½è€—æ—¶);
+ *  è°ƒç”¨æ—¶æœº: **ç©ºé—²å›è°ƒ**é‡Œæ¯è‹¥å¹²è½®æŠ½æŸ¥ä¸€æ¬¡(è§ "Docs/XC_Config.md" çš„æ¨èç”¨æ³•);
+ *  è§‚å¯Ÿæ–¹å¼: è°ƒè¯•å™¨æŸ¥çœ‹ä¸‹é¢çš„è§‚æµ‹å˜é‡(å®é™…é¡¹ç›®å¯æ”¹ä¸ºç‚¹ç¯/å†™æ—¥å¿—/ä¸ŠæŠ¥);
+ *  è¯¦ç»†è¯´æ˜: "Docs/XCOS.md"ã€Œè¿è¡ŒæœŸè‡ªæ£€ã€ã€Œè¿è¡Œç»Ÿè®¡ã€ä¸ "Docs/XC_Config.md" å¯¹åº”å¼€å…³èŠ‚;
+ */
+volatile XC_ChkResult_t s_DiagChkLast    = XC_CHK_OK; // [è§‚æµ‹] æœ€è¿‘ä¸€æ¬¡è‡ªæ£€ç»“æœ(XC_CHK_OK = å…¨éƒ¨ä¸€è‡´)
+volatile uint32_t       s_DiagChkTimes   = 0;         // [è§‚æµ‹] è‡ªæ£€è§¦å‘æ¬¡æ•°
+volatile uint32_t       s_DiagRunCnt     = 0;         // [è§‚æµ‹] A0 è¿è¡Œæ¬¡æ•°(ç»Ÿè®¡æ¡£)
+volatile XC_Tick_t      s_DiagMaxRunTick = 0;         // [è§‚æµ‹] A0 æœ€é•¿ä¸€æ¬¡è°ƒåº¦æ§½è€—æ—¶(Tick)
+
+/**
+ * @brief   è¯Šæ–­æ¼”ç¤ºå¤„ç†
+ * @details è‡ªæ£€(å¼€æ¡£æ—¶, æ¯ 256 æ¬¡ç©ºé—²æŠ½æŸ¥ä¸€æ¬¡) + åˆ·æ–°è¿è¡Œç»Ÿè®¡å¿«ç…§(å¼€æ¡£æ—¶); ä¸¤å¼€å…³å…¨å…³æ—¶æœ¬å‡½æ•°ä¸å­˜åœ¨
+ */
+static void DiagDemo(void)
+{
+#if(XC_CFG_DEBUG_CHECK != 0)
+    /* è¿è¡ŒæœŸè‡ªæ£€: ç›˜ç‚¹å››å¼ ä»»åŠ¡è¡¨ä¸çŠ¶æ€æ ‡ç­¾; å¤±è´¥è¿”å›é¦–ä¸ªå¤±è´¥é¡¹ç¼–å·(1 é“¾è¡¨ / 2 çŠ¶æ€â†”è¡¨ / 3 é‡å¤æŒ‚è¡¨ / 4 è®¡æ•° / 5 åµŒå¥— / 6 å½’å±) */
+    if((s_DiagChkTimes & 0xFFU) == 0U) {
+        s_DiagChkLast = XC_Diag_CheckInvariants(&s_hXCOS0); // æŠ½æŸ¥(å…¨é‡ç›˜ç‚¹ O(nÂ²), æ•…é™é¢‘)
+    }
+    s_DiagChkTimes++;
+#endif
+#if(XC_CFG_TASK_STATS != 0)
+    /* è¿è¡Œç»Ÿè®¡: A0(åŸºç¡€å»¶æ—¶ä»»åŠ¡) çš„è¿è¡Œæ¬¡æ•°ä¸æœ€é•¿ä¸€æ¬¡è€—æ—¶(å•ä½ Tick; é»˜è®¤ 1ms/tick â‡’ çŸ­äº 1ms è®° 0) */
+    s_DiagRunCnt     = XC_Diag_GetRunCnt(&s_hTCBn[0]);
+    s_DiagMaxRunTick = XC_Diag_GetMaxRunTick(&s_hTCBn[0]);
+#endif
+}
+#endif
+
+/************************************************ æˆ‘æ˜¯åˆ†å‰²çº¿ ************************************************/
+
+/**
+ * @brief       ç©ºé—²å¤„ç†
+ * @param[in]   phXCOS      æ¡†æ¶å¥æŸ„
+ * @param[in]   IdleTick    ç©ºé—²çš„Tick
+ * @details
+ *  ç©ºé—²å¤„ç†;
+ *  å¦: æ¼”ç¤º"è¿è¡ŒæœŸå®ˆæŠ¤"ç”¨æ³• â€”â€” åœ¨ç©ºé—²å›è°ƒé‡ŒæŠ½æŸ¥è¯Šæ–­(è§ "DiagDemo", è¯Šæ–­å¼€å…³å…¨å…³æ—¶ä¸ç¼–è¯‘);
  */
 void Idle(XC_OSHandle_t phXCOS, XC_Tick_t IdleTick)
 {
-    __WFI(); // ĞİÃß
+#if ((XC_CFG_DEBUG_CHECK != 0) || (XC_CFG_TASK_STATS != 0))
+    DiagDemo(); // è¯Šæ–­æ¼”ç¤º(å…¨å…³æ—¶è¿æœ¬è°ƒç”¨éƒ½ä¸ç¼–è¯‘ â‡’ 0 å¼€é”€)
+#endif
+    __WFI(); // ä¼‘çœ 
 }
 
 #endif
-/************************************************ ÎÒÊÇ·Ö¸îÏß ************************************************/
+/************************************************ æˆ‘æ˜¯åˆ†å‰²çº¿ ************************************************/
 
 #if (_Cnf_Examples > 0)
 /**
- * @brief   ¿ò¼Ü
- * @details ¿ò¼Ü´¦Àí
+ * @brief   æ¡†æ¶
+ * @details æ¡†æ¶å¤„ç†
  */
 void XCOS(void)
 {
-    XCSch_Init(&s_hXCOS0); // ³õÊ¼»¯XCOS
+    XC_Sch_Init(&s_hXCOS0); // åˆå§‹åŒ–XCOS
 #if (_Cnf_Examples > 1)
-    XCSch_SetIdleCallback(&s_hXCOS0, Idle); // ¿ÕÏĞ´¦Àí»Øµ÷
-    // ³õÊ¼»¯ÈÎÎñ
-    XCTask_Reg(&s_hXCOS0, &s_hTCBn[0], Task_A0, NULL);
-    XCTask_Reg(&s_hXCOS0, &s_hTCBn[1], Task_A1, NULL);
-    XCTask_Reg(&s_hXCOS0, &s_hTCBn[2], Task_A2, NULL);
-    XCTask_Reg(&s_hXCOS0, &s_hTCBn[3], Task_A3, NULL);
-    XCTask_Reg(&s_hXCOS0, &s_hTCBn[4], Task_A4, NULL);
-    XCTask_Reg(&s_hXCOS0, &s_hTCBn[5], Task_A5, NULL);
-    XCTask_Reg(&s_hXCOS0, &s_hTCBn[6], Task_A6, NULL);
-    XCTask_Reg(&s_hXCOS0, &s_hTCBn[7], Task_A7, NULL);
-    XCTask_Reg(&s_hXCOS0, &s_hTCBn[8], Task_A8, NULL);
-    XCTask_Reg(&s_hXCOS0, &s_hTCBn[9], Task_A9, NULL);
+    XC_Sch_SetIdleCallback(&s_hXCOS0, Idle); // ç©ºé—²å¤„ç†å›è°ƒ
+    // åˆå§‹åŒ–ä»»åŠ¡
+    XC_Task_Reg(&s_hXCOS0, &s_hTCBn[0], Task_A0, NULL);
+    XC_Task_Reg(&s_hXCOS0, &s_hTCBn[1], Task_A1, NULL);
+    XC_Task_Reg(&s_hXCOS0, &s_hTCBn[2], Task_A2, NULL);
+    XC_Task_Reg(&s_hXCOS0, &s_hTCBn[3], Task_A3, NULL);
+    XC_Task_Reg(&s_hXCOS0, &s_hTCBn[4], Task_A4, NULL);
+    XC_Task_Reg(&s_hXCOS0, &s_hTCBn[5], Task_A5, NULL);
+    XC_Task_Reg(&s_hXCOS0, &s_hTCBn[6], Task_A6, NULL);
+    XC_Task_Reg(&s_hXCOS0, &s_hTCBn[7], Task_A7, NULL);
+    XC_Task_Reg(&s_hXCOS0, &s_hTCBn[8], Task_A8, NULL);
+    XC_Task_Reg(&s_hXCOS0, &s_hTCBn[9], Task_A9, NULL);
+    /* V2.1.0: åç¨‹åµŒå¥—ä»»åŠ¡ - RegExt æ³¨å†Œ(å¸¦å¸§æ ˆ) */
+    XC_Task_RegExt(&s_hXCOS0, &s_hTCBn[10], Task_A10, NULL, s_hA10Stack, 3U);
+    /* V2.1.0: åˆ†æ­¥æ³¨å†Œ + SetCorStack(å…ˆè®¾å…¥å£/å¸§æ ˆ,å†æ·»åŠ ) */
+    XC_Task_SetEntry(&s_hTCBn[11], Task_A11, NULL);
+    XC_Task_SetCorStack(&s_hTCBn[11], s_hA11Stack, 3U);
+    XC_Task_Add(&s_hXCOS0, &s_hTCBn[11]);
 #endif
-    XCSch_Start(&s_hXCOS0); // µ÷¶ÈÆ÷Æô¶¯
+    XC_Sch_Start(&s_hXCOS0); // è°ƒåº¦å™¨å¯åŠ¨
 }
 #endif
 
 /**
- * @brief       »ñÈ¡Ëæ»úÊı
- * @return      uint32_t Ò»¸ö30-300µÄËæ»úÊı
- * @details     ËµÃ÷
+ * @brief       è·å–éšæœºæ•°
+ * @return      uint32_t ä¸€ä¸ª30-300çš„éšæœºæ•°
+ * @details     è¯´æ˜
  */
 uint32_t GetRand(void)
 {
-    return (30 + rand() % 271); // Ëæ»ú:30-300
+    return (30 + rand() % 271); // éšæœº:30-300
 }
 
 /*
  ************************************************************************************************************|
- ************************************************ ÎÒÊÇ·Ö¸îÏß ************************************************|
+ ************************************************ æˆ‘æ˜¯åˆ†å‰²çº¿ ************************************************|
  ************************************************************************************************************|
  */
 
 /**
- * @brief       Íâ²¿ÖĞ¶Ï´¦Àí
+ * @brief       å¤–éƒ¨ä¸­æ–­å¤„ç†
  * @param[in]   GPIO_Pin
  * @details
- *  ×¢ÒâĞèÒªÈíÖĞ¶Ï EXTI->SWIER*
- *  »½ĞÑÈÎÎñ9;
+ *  æ³¨æ„éœ€è¦è½¯ä¸­æ–­ EXTI->SWIER*
+ *  å”¤é†’ä»»åŠ¡9;
  */
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
 #if (_Cnf_Examples > 1)
     switch(GPIO_Pin) {
         case GPIO_PIN_0:
-            XCTask_SendNotify(&s_hTCBn[9], (void*)1); // »½ĞÑÈÎÎñ9
-            s_A9Data.Int1_NotifyCount++;              // ÖĞ¶Ï»½ĞÑ1
+            XC_Task_SendNotify(&s_hTCBn[9], (void*)1); // å”¤é†’ä»»åŠ¡9
+            s_A9Data.Int1_NotifyCount++;               // ä¸­æ–­å”¤é†’1
             break;
         case GPIO_PIN_1:
-            XCTask_SendNotify(&s_hTCBn[9], (void*)2); // »½ĞÑÈÎÎñ9
-            s_A9Data.Int2_NotifyCount++;              // ÖĞ¶Ï»½ĞÑ2
+            XC_Task_SendNotify(&s_hTCBn[9], (void*)2); // å”¤é†’ä»»åŠ¡9
+            s_A9Data.Int2_NotifyCount++;               // ä¸­æ–­å”¤é†’2
             break;
         case GPIO_PIN_2:
-            XCTask_SendNotify(&s_hTCBn[9], (void*)3); // »½ĞÑÈÎÎñ9
-            s_A9Data.Int3_NotifyCount++;              // ÖĞ¶Ï»½ĞÑ3
+            XC_Task_SendNotify(&s_hTCBn[9], (void*)3); // å”¤é†’ä»»åŠ¡9
+            s_A9Data.Int3_NotifyCount++;               // ä¸­æ–­å”¤é†’3
             break;
         case GPIO_PIN_3:
-            XCTask_SendNotify(&s_hTCBn[9], (void*)4); // »½ĞÑÈÎÎñ9
-            s_A9Data.Int4_NotifyCount++;              // ÖĞ¶Ï»½ĞÑ4
+            XC_Task_SendNotify(&s_hTCBn[9], (void*)4); // å”¤é†’ä»»åŠ¡9
+            s_A9Data.Int4_NotifyCount++;               // ä¸­æ–­å”¤é†’4
             break;
         default:
             break;
@@ -532,57 +686,57 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 }
 
 /**
- * @brief       ¶¨Ê±Æ÷ÖĞ¶Ï·şÎñ´¦Àí
+ * @brief       å®šæ—¶å™¨ä¸­æ–­æœåŠ¡å¤„ç†
  * @param[in]   htim
  */
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim)
 {
-    uint32_t        Time; // ÏÂ´ÎÖĞ¶ÏÊ±¼ä(ms)
+    uint32_t        Time; // ä¸‹æ¬¡ä¸­æ–­æ—¶é—´(ms)
     static uint32_t Param = 1;
 
     if(htim->Instance == TIM2) {
 #if (_Cnf_Examples > 1)
-        XCTask_SendNotify(&s_hTCBn[7], NULL); // »½ĞÑÈÎÎñ8,´«µİ²ÎÊı8
-        s_A7Data.Int_NotifyCount++;           // ¼ÆÊı
+        XC_Task_SendNotify(&s_hTCBn[7], NULL); // å”¤é†’ä»»åŠ¡8,ä¼ é€’å‚æ•°8
+        s_A7Data.Int_NotifyCount++;            // è®¡æ•°
 #endif
         Time = GetRand();
-        __HAL_TIM_SET_AUTORELOAD(&htim2, (Time)-1); // ¸üĞÂ
+        __HAL_TIM_SET_AUTORELOAD(&htim2, (Time)-1); // æ›´æ–°
     }
 
     if(htim->Instance == TIM3) {
 #if (_Cnf_Examples > 1)
         switch(Param) {
             case 1:
-                s_A8Data.Int1_NotifyCount++; // ÖĞ¶Ï»½ĞÑ1
+                s_A8Data.Int1_NotifyCount++; // ä¸­æ–­å”¤é†’1
                 break;
             case 2:
-                s_A8Data.Int2_NotifyCount++; // ÖĞ¶Ï»½ĞÑ2
+                s_A8Data.Int2_NotifyCount++; // ä¸­æ–­å”¤é†’2
                 break;
             case 3:
-                s_A8Data.Int3_NotifyCount++; // ÖĞ¶Ï»½ĞÑ3
+                s_A8Data.Int3_NotifyCount++; // ä¸­æ–­å”¤é†’3
                 break;
             case 4:
-                s_A8Data.Int4_NotifyCount++; // ÖĞ¶Ï»½ĞÑ4
+                s_A8Data.Int4_NotifyCount++; // ä¸­æ–­å”¤é†’4
                 break;
         }
-        XCTask_SendNotify(&s_hTCBn[8], (void*)Param); // »½ĞÑÈÎÎñ8,´«µİ²ÎÊı8
+        XC_Task_SendNotify(&s_hTCBn[8], (void*)Param); // å”¤é†’ä»»åŠ¡8,ä¼ é€’å‚æ•°8
 #endif
         if(++Param > 4) {
             Param = 1;
         }
         Time = GetRand();                           // 30-300 = 3-30ms
-        __HAL_TIM_SET_AUTORELOAD(&htim3, (Time)-1); // ¸üĞÂ
+        __HAL_TIM_SET_AUTORELOAD(&htim3, (Time)-1); // æ›´æ–°
     }
 }
 
 /*
  ************************************************************************************************************|
- ************************************************ ÎÒÊÇ·Ö¸îÏß ************************************************|
+ ************************************************ æˆ‘æ˜¯åˆ†å‰²çº¿ ************************************************|
  ************************************************************************************************************|
  */
 
 /**
- * @brief   ÏµÍ³Ê±ÖÓÅäÖÃ
+ * @brief   ç³»ç»Ÿæ—¶é’Ÿé…ç½®
  */
 static void SystemClock_Config(void)
 {
@@ -619,79 +773,81 @@ static void SystemClock_Config(void)
         while(1);
     }
 
-    XCTime_TickSet(0xFFFFF000 - 1); // ÎªÁË²âÊÔÒç³öÔö¼Ó
+#if (_Cnf_Examples > 0)
+    XC_Time_TickSet(0xFFFFF000 - 1); // ä¸ºäº†æµ‹è¯•æº¢å‡ºå¢åŠ (Tick åˆå§‹å€¼æ¥è¿‘æº¢å‡ºç‚¹,éªŒè¯æ—¶é—´æº¢å‡ºå¤„ç†)
+#endif
 }
 
 /**
- * @brief   Íâ²¿ÖĞ¶ÏÅäÖÃ
+ * @brief   å¤–éƒ¨ä¸­æ–­é…ç½®
  */
 static void IRQ_Config(void)
 {
     GPIO_InitTypeDef GPIO_InitStruct;
 
     /**
-     * Íâ²¿ÖĞ¶ÏÅäÖÃ
-     *  ÔÚMDKÈí¼ş·ÂÕæÖĞÊ¹ÓÃ,¿ÉÒÔÉèÖÃ"EXTI->SWIER"¼Ä´æÆ÷0-nÎ»´¥·¢ÖĞ¶Ï;
+     * å¤–éƒ¨ä¸­æ–­é…ç½®
+     *  åœ¨MDKè½¯ä»¶ä»¿çœŸä¸­ä½¿ç”¨,å¯ä»¥è®¾ç½®"EXTI->SWIER"å¯„å­˜å™¨0-nä½è§¦å‘ä¸­æ–­;
      */
 
     GPIO_InitStruct.Pin  = GPIO_PIN_0;
-    GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING; // ÏÂ½µÑØ´¥·¢
-    GPIO_InitStruct.Pull = GPIO_PULLUP;          // ÉÏÀ­
+    GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING; // ä¸‹é™æ²¿è§¦å‘
+    GPIO_InitStruct.Pull = GPIO_PULLUP;          // ä¸Šæ‹‰
     HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
     HAL_NVIC_EnableIRQ(EXTI0_IRQn);
 
     GPIO_InitStruct.Pin  = GPIO_PIN_1;
-    GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING; // ÏÂ½µÑØ´¥·¢
-    GPIO_InitStruct.Pull = GPIO_PULLUP;          // ÉÏÀ­
+    GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING; // ä¸‹é™æ²¿è§¦å‘
+    GPIO_InitStruct.Pull = GPIO_PULLUP;          // ä¸Šæ‹‰
     HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
     HAL_NVIC_EnableIRQ(EXTI1_IRQn);
 
     GPIO_InitStruct.Pin  = GPIO_PIN_2;
-    GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING; // ÏÂ½µÑØ´¥·¢
-    GPIO_InitStruct.Pull = GPIO_PULLUP;          // ÉÏÀ­
+    GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING; // ä¸‹é™æ²¿è§¦å‘
+    GPIO_InitStruct.Pull = GPIO_PULLUP;          // ä¸Šæ‹‰
     HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
     HAL_NVIC_EnableIRQ(EXTI2_IRQn);
 
     GPIO_InitStruct.Pin  = GPIO_PIN_3;
-    GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING; // ÏÂ½µÑØ´¥·¢
-    GPIO_InitStruct.Pull = GPIO_PULLUP;          // ÉÏÀ­
+    GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING; // ä¸‹é™æ²¿è§¦å‘
+    GPIO_InitStruct.Pull = GPIO_PULLUP;          // ä¸Šæ‹‰
     HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
     HAL_NVIC_EnableIRQ(EXTI3_IRQn);
 }
 
 /**
- * @brief   Ê±ÖÓÅäÖÃ
+ * @brief   æ—¶é’Ÿé…ç½®
  */
 static void Timer_Config(void)
 {
     // TIM2
-    __HAL_RCC_TIM2_CLK_ENABLE();                       // ÆôÓÃTIM2Ê±ÖÓ
-    htim2.Instance           = TIM2;                   // ÉèÖÃ¶¨Ê±Æ÷ÊµÀı
-    htim2.Init.Period        = 32 * 10 - 1;            // ÉèÖÃ×Ô¶¯ÖØÔØ¼Ä´æÆ÷µÄÖµ£¬ÖÜÆÚÎª1000-1£¬ÒòÎª¼ÆÊıÊÇ´Ó0¿ªÊ¼µÄ
-    htim2.Init.Prescaler     = 6400 - 1;               // ÉèÖÃÔ¤·ÖÆµÆ÷µÄÖµ£¬¸ù¾İÏµÍ³Ê±ÖÓÉèÖÃ
-    htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1; // Ê±ÖÓ·Ö¸îÒò×Ó
-    htim2.Init.CounterMode   = TIM_COUNTERMODE_UP;     // ÏòÉÏ¼ÆÊıÄ£Ê½
-    HAL_TIM_Base_Init(&htim2);                         // ³õÊ¼»¯¶¨Ê±Æ÷
+    __HAL_RCC_TIM2_CLK_ENABLE();                       // å¯ç”¨TIM2æ—¶é’Ÿ
+    htim2.Instance           = TIM2;                   // è®¾ç½®å®šæ—¶å™¨å®ä¾‹
+    htim2.Init.Period        = 32 * 10 - 1;            // è®¾ç½®è‡ªåŠ¨é‡è½½å¯„å­˜å™¨çš„å€¼ï¼Œå‘¨æœŸä¸º1000-1ï¼Œå› ä¸ºè®¡æ•°æ˜¯ä»0å¼€å§‹çš„
+    htim2.Init.Prescaler     = 6400 - 1;               // è®¾ç½®é¢„åˆ†é¢‘å™¨çš„å€¼ï¼Œæ ¹æ®ç³»ç»Ÿæ—¶é’Ÿè®¾ç½®
+    htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1; // æ—¶é’Ÿåˆ†å‰²å› å­
+    htim2.Init.CounterMode   = TIM_COUNTERMODE_UP;     // å‘ä¸Šè®¡æ•°æ¨¡å¼
+    HAL_TIM_Base_Init(&htim2);                         // åˆå§‹åŒ–å®šæ—¶å™¨
     __HAL_TIM_CLEAR_FLAG(&htim2, TIM_FLAG_UPDATE);
-    HAL_TIM_Base_Start_IT(&htim2); // Æô¶¯¶¨Ê±Æ÷²¢ÔÊĞíÖĞ¶Ï
+    HAL_TIM_Base_Start_IT(&htim2); // å¯åŠ¨å®šæ—¶å™¨å¹¶å…è®¸ä¸­æ–­
     HAL_NVIC_EnableIRQ(TIM2_IRQn);
     // TIM3
-    __HAL_RCC_TIM3_CLK_ENABLE();                       // ÆôÓÃTIM3Ê±ÖÓ
-    htim3.Instance           = TIM3;                   // ÉèÖÃ¶¨Ê±Æ÷ÊµÀı
-    htim3.Init.Period        = 32 * 10 - 1;            // ÉèÖÃ×Ô¶¯ÖØÔØ¼Ä´æÆ÷µÄÖµ£¬ÖÜÆÚÎª1000-1£¬ÒòÎª¼ÆÊıÊÇ´Ó0¿ªÊ¼µÄ
-    htim3.Init.Prescaler     = 6400 - 1;               // ÉèÖÃÔ¤·ÖÆµÆ÷µÄÖµ£¬¸ù¾İÏµÍ³Ê±ÖÓÉèÖÃ
-    htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1; // Ê±ÖÓ·Ö¸îÒò×Ó
-    htim3.Init.CounterMode   = TIM_COUNTERMODE_UP;     // ÏòÉÏ¼ÆÊıÄ£Ê½
-    HAL_TIM_Base_Init(&htim3);                         // ³õÊ¼»¯¶¨Ê±Æ÷
+    __HAL_RCC_TIM3_CLK_ENABLE();                       // å¯ç”¨TIM3æ—¶é’Ÿ
+    htim3.Instance           = TIM3;                   // è®¾ç½®å®šæ—¶å™¨å®ä¾‹
+    htim3.Init.Period        = 32 * 10 - 1;            // è®¾ç½®è‡ªåŠ¨é‡è½½å¯„å­˜å™¨çš„å€¼ï¼Œå‘¨æœŸä¸º1000-1ï¼Œå› ä¸ºè®¡æ•°æ˜¯ä»0å¼€å§‹çš„
+    htim3.Init.Prescaler     = 6400 - 1;               // è®¾ç½®é¢„åˆ†é¢‘å™¨çš„å€¼ï¼Œæ ¹æ®ç³»ç»Ÿæ—¶é’Ÿè®¾ç½®
+    htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1; // æ—¶é’Ÿåˆ†å‰²å› å­
+    htim3.Init.CounterMode   = TIM_COUNTERMODE_UP;     // å‘ä¸Šè®¡æ•°æ¨¡å¼
+    HAL_TIM_Base_Init(&htim3);                         // åˆå§‹åŒ–å®šæ—¶å™¨
     __HAL_TIM_CLEAR_FLAG(&htim3, TIM_FLAG_UPDATE);
-    HAL_TIM_Base_Start_IT(&htim3); // Æô¶¯¶¨Ê±Æ÷²¢ÔÊĞíÖĞ¶Ï
+    HAL_TIM_Base_Start_IT(&htim3); // å¯åŠ¨å®šæ—¶å™¨å¹¶å…è®¸ä¸­æ–­
     HAL_NVIC_EnableIRQ(TIM3_IRQn);
 }
 
-/************************************************ ÎÒÊÇ·Ö¸îÏß ************************************************/
+/************************************************ æˆ‘æ˜¯åˆ†å‰²çº¿ ************************************************/
 
 /**
- * @brief   Íâ²¿ÖĞ¶Ï0´¦Àíº¯Êı
+ * @brief   å¤–éƒ¨ä¸­æ–­0å¤„ç†å‡½æ•°
  */
 void EXTI0_IRQHandler(void)
 {
@@ -699,7 +855,7 @@ void EXTI0_IRQHandler(void)
 }
 
 /**
- * @brief   Íâ²¿ÖĞ¶Ï1´¦Àíº¯Êı
+ * @brief   å¤–éƒ¨ä¸­æ–­1å¤„ç†å‡½æ•°
 
  */
 void EXTI1_IRQHandler(void)
@@ -708,7 +864,7 @@ void EXTI1_IRQHandler(void)
 }
 
 /**
- * @brief   Íâ²¿ÖĞ¶Ï2´¦Àíº¯Êı
+ * @brief   å¤–éƒ¨ä¸­æ–­2å¤„ç†å‡½æ•°
  */
 void EXTI2_IRQHandler(void)
 {
@@ -716,7 +872,7 @@ void EXTI2_IRQHandler(void)
 }
 
 /**
- * @brief   Íâ²¿ÖĞ¶Ï3´¦Àíº¯Êı
+ * @brief   å¤–éƒ¨ä¸­æ–­3å¤„ç†å‡½æ•°
  */
 void EXTI3_IRQHandler(void)
 {
@@ -724,27 +880,27 @@ void EXTI3_IRQHandler(void)
 }
 
 /**
- * @brief   TIM2ÖĞ¶Ï·şÎñ
+ * @brief   TIM2ä¸­æ–­æœåŠ¡
  */
 void TIM2_IRQHandler(void)
 {
-    HAL_TIM_IRQHandler(&htim2); // µ÷ÓÃHAL¿âµÄÖĞ¶Ï´¦Àíº¯Êı
+    HAL_TIM_IRQHandler(&htim2); // è°ƒç”¨HALåº“çš„ä¸­æ–­å¤„ç†å‡½æ•°
 }
 
 /**
- * @brief   TIM3ÖĞ¶Ï·şÎñ
+ * @brief   TIM3ä¸­æ–­æœåŠ¡
  */
 void TIM3_IRQHandler(void)
 {
-    HAL_TIM_IRQHandler(&htim3); // µ÷ÓÃHAL¿âµÄÖĞ¶Ï´¦Àíº¯Êı
+    HAL_TIM_IRQHandler(&htim3); // è°ƒç”¨HALåº“çš„ä¸­æ–­å¤„ç†å‡½æ•°
 }
 
-/************************************************ ÎÒÊÇ·Ö¸îÏß ************************************************/
+/************************************************ æˆ‘æ˜¯åˆ†å‰²çº¿ ************************************************/
 
 /**
- * @brief   Ö÷º¯Êı
- * @return  int ÎŞ
- * @details Ö÷º¯Êı
+ * @brief   ä¸»å‡½æ•°
+ * @return  int æ— 
+ * @details ä¸»å‡½æ•°
  */
 int main(void)
 {
@@ -754,12 +910,12 @@ int main(void)
     Timer_Config();
     IRQ_Config();
 #if (_Cnf_Examples > 0)
-    XCOS(); // XCOS¿ò¼Ü
+    XCOS(); // XCOSæ¡†æ¶
 #endif
 }
 
 /*
  ************************************************************************************************************|
- ************************************************ ÎÒÊÇ·Ö¸îÏß ************************************************|
+ ************************************************ æˆ‘æ˜¯åˆ†å‰²çº¿ ************************************************|
  ************************************************************************************************************|
  */

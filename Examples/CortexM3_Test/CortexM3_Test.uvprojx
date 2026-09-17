@@ -186,6 +186,7 @@
             <RvdsVP>0</RvdsVP>
             <RvdsMve>0</RvdsMve>
             <RvdsCdeCp>0</RvdsCdeCp>
+            <nBranchProt>0</nBranchProt>
             <hadIRAM2>0</hadIRAM2>
             <hadIROM2>0</hadIROM2>
             <StupSel>8</StupSel>
@@ -474,24 +475,29 @@
           <GroupName>Lib\XCOS</GroupName>
           <Files>
             <File>
+              <FileName>XC_Diag.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\Code\Src\XC_Diag.c</FilePath>
+            </File>
+            <File>
               <FileName>XC_List.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\Code\XC_List.c</FilePath>
+              <FilePath>..\..\Code\Src\XC_List.c</FilePath>
             </File>
             <File>
               <FileName>XC_Sch.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\Code\XC_Sch.c</FilePath>
+              <FilePath>..\..\Code\Src\XC_Sch.c</FilePath>
             </File>
             <File>
               <FileName>XC_Task.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\Code\XC_Task.c</FilePath>
+              <FilePath>..\..\Code\Src\XC_Task.c</FilePath>
             </File>
             <File>
               <FileName>XC_Time.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\Code\XC_Time.c</FilePath>
+              <FilePath>..\..\Code\Src\XC_Time.c</FilePath>
             </File>
           </Files>
         </Group>
