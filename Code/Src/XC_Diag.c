@@ -2,7 +2,7 @@
  * @file        XC_Diag.c
  * @brief       诊断实现: 运行期自检 / 运行统计(错误上报与断言无实现: 前者在 `XC_Err.h`(用户提供钩子), 后者是宏)
  * @author      libertyzx (libertyzx@163.com)
- * @version     2.1.0
+ * @version     2.1.1
  * @date        2026/09/14
  * **********************************************
  * @copyright   Copyright (c) 2024 libertyzx. All rights reserved.
@@ -191,7 +191,15 @@ XC_ChkResult_t XC_Diag_CheckInvariants(XC_OSHandle_t phXCOS)
         rc = XC_Diag_ChkDupNode(phXCOS);
     }
     if(rc == XC_CHK_OK) {
-        if((NodeCnt != (uint16_t)phXCOS->TaskNum) || (NodeCnt > (uint16_t)XC_CFG_MAX_TASKS)) {
+        /**
+         *  "TaskNum" 与四表节点总数一致 —— 但**运行中的任务不在任何表内**
+         *  (调度器取首后 `XC_SCH_TAKE_FIRST` 把节点自环游离, 运行结束才归位)
+         *  ⇒ 在任务上下文里调用本函数时, "节点总数恰好少 1"是**正常现象**;
+         *  故只容忍这一种差值(其余差值 / 超出上限一律报 XC_CHK_TASKNUM);
+         *  注: 任务上下文下"TaskNum 虚高 1"(真实的计数漂移)仍会被抓到(差值会变成 2);
+         */
+        if((((NodeCnt != (uint16_t)phXCOS->TaskNum) && ((uint16_t)(NodeCnt + 1U) != (uint16_t)phXCOS->TaskNum))) ||
+           (NodeCnt > (uint16_t)XC_CFG_MAX_TASKS)) {
             rc = XC_CHK_TASKNUM; // 任务计数与四表节点总数不一致
         }
     }

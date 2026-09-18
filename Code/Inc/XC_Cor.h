@@ -2,7 +2,7 @@
  * @file        XC_Cor.h
  * @brief       协程块实现
  * @author      libertyzx (libertyzx@163.com)
- * @version     2.1.0
+ * @version     2.1.1
  * @date        2026/08/14
  * **********************************************
  * @copyright   Copyright (c) 2024 libertyzx. All rights reserved.
@@ -29,6 +29,13 @@
  ************************************************************************************************************|
  */
 /** 协程块:开始/结束 */
+
+/**
+ * ⚠️ **书写约束: 同一行只写一个协程控制宏(`XC_Cor_*`)**
+ *  底层用"**行号 / 标签**"记录断点(ANSI: `case __LINE__:`; GNU: 标签名由 `__func__` + `__LINE__` 拼成)
+ *  ⇒ 同一行写两个协程控制宏会生成**重复的 case / 标签** ⇒ 直接编译报错
+ *  (把宏挤在一行也不会更快, 只会让断点信息退化)。
+ */
 
 /**
  * @brief       [内部]设置"本轮结果"(`XC_CorState_t`)
@@ -266,6 +273,9 @@
  * @details
  *  **必须在协程块中使用;**
  *  用于判断任务通知阻塞唤醒后是否超时;
+ *  > 判据是"**本次等待不是被通知结束的**"(`NotifyState != XC_NOTIFY_WAKEUP`);
+ *  > 因此 `XC_Task_Resume()` 恢复的任务(挂起期间没有收到通知)同样返回 1 ——
+ *  > 需要区分"真超时"与"被恢复"请自行加标志, 或配合 `XC_Task_GetState()` 判断;
  *  > 通知函数:XC_Cor_WaitNotify;
  */
 #define XC_Cor_IsNotifyTimeout() (phXCCorTCB->NotifyState != XC_NOTIFY_WAKEUP)

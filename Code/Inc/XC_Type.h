@@ -2,7 +2,7 @@
  * @file        XC_Type.h
  * @brief       框架的类型
  * @author      libertyzx (libertyzx@163.com)
- * @version     2.1.0
+ * @version     2.1.1
  * @date        2026/08/14
  * **********************************************
  * @copyright   Copyright (c) 2024 libertyzx. All rights reserved.
@@ -57,8 +57,8 @@ typedef enum {
 /** 基础类型 */
 
 /**
- * 说明: "XC_Tick_t"(嘀嗒计数类型)在 "XC_Config.h" 中由 "XC_CFG_TICK_TYPE" 定义
- *      (默认 uint32_t; 必须 >= 32 位, 有编译期断言); 此处不再重复声明, 仅作提示;
+ * 说明: "XC_Tick_t"(嘀嗒计数类型)定义在内部类型层 "Internal/XC_TypeInternal.h"(固定 32 位无符号)
+ *      此处不再重复声明, 仅作提示;
  */
 
 /**

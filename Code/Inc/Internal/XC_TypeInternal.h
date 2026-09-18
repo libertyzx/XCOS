@@ -2,7 +2,7 @@
  * @file        XC_TypeInternal.h
  * @brief       内部类型
  * @author      libertyzx (libertyzx@163.com)
- * @version     2.1.0
+ * @version     2.1.1
  * @date        2026/08/14
  * **********************************************
  * @copyright   Copyright (c) 2024 libertyzx. All rights reserved.
@@ -56,6 +56,25 @@ typedef enum {
 /** 数据类型 */
 
 /**
+ * @brief   [用户]嘀嗒计数类型(用户可见: 随 `XC_Type.h` / `XCOS.h` 一起提供)
+ * @details
+ *  **固定为 32 位无符号**(`uint32_t`), **不可配置** —— 它是全框架的时间基准, 三处都要求"恰好 32 位":
+ *  - **接口宽度**: 阻塞/延时入口(`XC_Task_HandleBlocking`/`HandleDelay`/`HandleWaitNotify`)的
+ *    "TickCount" 形参是 `uint32_t` ⇒ 更宽的类型在这里被**静默截断**(大延时变成短延时);
+ *  - **回绕机制**: 溢出表(`TimeOverflowList`)靠"Tick 回绕"整表搬回时间表 ⇒
+ *    更宽的类型回绕周期长到实际不出现 ⇒ 被判"溢出"的节点**永不排空**(任务永久挂死);
+ *  - **读的原子性**: `XC_Time_GetTick()` 是对 `volatile` 计数的直接读 ⇒ 32 位在 Cortex-M 上
+ *    是**单次原子访问**; 更宽的类型会被中断在两次读之间改写 ⇒ 读到**撕裂值**;
+ *  更窄(16 位)则回绕过密(1000Hz 下约 65.5s): 整张时间表被**提前唤醒**(语义破坏), 且换算随之错乱;
+ *  "要跑很多年"**不是**加宽的理由: 比较类 API 都是**无符号减法**语义(回绕安全), 跨回绕延时由溢出表支持
+ *  ⇒ 只要**单次**超时 < 回绕周期即可无限期运行(**论证与回绕周期表见 `Docs/XC_Config.md`「XC_Tick_t」**);
+ * @note
+ *  定义位置说明: 本文件是**所有框架类型的最低层**(`XC_Type.h` 包含本文件);
+ *  不能把它放到 `XC_Type.h` —— 那样本文件与 `XC_Type.h` 会互相包含(反向包含), 编译层序会冲突;
+ */
+typedef uint32_t XC_Tick_t;
+
+/**
  * @brief   [内部]XCOS句柄
  * @details
  *  用于记录XCOS实例的数据,一个工程中开源有多个XCOS实例,用此句柄区分;
@@ -75,7 +94,7 @@ struct XCOS_tag {
     XC_ListNode_t TimeOverflowList; // 时间溢出的链表
     XC_ListNode_t BlockedList;      // 阻塞链表
 
-    XC_Tick_t PrevTick; // 上个Tick,用于判断Tick溢出,在时间处理中时间表更新时更新
+    XC_Tick_t PrevTick; // 上次观察到的Tick(**每次时间调度末尾都更新**), 用于判断 Tick 回绕
 
     uint8_t          TaskNum; // 任务数量
     volatile uint8_t Lock;    // 锁(1锁定;0解锁),用于中断处理
@@ -202,7 +221,7 @@ struct XC_TaskCB_tag {
      *  - TaskState                                        : 锁串行化(主循环 + SendNotify 直接路径; SUSPEND 受"挂起优先级最高"保护)
      *  - NotifyState                                      : 协议字段(生产侧 SendNotify / 消费侧 WaitNotify·EventSched·Resume)
      *  - NotifyPending                                    : SPSC(生产者只写 1 / 消费者只写 0; 常量写, 无 RMW)
-     *  - pNotifyData                                      : SPSC(纯契约; 非 volatile ⇒ 可见性靠"标志先写/后读")
+     *  - pNotifyData                                      : SPSC(volatile; "先写数据 → 再置 NotifyPending"的发布顺序由编译器保证)
      *  - CorState / CorDepth / CorDepthMax                : 主上下文(协程内)
      *  - RunCnt / MaxRunTick(仅 TASK_STATS 档)            : 主上下文(仅调度器写; 用户/调试只读, 单字段读原子)
      */
@@ -212,8 +231,18 @@ struct XC_TaskCB_tag {
     XC_BP_t          BP;             // 当前执行层断点(唯一,顶层/子层共用;不占栈)
     XC_Tick_t        TaskWakeupTick; // 任务下个唤醒的时间(0则一直阻塞)
 
-    void*            pParam;      // 传递的参数
-    void*            pNotifyData; // 通知数据 [并发] SPSC(纯契约): 写者=生产者(SendNotify/UpdateNotifyData); 非 volatile
+    void* pParam; // 传递的参数
+    /**
+     * 通知数据 [并发] SPSC: 写者 = 生产者(`XC_Task_SendNotify` / `XC_Task_UpdateNotifyData`), 读者 = 目标任务;
+     * - **为什么是 volatile**: 生产侧是"**先写数据、再置标志**(`NotifyPending`)"的发布/订阅配对 ——
+     *   若数据不是 volatile, 编译器可以把"数据写"重排到"标志写"之后(两次访问之间没有序列点约束)
+     *   ⇒ 消费侧见到标志后可能读到**旧数据**; 加 volatile 后编译器不得跨 volatile 访问重排;
+     * - 只保证"**编译器**不重排 + 每次访问都真的读写内存"; **硬件**层面的重排(多核 / 弱序总线 +
+     *   中断共享)仍需用户自行加屏障(见 `Docs/架构概览`「并发模型与字段所有权」);
+     * - `XC_Task_UpdateNotifyData` 只改数据、**不动标志** ⇒ 已挂起的通知不会因此变"新"(
+     *   消费侧仍按 SPSC 语义可能读到旧值), 需要"新数据重新通知"请用 `XC_Task_SendNotify`;
+     */
+    void* volatile pNotifyData;   // 通知数据 [并发] SPSC(见上方说明)
     volatile uint8_t TaskState;   // 任务状态("XC_TaskState_t"类型数据) [并发] 锁串行化: 主循环 + SendNotify 直接路径
     volatile uint8_t NotifyState; // 通知状态("XC_NotifyState_t"类型数据) [并发] 协议字段: 生产侧 SendNotify / 消费侧 WaitNotify·EventSched·Resume
 

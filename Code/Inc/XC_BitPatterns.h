@@ -2,7 +2,7 @@
  * @file        XC_BitPatterns.h
  * @brief       定义二进制数据
  * @author      libertyzx (libertyzx@163.com)
- * @version     2.1.0
+ * @version     2.1.1
  * @date        2026/08/14
  * **********************************************
  * @copyright   Copyright (c) 2015 libertyzx. All rights reserved.

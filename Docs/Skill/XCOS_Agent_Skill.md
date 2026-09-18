@@ -1,11 +1,11 @@
 ---
-name: xcos-2.1.0
-description: 使用 XCOS 2.1.0 协作式协程操作系统（Cooperative Coroutine RTOS）进行裸机/嵌入式任务开发。提供任务、协程块、调度器、时间、通知的完整 API 指南、标准代码模式与陷阱规避，帮助 AI 直接生成正确、可编译的 XCOS 应用代码。适用语言：C。
+name: xcos-2.1.1
+description: 使用 XCOS 2.1.1 协作式协程操作系统（Cooperative Coroutine RTOS）进行裸机/嵌入式任务开发。提供任务、协程块、调度器、时间、通知的完整 API 指南、标准代码模式与陷阱规避，帮助 AI 直接生成正确、可编译的 XCOS 应用代码。适用语言：C。
 ---
 
-# XCOS 2.1.0 开发技能（Agent Skill）
+# XCOS 2.1.1 开发技能（Agent Skill）
 
-> 本技能面向 **AI 编码代理**：在生成任何使用 XCOS 2.1.0 的 C 代码前，先读取本文件掌握编程模型、API 约定与陷阱，再动手写代码。
+> 本技能面向 **AI 编码代理**：在生成任何使用 XCOS 2.1.1 的 C 代码前，先读取本文件掌握编程模型、API 约定与陷阱，再动手写代码。
 >
 > **要改 XCOS 内核本身**（而不是写应用）？请先读 [`XCOS_Dev_Agent_Skill.md`](./XCOS_Dev_Agent_Skill.md)：改动分类 → 影响面 → 改完怎么自测（编译三档、功能/体积/速度三件事、必要时重建基线）、文档同步矩阵、文档自检（§十，3 项）、登记流程与实战陷阱。
 
@@ -130,18 +130,18 @@ int main(void) {
 
 ### 配置（XC_Config.h）
 
-| 宏                                               | 默认       | 说明                                                                                                           |
-| ------------------------------------------------ | ---------- | -------------------------------------------------------------------------------------------------------------- |
-| `XC_CFG_TICK_TYPE`                               | `uint32_t` | Tick 数据类型                                                                                                  |
-| `XC_CFG_MAX_TASKS`                               | 100        | 最大任务数（**1~255**；上限由**编译期断言**拦截，建议 ≥10）                                                   |
-| `XC_CFG_TICKS_PER_SEC`                           | 1000       | Tick 频率（Hz），1ms/tick                                                                                      |
-| `XC_SYS_TICK_COUNT` / `XC_SYS_TICK_INT_INC_MODE` | 中断累加   | Tick 计数方式（中断累加 / 外部计数器）                                                                         |
-| `XC_CFG_ERR_HOOK`                                | 0（关）    | 错误上报钩子（诊断）：置 1 后**必须实现** `XC_Err_Hook(phTCB, ErrCode)`；见陷阱 18                             |
-| `XC_CFG_DEBUG_CHECK`                             | 0（关）    | 运行期不变量自检（调试）：置 1 后可用 `XC_Diag_CheckInvariants`；见陷阱 19                                     |
-| `XC_CFG_TASK_STATS`                              | 0（关）    | 每任务运行统计（可选）：置 1 后 TCB **+8B/任务**，可用 `XC_Diag_GetRunCnt/GetMaxRunTick`；见陷阱 20            |
-| `XC_CFG_ASSERT`                                  | 0（关）    | 参数/状态断言（诊断）：置 1 后可用 `XC_DIAG_ASSERT(cond)`；**必须同时开 `XC_CFG_ERR_HOOK`**；见陷阱 21         |
-| `XC_CFG_COR_NESTING`                             | 1（开）    | 协程嵌套支持：置 **0** 后 TCB **44→36 B/任务**、无 `RegExt`/`SetCorStack`/`Cor_Call`/同轮切父（基本协程不变） |
-| `XCOS_CFG` / `XCOS_Cfg.h`                        | —         | 独立配置文件方式                                                                                               |
+| 宏                                                                                   | 默认         | 说明                                                                                                                                                                                           |
+| ------------------------------------------------------------------------------------ | ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `XC_Tick_t`（**固定 32 位无符号，V2.1.1 起不可配**）                                 | `uint32_t`   | Tick 数据类型（固定 32 位无符号 `uint32_t`，定义在类型层；**不可配置**）                                                                                                                       |
+| `XC_CFG_MAX_TASKS`                                                                   | 100          | 最大任务数（**1~255**；上限由**编译期断言**拦截，建议 ≥10）                                                                                                                                   |
+| `XC_CFG_TICKS_PER_SEC`                                                               | 1000         | Tick 频率（Hz），1ms/tick                                                                                                                                                                      |
+| `XC_SYS_TICK_COUNT` / `XC_SYS_TICK_INT_INC_MODE`                                     | 中断累加     | Tick 计数方式（中断累加 / 外部计数器）                                                                                                                                                         |
+| `XC_CFG_ERR_HOOK`                                                                    | 0（关）      | 错误上报钩子（诊断）：置 1 后**必须实现** `XC_Err_Hook(phTCB, ErrCode)`；见陷阱 18                                                                                                             |
+| `XC_CFG_DEBUG_CHECK`                                                                 | 0（关）      | 运行期不变量自检（调试）：置 1 后可用 `XC_Diag_CheckInvariants`；见陷阱 19                                                                                                                     |
+| `XC_CFG_TASK_STATS`                                                                  | 0（关）      | 每任务运行统计（可选）：置 1 后 TCB **+8B/任务**，可用 `XC_Diag_GetRunCnt/GetMaxRunTick`；见陷阱 20                                                                                            |
+| `XC_CFG_ASSERT`                                                                      | 0（关）      | 参数/状态断言（诊断）：置 1 后可用 `XC_DIAG_ASSERT(cond)`；**必须同时开 `XC_CFG_ERR_HOOK`**；见陷阱 21                                                                                         |
+| `XC_CFG_COR_NESTING`                                                                 | 1（开）      | 协程嵌套支持：置 **0** 后 TCB **44→36 B/任务**、无 `RegExt`/`SetCorStack`/`Cor_Call`/同轮切父（基本协程不变）                                                                                 |
+| `XCOS_CFG` / `XCOS_Cfg.h`                                                            | —           | 独立配置文件方式                                                                                                                                                                               |
 
 ### 类型与枚举
 

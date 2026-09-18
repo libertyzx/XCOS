@@ -2,7 +2,7 @@
  * @file        XC_Diag.h
  * @brief       诊断能力: 断言 / 运行期自检 / 运行统计(错误上报设施见 `XC_Err.h`)
  * @author      libertyzx (libertyzx@163.com)
- * @version     2.1.0
+ * @version     2.1.1
  * @date        2026/09/14
  * **********************************************
  * @copyright   Copyright (c) 2024 libertyzx. All rights reserved.
@@ -85,11 +85,13 @@ typedef enum {
  *     且 "SUSPEND" 只允许出现在阻塞表(挂起优先级最高的约定); "RUN"/"VOID" 不得出现在任何表;
  *  2. 链表双向指针完好("节点->后继->前驱 == 节点"等), 且遍历步数不超过 "XC_CFG_MAX_TASKS"(防环死循环);
  *  3. 同一任务不得同时挂在两张表(两两比对, 调试期允许 O(n^2));
- *  4. "phXCOS->TaskNum" 必须等于四张表的节点总数, 且不超过 "XC_CFG_MAX_TASKS";
+ *  4. "phXCOS->TaskNum" 必须等于四张表的节点总数(**运行中的任务不在任何表内** ⇒ 允许恰好少 1),
+ *     且不超过 "XC_CFG_MAX_TASKS";
  *  5. 协程嵌套自洽: "pCorStack" 与 "CorDepthMax" 必须同为"有"或同为"无", 且 "CorDepth <= CorDepthMax";
  *  6. 表内任务的 "phXCOS" 必须就是本次传入的框架实例;
  *  ---
  *  **注意**:
+ *  - **任务上下文可调用**(推荐用法之一): 调度器把运行中的任务摘出表外 ⇒ 自检**容忍**"节点总数 = TaskNum − 1";
  *  - 本函数**只读检查**, 不修改任何状态, 也**不会**自动调用(由用户/回归用例显式调用);
  *  - 内部会**短暂持锁**(XC_Core_Lock/Unlock)完成遍历 ⇒ **不可在已持锁的上下文**中调用;
  *  - 关闭开关时本函数**不编译**(0 代码/0 RAM), 调用点也应随之用 "#if" 包住;

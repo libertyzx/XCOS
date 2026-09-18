@@ -2,7 +2,7 @@
  * @file        XC_Err.h
  * @brief       错误上报设施: 错误码 / 用户钩子 / 上报宏
  * @author      libertyzx (libertyzx@163.com)
- * @version     2.1.0
+ * @version     2.1.1
  * @date        2026/09/14
  * **********************************************
  * @copyright   Copyright (c) 2024 libertyzx. All rights reserved.

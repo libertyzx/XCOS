@@ -2,7 +2,7 @@
  * @file        XC_Sch.c
  * @brief       调度器实现
  * @author      libertyzx (libertyzx@163.com)
- * @version     2.1.0
+ * @version     2.1.1
  * @date        2026/08/14
  * **********************************************
  * @copyright   Copyright (c) 2024 libertyzx. All rights reserved.
@@ -116,7 +116,6 @@ static void XC_Sch_TimeSched(XC_OSHandle_t phXCOS)
         if(XC_List_ListValid(&phXCOS->TimeOverflowList)) {                     // 时间溢出表有节点
             XC_List_MoveListToNodeAfter(pTimeList, &phXCOS->TimeOverflowList); // 时间溢出表所有节点移动到时间表
         }
-        phXCOS->PrevTick = Tick; // 更新保存Tick
     }
 
     /**
@@ -142,9 +141,18 @@ static void XC_Sch_TimeSched(XC_OSHandle_t phXCOS)
                 break;                                       // 结束轮询
             }
         }
-        phXCOS->PrevTick = Tick; // 更新保存Tick
     }
-    XC_Core_Unlock(phXCOS); // 解锁
+    /**
+     *  **每轮都更新**"上次观察到的 Tick" —— 它是回绕判定(`PrevTick > Tick`)的唯一依据;
+     *  若只在"检测到回绕"或"有时间表到点"时才更新, 会在极端场景下**长期不更新**:
+     *  启动后从未有定时到点(例如纯事件驱动的应用), 期间却有一笔跨回绕的延时进了溢出表 ⇒
+     *  回绕真正发生时 `PrevTick` 还是初值(0) ⇒ 判定不成立 ⇒ **溢出表整表搬移被跳过**(该任务永不唤醒,
+     *  最长要再等一个完整回绕周期, 若期间仍无到点则永不);
+     *  每轮更新"观察值"不改变判定语义(`PrevTick > Tick` ⇔ 相邻两次观察之间发生过回绕),
+     *  只会让判定更及时;
+     */
+    phXCOS->PrevTick = Tick; // 更新保存Tick
+    XC_Core_Unlock(phXCOS);  // 解锁
 }
 
 /**
@@ -222,12 +230,17 @@ static void XC_Sch_EventSched(XC_OSHandle_t phXCOS)
  * @param[in]   phXCOS  框架句柄
  * @details
  *  用于初始化框架的调度器;
- *  任务启动默认就是调度锁定状态;
+ *  本函数会把 `Lock` 置 1(锁定) —— 目的是让**初始化窗口**内的中断"直接路径"只登记、不改表
+ *  (此刻四张表刚建好, 还没有任务);
+ *  **注意**: 随后的注册会**解锁**(`XC_Task_Reg`/`XC_Task_Add` 内部按"锁范围最小化"成对 Lock/Unlock)
+ *  ⇒ 这里的锁定**不代表**"到 `XC_Sch_Start` 之前一直持锁";
+ *  之所以仍然安全: 启动前没有任务在运行 ⇒ `NotifyState` 恒为 `WAKEUP`(`XC_Task_BasicInit` 置),
+ *  中断侧 `XC_Task_SendNotify` 只登记 `NotifyPending`(**不移表**) ⇒ 与主循环之间没有并发表操作;
  */
 void XC_Sch_Init(XC_OSHandle_t phXCOS)
 {
     XC_DIAG_ASSERT(phXCOS != NULL);
-    /** 初始第一步为锁,防止出现以为中断调度的情况; */
+    /** 初始第一步上锁: 初始化窗口内中断"直接路径"只登记、不改表(注册阶段会成对解锁) */
     phXCOS->Lock = 1U; // 锁(1锁,0解锁),用于中断处理
 
     phXCOS->PrevTick     = 0U;   // 保存上个Tick值
@@ -322,28 +335,27 @@ void XC_Sch_Start(XC_OSHandle_t phXCOS)
              *  - 时间表0,溢出表1: 取溢出表首节点唤醒时间;
              *  - 时间表0,溢出表0: 给 ~0U(无待唤醒任务, 按最大时间休眠);
              *  - 已过点 / 窗口内 Tick 回绕 / 就绪表已有任务 ⇒ 给 0(不要休眠);
+             *  - "当前 Tick"与表内取值在**同一个锁域内读**(一次一致快照): 锁外读 Tick 会被中断推进 ⇒ 提示值偏大;
              */
-            Tick = XC_Time_GetTick();     // 得到当前Tick
+            XC_Core_Lock(phXCOS);         // 锁: "当前 Tick 快照"、"就绪表是否空"、"下个唤醒时刻"读成一次原子观察
+            Tick = XC_Time_GetTick();     // 得到当前Tick(锁内取快照: 锁外取会被中断推进 ⇒ 提示值偏大)
             if(phXCOS->PrevTick > Tick) { // 窗口内 Tick 回绕(时间调度待处理)
                 Tick = 0U;
             }
-            else {
-                XC_Core_Lock(phXCOS);                       // 锁: 把"就绪表是否空"与"下个唤醒时刻"读成一次原子观察
-                if(XC_List_ListValid(&phXCOS->ReadyList)) { // 已有任务就绪
-                    Tick = 0U;
-                }
-                else if(XC_List_ListValid(&phXCOS->TimeList)) {          // 时间表有节点
-                    XC_Tick_t Next = XC_Sch_GetNextTaskWakeupTick();     // 首节点 = 最近唤醒时刻
-                    Tick           = (Next > Tick) ? (Next - Tick) : 0U; // 已过点 ⇒ 0(直接相减会回绕成大数)
-                }
-                else if(XC_List_ListValid(&phXCOS->TimeOverflowList)) {                                                // 溢出表有节点
-                    Tick = XC_LIST_TO_TCB(XC_List_GetListStartNode(&phXCOS->TimeOverflowList))->TaskWakeupTick - Tick; // 模块差(未回绕) = 距回绕 + 唤醒时刻
-                }
-                else {          // 时间表,溢出表都没有节点;
-                    Tick = ~0U; // 按最大时间休眠
-                }
-                XC_Core_Unlock(phXCOS);
+            else if(XC_List_ListValid(&phXCOS->ReadyList)) { // 已有任务就绪
+                Tick = 0U;
             }
+            else if(XC_List_ListValid(&phXCOS->TimeList)) {          // 时间表有节点
+                XC_Tick_t Next = XC_Sch_GetNextTaskWakeupTick();     // 首节点 = 最近唤醒时刻
+                Tick           = (Next > Tick) ? (Next - Tick) : 0U; // 已过点 ⇒ 0(直接相减会回绕成大数)
+            }
+            else if(XC_List_ListValid(&phXCOS->TimeOverflowList)) {                                                // 溢出表有节点
+                Tick = XC_LIST_TO_TCB(XC_List_GetListStartNode(&phXCOS->TimeOverflowList))->TaskWakeupTick - Tick; // 模块差(未回绕) = 距回绕 + 唤醒时刻
+            }
+            else {          // 时间表,溢出表都没有节点;
+                Tick = ~0U; // 按最大时间休眠
+            }
+            XC_Core_Unlock(phXCOS);
             phXCOS->fIdle(phXCOS, Tick); // 框架空闲处理(锁外: 回调可能休眠/阻塞)
         }
     }
