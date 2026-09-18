@@ -1,6 +1,6 @@
 ---
-name: xcos-dev-2.1.0
-description: 开发与维护 XCOS 2.1.0 内核的工程技能（改代码 / 加开关 / 调语义 / 同步文档 / 跑三通道回归与重建基线）。给出"改哪里、怎么改、改完必须同步什么、如何验收"的可执行清单，以及本项目真实踩过的坑。适用：C（ANSI/GNU 双底层）+ PowerShell 脚本。面向内核维护者与 AI 编码代理。
+name: xcos-dev-2.1.1
+description: 开发与维护 XCOS 2.1.1 内核的工程技能（改代码 / 加开关 / 调语义 / 同步文档 / 跑三通道回归与重建基线）。给出"改哪里、怎么改、改完必须同步什么、如何验收"的可执行清单，以及本项目真实踩过的坑。适用：C（ANSI/GNU 双底层）+ PowerShell 脚本。面向内核维护者与 AI 编码代理。
 ---
 
 # XCOS 内核开发技能（Agent Skill）
@@ -85,7 +85,7 @@ Code/
     * @file        XC_Xxx.c
     * @brief       一句话
     * @author      libertyzx (libertyzx@163.com)
-    * @version     2.1.0
+    * @version     2.1.1
     * @date        YYYY/MM/DD
     * **********************************************
     * @copyright   Copyright (c) 2024 libertyzx. All rights reserved.
@@ -172,7 +172,11 @@ XC_Return_t XC_Task_Reg(XC_OSHandle_t phXCOS, XC_TaskHandle_t phTCB, void (*fTas
 2. **必须配对**：每个 `XC_Core_Lock` 恰有一次 `Unlock`（注意 `XC_Task_HandleWaitNotify` → `XC_Task_HandleBlocking` 的**隐式配对**，改这两处必须保持"每条路径恰好解锁一次"）；
 3. 中断侧**只允许**"读到 `Lock == 0` 才获取、完成后配对释放"，**禁止在中断里 Unlock**（会把主循环的保护提前打开）。
 
-**其它硬约束**：ISR 只走通知（会移表的 API 一律主循环调用）；入就绪表**统一排队尾**（严格轮转，无优先级补偿）；新增字段必须在 `Docs/架构概览/XCOS_V2.1.0_架构概览.md`「并发模型与字段所有权」矩阵登记（含 `Code/Inc/Internal/XC_TypeInternal.h` 的 `[并发]` 注释标签）。
+**其它硬约束**：ISR 只走通知（会移表的 API 一律主循环调用）；入就绪表**统一排队尾**（严格轮转，无优先级补偿）；新增字段必须在 `Docs/架构概览/XCOS_V2.1.0_架构概览.md`「并发模型与字段所有权」矩阵登记（含 `Code/Inc/Internal/XC_TypeInternal.h` 的 `[并发]` 注释标签）；
+**Tick 宽度固定 32 位无符号**（`uint32_t`，定义在类型层；配置入口已删除，**不得再加回"可配"开关**：更宽会让接口截断 + 溢出表永不排空 + Tick 读撕裂）；
+**`PrevTick` 只能"每轮更新"**（时间调度末尾统一写，别改回"条件更新"：会让跨回绕延时的溢出表漏排空 ⇒ 任务永不唤醒，见清单 **A19**）；
+**共享字段必须写清"发布次序"**（如通知"先写数据 → 再置标志" ⇒ 数据字段须 `volatile`，见清单 **A21**）；
+**TCB 必须静态分配 / 零初始化**（框架无法区分"垃圾"与"已注册"，见清单 **A22**）。
 
 ---
 
@@ -184,9 +188,10 @@ XC_Return_t XC_Task_Reg(XC_OSHandle_t phXCOS, XC_TaskHandle_t phTCB, void (*fTas
 4. **组合依赖用 `#error` 守住**：例 `XC_CFG_ASSERT=1` 而 `XC_CFG_ERR_HOOK=0` ⇒ 编译报错。
 5. **编译期断言范式**（负数组长度，不产生代码/数据）：
    ```c
-   typedef char XC_StaticAssert_TickWidth[(sizeof(XC_Tick_t) >= 4U) ? 1 : -1];
+   typedef char XC_StaticAssert_MaxTasks[((XC_CFG_MAX_TASKS >= 1U) && (XC_CFG_MAX_TASKS <= 255U)) ? 1 : -1];
    ```
-   已用：Tick 宽度 ≥32 位、`XC_CFG_TICKS_PER_SEC ≤1000` 时必须是 1000 的因子、`XC_CFG_MAX_TASKS` 必须在 **1~255**（超上限会让 `XCOS_t.TaskNum`（`uint8_t`）回绕、`TaskNum--` 下溢）。
+   已用：`XC_CFG_TICKS_PER_SEC ≤1000` 时必须是 1000 的因子、`XC_CFG_MAX_TASKS` 必须在 **1~255**（超上限会让 `XCOS_t.TaskNum`（`uint8_t`）回绕、`TaskNum--` 下溢）。
+   > Tick 宽度断言已随"不可配置"一并删除（V2.1.1：`typedef uint32_t XC_Tick_t;` 硬编码在类型层 ⇒ 断言不可能失败，无意义）。
    **验证纪律**：凡写了"取值范围/必须满足"的配置，都要补一个**反向用例**（`-DXC_CFG_X=<越界值>` 必须**编译失败**，边界值如 `1`/`255` 必须通过）—— 光看"默认档能编过"抓不到漏断言。
 6. **开关取值约束**：现有代码统一用 `!= 0` 判断 ⇒ 文档写"0/1"；若新增开关，建议同时加"取值只能 0/1"的静态断言，避免 `2` 之类的写法歧义。
 7. 新增开关必须同步：`Docs/XC_Config.md`（参数表 + 详解）、`Docs/XCOS.md`（对应能力节）、`Docs/架构概览`（§1.4 与 §十一）、`Tests/manifest.txt`（"关/开"两条用例）。

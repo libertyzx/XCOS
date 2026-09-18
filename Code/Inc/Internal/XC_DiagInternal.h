@@ -2,7 +2,7 @@
  * @file        XC_DiagInternal.h
  * @brief       诊断能力-内部声明(断言宏 / 调度槽计时埋点)
  * @author      libertyzx (libertyzx@163.com)
- * @version     2.1.0
+ * @version     2.1.1
  * @date        2026/09/15
  * **********************************************
  * @copyright   Copyright (c) 2024 libertyzx. All rights reserved.

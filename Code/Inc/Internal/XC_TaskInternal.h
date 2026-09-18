@@ -2,7 +2,7 @@
  * @file        XC_TaskInternal.h
  * @brief       任务的实现-内部函数
  * @author      libertyzx (libertyzx@163.com)
- * @version     2.1.0
+ * @version     2.1.1
  * @date        2026/08/14
  * **********************************************
  * @copyright   Copyright (c) 2024 libertyzx. All rights reserved.

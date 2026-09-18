@@ -67,7 +67,7 @@ static void TestTimeSched(XC_OSHandle_t os)
         if(XC_List_ListValid(&os->TimeOverflowList)) {
             XC_List_MoveListToNodeAfter(pTimeList, &os->TimeOverflowList);
         }
-        os->PrevTick = Tick;
+        /* [A19] PrevTick 不在本分支更新: 统一到函数末尾"每轮更新"(见下; 与 XC_Sch.c 同步) */
     }
     if((XC_List_ListValid(pTimeList)) && (Tick >= XC_LIST_TO_TCB(XC_List_GetListStartNode(pTimeList))->TaskWakeupTick)) {
         pIterator = XC_List_GetListStartNode(pTimeList);          /* 时间链初始节点 */
@@ -78,8 +78,8 @@ static void TestTimeSched(XC_OSHandle_t os)
             phTCB->TaskState = XC_TASK_READY;
             if(XC_List_ReachEndNode(pTimeList, pIterator)) break; /* 到达结尾则结束 */
         }
-        os->PrevTick = Tick;
     }
+    os->PrevTick = Tick;   /* [A19] 每轮更新"上次观察到的 Tick"(回绕判定的唯一依据; 与 XC_Sch.c 同步) */
     XC_Core_Unlock(os);
 }
 

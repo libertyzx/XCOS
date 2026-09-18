@@ -100,12 +100,14 @@ if ($ProjectDefine -ne '') {
 
 # optional: point the tick source at a sim-bench function (MIRROR XC_Config.h only).
 # NOTE: MDK's <Define> field drops "()" => the hook must be written into the header itself.
+# NOTE: the hook uses plain uint32_t (== XC_Tick_t) on purpose -- XC_Config.h no longer defines
+#       XC_Tick_t (since V2.1.1 it lives in Internal/XC_TypeInternal.h, which XC_Config.h cannot include).
 if ($ConfigTickSource -ne '') {
     $cfg  = Join-Path $mirror 'Code\Inc\XC_Config.h'
     $c    = [System.IO.File]::ReadAllText($cfg, $enc)
-    $hook = ('XC_Tick_t ' + $ConfigTickSource + '(void); /* [sim bench] scripted tick source */' + "`r`n" +
+    $hook = ('uint32_t ' + $ConfigTickSource + '(void); /* [sim bench] scripted tick source */' + "`r`n" +
              '#define XC_SYS_TICK_INT_INC_MODE' + "`r`n" +
-             'extern volatile XC_Tick_t g_SysTickCount;' + "`r`n" +
+             'extern volatile uint32_t g_SysTickCount;' + "`r`n" +
              '#define XC_SYS_TICK_COUNT ' + $ConfigTickSource + '()' + "`r`n")
     $c = [regex]::Replace($c, '(?m)^#ifndef XC_SYS_TICK_COUNT', ($hook + '#ifndef XC_SYS_TICK_COUNT'), 1)
     [System.IO.File]::WriteAllText($cfg, $c, $enc)

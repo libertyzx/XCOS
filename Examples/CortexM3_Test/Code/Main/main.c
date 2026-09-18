@@ -3,7 +3,7 @@
  * @file        main.c
  * @brief       主文件
  * @author      libertyzx (libertyzx@163.com)
- * @version     2.1.0
+ * @version     2.1.1
  * @date        2026/08/20
  * **********************************************
  * @copyright   Copyright (c) 2023 libertyzx. All rights reserved.

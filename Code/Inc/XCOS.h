@@ -2,7 +2,7 @@
  * @file        XCOS.h
  * @brief       框架包含
  * @author      libertyzx (libertyzx@163.com)
- * @version     2.1.0
+ * @version     2.1.1
  * @date        2026/08/14
  * **********************************************
  * @copyright   Copyright (c) 2024 libertyzx. All rights reserved.
@@ -29,14 +29,14 @@
  */
 #define XCOS_VER_MAJOR  (2U) // 主版本号
 #define XCOS_VER_MINOR  (1U) // 次版本号
-#define XCOS_VER_PATCH  (0U) // 修订号
+#define XCOS_VER_PATCH  (1U) // 修订号
 
 /**
  * 辅助版本信息
  * "XCOS_VER_STRING":字符串版本;
  * "XCOS_VER_NUMBER":版本数值,24位数值,格式:版本号-次版本号-修订号;
  */
-#define XCOS_VER_STRING "2.1.0"                                                             // 字符串版本
+#define XCOS_VER_STRING "2.1.1"                                                             // 字符串版本
 #define XCOS_VER_NUMBER ((XCOS_VER_MAJOR << 16U) | (XCOS_VER_MINOR << 8U) | XCOS_VER_PATCH) // 版本数值
 
 /**

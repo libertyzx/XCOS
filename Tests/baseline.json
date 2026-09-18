@@ -23,8 +23,8 @@
                                                 "Debug":  0
                                             },
                                "XC_Task.c":  {
-                                                 "Code":  856,
-                                                 "RO":  6,
+                                                 "Code":  900,
+                                                 "RO":  4,
                                                  "RW":  0,
                                                  "ZI":  0,
                                                  "Debug":  0
@@ -39,7 +39,7 @@
                            },
                    "diag":  {
                                 "XC_Diag.c":  {
-                                                  "Code":  532,
+                                                  "Code":  540,
                                                   "RO":  4,
                                                   "RW":  0,
                                                   "ZI":  0,
@@ -60,7 +60,7 @@
                                                  "Debug":  0
                                              },
                                 "XC_Task.c":  {
-                                                  "Code":  1184,
+                                                  "Code":  1224,
                                                   "RO":  4,
                                                   "RW":  0,
                                                   "ZI":  0,
@@ -77,19 +77,19 @@
                },
     "image":  {
                   "default":  {
-                                  "Code":  8768,
+                                  "Code":  8804,
                                   "RO":  380,
                                   "RW":  40,
                                   "ZI":  1944
                               },
                   "stats":  {
-                                "Code":  8920,
+                                "Code":  8960,
                                 "RO":  380,
                                 "RW":  56,
                                 "ZI":  2040
                             },
                   "diag":  {
-                               "Code":  9868,
+                               "Code":  9928,
                                "RO":  380,
                                "RW":  56,
                                "ZI":  2040
@@ -105,7 +105,7 @@
                    "cyc_overhead":  12,
                    "sizeof_tcb":  44,
                    "sizeof_xcos":  44,
-                   "delay_roundtrip":  1282,
-                   "yield_roundtrip":  1281
+                   "delay_roundtrip":  1286,
+                   "yield_roundtrip":  1285
                }
 }

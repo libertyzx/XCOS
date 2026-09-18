@@ -3,7 +3,7 @@
 <div align="center">
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
-![Version](https://img.shields.io/badge/version-2.1.0-green.svg)
+![Version](https://img.shields.io/badge/version-2.1.1-green.svg)
 ![C Language](https://img.shields.io/badge/language-C-orange.svg)
 ![Platform](https://img.shields.io/badge/platform-Embedded-lightgrey.svg)
 

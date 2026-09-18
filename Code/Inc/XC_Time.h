@@ -2,7 +2,7 @@
  * @file        XC_Time.h
  * @brief       时间计数的实现
  * @author      libertyzx (libertyzx@163.com)
- * @version     2.1.0
+ * @version     2.1.1
  * @date        2026/08/14
  * **********************************************
  * @copyright   Copyright (c) 2024 libertyzx. All rights reserved.
@@ -58,6 +58,17 @@
  */
 
 #ifdef XC_SYS_TICK_INT_INC_MODE
+
+/**
+ * @brief   [用户]系统滴答计数(全局累加值)
+ * @details
+ *  定义在 `Code/Src/XC_Time.c`, 与下面的 `XC_Time_TickInc`/`XC_Time_TickSet` **同受本 `#ifdef` 约束**:
+ *  - **方式1**(中断累加, 默认): 该变量存在, 由 `XC_Time_TickInc()` 在定时器中断里递增;
+ *  - **方式2**(计数器模式): `XC_SYS_TICK_COUNT` 指向用户自己的计数器(函数返回值/寄存器), 该变量**不存在**
+ *    ⇒ 声明也必须收在本条件内, 否则会留下一个"指向不存在变量"的悬空声明(用户提问点);
+ *  @note 声明从 `XC_Config.h` 移到本文件: 配置头只放配置, 不再承担类型/变量声明
+ */
+extern volatile XC_Tick_t g_SysTickCount; // 外部声明全局滴答时间计数
 
 /**
  * @brief   [用户]递增系统Tick

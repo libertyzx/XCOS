@@ -2,7 +2,7 @@
  * @file        XC_Config.h
  * @brief       配置
  * @author      libertyzx (libertyzx@163.com)
- * @version     2.1.0
+ * @version     2.1.1
  * @date        2026/08/14
  * **********************************************
  * @copyright   Copyright (c) 2024 libertyzx. All rights reserved.
@@ -31,35 +31,6 @@
  ************************************************************************************************************|
  */
 //=== 需要配置的参数
-
-/**
- * @brief   [配置]嘀嗒计数数据类型
- * @details
- *  默认32位,用于系统滴答计数的数据
- *  一般不用改
- */
-#ifndef XC_CFG_TICK_TYPE
-#define XC_CFG_TICK_TYPE uint32_t
-#endif
-
-/**
- * @brief   [内部]嘀嗒计数数据类型定义
- * @details
- *  由"XC_CFG_TICK_TYPE"指定的类型定义出"XC_Tick_t";
- *  必须定义在本文件(最底层配置),供"XC_Config.h"的全局滴答计数声明及上层类型使用;
- */
-typedef XC_CFG_TICK_TYPE XC_Tick_t;
-
-/**
- * @brief   [内部]编译期断言: Tick 类型必须 >= 32 位
- * @details
- *  16 位 Tick 会在 65535 个 Tick 后回绕(1000Hz 下约 65.5s),被调度器判为"时间溢出",
- *  从而把**整张时间表一次性搬到就绪表** ⇒ 所有延时任务被提前唤醒(语义破坏),
- *  且 TicksToMs/GetMs 等换算随之错乱;
- *  本断言用"负数组长度"实现: 不满足时编译报错, 且**不产生任何代码/数据**(0 开销);
- *  位宽约束与配置说明见 Docs/XC_Config.md;
- */
-typedef char XC_StaticAssert_TickWidth[(sizeof(XC_Tick_t) >= 4U) ? 1 : -1];
 
 /************************************************ 我是分割线 ************************************************/
 
@@ -200,6 +171,7 @@ typedef char XC_StaticAssert_CorNesting[((XC_CFG_COR_NESTING == 0U) || (XC_CFG_C
  *  ---
  *  推荐用法(选一种或并用):
  *      1. 开发/回归期: 在**每个 API 调用之后**调一次 ⇒ 在"出错的那一步"立刻报出不一致(定位最强);
+ *         **任务里也适用**: 自检容忍"四表节点总数恰好比 `TaskNum` 少 1" —— 运行中的任务被调度器摘出表外;
  *      2. 运行期守护: 在空闲回调(`XC_Sch_SetIdleCallback`)里每隔若干轮抽查一次;
  *      3. 排障期: 怀疑"任务卡死/莫名重启"时, 在可疑点手工插入一次调用;
  *  自检内部会**短暂持锁**(防中断直接路径改表), 因此不要在"已持锁"的上下文里调用;
@@ -291,9 +263,8 @@ typedef char XC_StaticAssert_CorNesting[((XC_CFG_COR_NESTING == 0U) || (XC_CFG_C
  */
 #ifndef XC_SYS_TICK_COUNT
 
-#define XC_SYS_TICK_INT_INC_MODE          // [默认]以中断递增的模式形式
-extern volatile XC_Tick_t g_SysTickCount; // 外部声明全局滴答时间计数
-#define XC_SYS_TICK_COUNT g_SysTickCount  // 调用滴答时间计数
+#define XC_SYS_TICK_INT_INC_MODE                // [默认]以中断递增的模式形式
+#define XC_SYS_TICK_COUNT        g_SysTickCount // 调用滴答时间计数(变量声明见 "XC_Time.h")
 
 #endif
 

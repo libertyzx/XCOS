@@ -15,7 +15,7 @@
 #ifndef xc_test_tick_h
 #define xc_test_tick_h
 //=== 头文件
-#include "XC_Config.h" // XC_Tick_t
+#include "XC_Type.h" // XC_Tick_t(类型层; 已不再由 XC_Config.h 提供)
 
 /* 由用例实现(非静态: 框架各编译单元都要链接到它) */
 XC_Tick_t XC_TestTickRead(void);

@@ -2,7 +2,7 @@
  * @file        XC_Task.c
  * @brief       任务的实现
  * @author      libertyzx (libertyzx@163.com)
- * @version     2.1.0
+ * @version     2.1.1
  * @date        2026/08/14
  * **********************************************
  * @copyright   Copyright (c) 2024 libertyzx. All rights reserved.
@@ -38,6 +38,8 @@
  *      - "pNotifyData"     通知数据
  *      - "NotifyState"     通知状态
  *      - "NotifyPending"   通知-待处理标志
+ *      - "CorDepth"        协程深度(仅 `XC_CFG_COR_NESTING=1`; 帧栈/容量属用户配置, 本函数保留)
+ *      - "CorState"        本轮结果(仅 `XC_CFG_COR_NESTING=1`)
  *  在任务注册,移除,复位,添加时调用
  */
 static void XC_Task_BasicInit(XC_TaskHandle_t phTCB)
@@ -49,7 +51,9 @@ static void XC_Task_BasicInit(XC_TaskHandle_t phTCB)
     // 清除通知(待处理标志清0; 生产侧只写1/消费侧只写0,此处为消费侧)
     phTCB->NotifyPending = 0U;
 #if (XC_CFG_COR_NESTING != 0)
-    phTCB->CorDepth      = 0U; // 清协程深度(pCorStack/CorDepthMax 保留)
+    /* 嵌套状态: 深度/本轮结果复位; "帧栈/容量"是**用户配置**, 由注册入口负责(见 Reg/RegExt/SetEntry), 此处保留 */
+    phTCB->CorDepth = 0U;                        // 清协程深度
+    phTCB->CorState = (uint8_t)XC_COR_SUSPENDED; // 本轮结果: 未完成(与 XC_Cor_Enter 的起始值一致)
 #endif
 }
 
@@ -77,6 +81,8 @@ void XC_Task_PushFrame(XC_TaskHandle_t phTCB, XC_CorFn_t fn, XC_BP_t RetLine)
      *  处理策略:复位任务安全降级(HandleReset 内部清栈并恢复顶层入口 fTask=[0].pfn);
      *  错误上报:先上报再降级 —— 打开 XC_CFG_ERR_HOOK 时调用用户钩子
      *  (现场未破坏:钩子内 CorDepth/CorDepthMax 可区分上述两种情形);关闭时为空操作;
+     *  前置契约: "pCorStack" 与 "CorDepthMax" 必须**同为有 / 同为无**(违背属未定义行为);
+     *  ⚠️ 故 TCB 必须**静态分配(BSS 零初始化)或先清零** —— 未清零内存里的垃圾"帧栈/容量"会被当真;
      */
     if(phTCB->CorDepth >= phTCB->CorDepthMax) {
         XC_Err_Report(phTCB, XC_ERR_FRAME_OVERFLOW); // 错误上报(开关关闭时为空操作)
@@ -348,6 +354,11 @@ void XC_Task_HandleDelay(XC_TaskHandle_t phTCB, uint32_t TickCount)
  * @details
  *  **同一任务只能注册一次**: 重复注册返回 XC_FAIL (判据: "phXCOS" 非空; 移除后清空, 可再次注册)
  *  任务注册完成后会挂载到就绪表;
+ * @note
+ *  - **TCB 必须静态分配(BSS 零初始化)或先清零**: 判重读的是 `phXCOS`, 未清零内存里的随机值会被
+ *    当成"已注册"而**莫名返回 XC_FAIL**(框架无法区分"垃圾"与"已注册", 故不做兜底);
+ *  - 本函数是**无嵌套**入口: 会把 `pCorStack`/`CorDepthMax` 清空(消除脏配置 ⇒ 野指针写);
+ *    需要协程嵌套请用 `XC_Task_RegExt`, 或注册后用 `XC_Task_SetCorStack` 配置;
  */
 XC_Return_t XC_Task_Reg(XC_OSHandle_t phXCOS, XC_TaskHandle_t phTCB, void (*fTask)(XC_TaskHandle_t), void* pParam)
 {
@@ -367,63 +378,19 @@ XC_Return_t XC_Task_Reg(XC_OSHandle_t phXCOS, XC_TaskHandle_t phTCB, void (*fTas
     phTCB->phXCOS    = phXCOS;       // 保存任务的所属框架句柄
     phTCB->fTask     = fTask;        // 更新任务入口
     phTCB->pParam    = pParam;       // 传递给任务的参数
+#if (XC_CFG_COR_NESTING != 0)
+    /**
+     *  清空嵌套配置: 本函数是**无嵌套**入口(需嵌套请用 `XC_Task_RegExt` 或注册后 `XC_Task_SetCorStack`);
+     *  同时消除"未初始化 TCB"隐患 —— 未清零内存里的垃圾 `pCorStack`/`CorDepthMax`
+     *  会让 `XC_Cor_Call`(PushFrame)按脏容量写到**野指针**上(越界写属最难定位的一类故障);
+     */
+    phTCB->pCorStack   = NULL;
+    phTCB->CorDepthMax = 0U;
+#endif
     XC_Task_AddInternal(phTCB);
 
     return (XC_OK);
 }
-
-/* 协程嵌套 API (仅 `XC_CFG_COR_NESTING != 0`; 关闭时本段不编译 ⇒ 使用即编译报错) */
-#if (XC_CFG_COR_NESTING != 0)
-/**
- * @brief       [用户]任务注册(扩展:支持协程嵌套)
- * @param[in]   phXCOS        框架句柄
- * @param[in]   phTCB         协程任务控制块
- * @param[in]   fTask         任务的函数指针(任务入口)
- * @param[in]   pParam        传递给任务的参数
- * @param[in]   pCorStack     协程帧栈(用户按需提供;无嵌套传NULL)
- * @param[in]   CorDepthMax   帧栈容量(最大嵌套层数;无嵌套传0)
- * @return      XC_Return_t
- * @retval      XC_OK :      注册成功
- * @retval      XC_FAIL :    注册失败(任务太多, 或该任务已注册)—— 同 "XC_Task_Reg"
- * @details
- *  先写帧栈配置,再走"XC_Task_Reg"流程(等价于 Reg + SetCorStack);
- *  "pCorStack"/"CorDepthMax"必须同为有/同为无;
- */
-XC_Return_t XC_Task_RegExt(XC_OSHandle_t phXCOS, XC_TaskHandle_t phTCB, XC_CorFn_t fTask, void* pParam, XC_CorFrame_t* pCorStack, uint8_t CorDepthMax)
-{
-    XC_DIAG_ASSERT(phTCB != NULL);
-    XC_DIAG_ASSERT(phXCOS != NULL);
-    XC_DIAG_ASSERT(fTask != NULL);
-    XC_DIAG_ASSERT((pCorStack == NULL) == (CorDepthMax == 0U));
-    /* "帧栈与容量同为有/同为无"是**前置契约**: 违背属未定义行为(DEBUG 档由断言上报);
-     * 按"单一强制点"规则, 此处不再重复 `return XC_FAIL`(边界规则见 Docs/架构概览/XCOS_V2.1.0_架构概览.md §11.6) */
-    phTCB->pCorStack   = pCorStack;   // 帧栈
-    phTCB->CorDepthMax = CorDepthMax; // 栈容量
-    return (XC_Task_Reg(phXCOS, phTCB, fTask, pParam));
-}
-
-/**
- * @brief       [用户]设置协程帧栈(支持/撤销协程嵌套能力)
- * @param[in]   phTCB         协程任务控制块
- * @param[in]   pCorStack     协程帧栈(用户按需提供;撤销嵌套能力传NULL)
- * @param[in]   CorDepthMax   帧栈容量(最大嵌套层数;撤销传0)
- * @return      XC_Return_t
- * @retval      XC_OK :      设置成功
- * @retval      XC_FAIL :    (不返回: 形参违背前置契约属未定义行为, 见 @details)
- * @details
- *  写配置并置"CorDepth = 0U";传"(NULL, 0U)"撤销嵌套能力;
- */
-XC_Return_t XC_Task_SetCorStack(XC_TaskHandle_t phTCB, XC_CorFrame_t* pCorStack, uint8_t CorDepthMax)
-{
-    XC_DIAG_ASSERT(phTCB != NULL);
-    XC_DIAG_ASSERT((pCorStack == NULL) == (CorDepthMax == 0U));
-    /* 前置契约(违背=未定义行为; DEBUG 档由断言上报) —— 不再重复返回 XC_FAIL(单一强制点) */
-    phTCB->pCorStack   = pCorStack;   // 帧栈
-    phTCB->CorDepthMax = CorDepthMax; // 栈容量
-    phTCB->CorDepth    = 0U;          // 清当前深度
-    return (XC_OK);
-}
-#endif
 
 /**
  * @brief       [用户]任务移除
@@ -439,6 +406,75 @@ void XC_Task_Remove(XC_TaskHandle_t phTCB)
         XC_Task_HandleRemove(phTCB);
     }
 }
+
+/************************************************ 我是分割线 ************************************************/
+/* 协程嵌套 API (仅 `XC_CFG_COR_NESTING != 0`; 关闭时本段不编译 ⇒ 使用即编译报错) */
+#if (XC_CFG_COR_NESTING != 0)
+/**
+ * @brief       [用户]任务注册(扩展:支持协程嵌套)
+ * @param[in]   phXCOS        框架句柄
+ * @param[in]   phTCB         协程任务控制块
+ * @param[in]   fTask         任务的函数指针(任务入口)
+ * @param[in]   pParam        传递给任务的参数
+ * @param[in]   pCorStack     协程帧栈(用户按需提供;无嵌套传NULL)
+ * @param[in]   CorDepthMax   帧栈容量(最大嵌套层数;无嵌套传0)
+ * @return      XC_Return_t
+ * @retval      XC_OK :      注册成功
+ * @retval      XC_FAIL :    注册失败(任务太多, 或该任务已注册)—— 同 "XC_Task_Reg"
+ * @details
+ *  先走"XC_Task_Reg"流程, 成功后再写帧栈配置(等价于 Reg + SetCorStack);
+ *  "pCorStack"/"CorDepthMax"必须同为有/同为无;
+ * @note
+ *  **顺序不可颠倒**: `XC_Task_Reg` 是"无嵌套入口", 会把帧栈/容量清空 ⇒
+ *  必须先 Reg 成功、再写这两个字段(否则嵌套配置被静默抹掉, 表现为"RegExt 注册的嵌套任务一 Call 就复位");
+ */
+XC_Return_t XC_Task_RegExt(XC_OSHandle_t phXCOS, XC_TaskHandle_t phTCB, XC_CorFn_t fTask, void* pParam, XC_CorFrame_t* pCorStack, uint8_t CorDepthMax)
+{
+    XC_Return_t rc;
+
+    XC_DIAG_ASSERT(phTCB != NULL);
+    XC_DIAG_ASSERT(phXCOS != NULL);
+    XC_DIAG_ASSERT(fTask != NULL);
+    XC_DIAG_ASSERT((pCorStack == NULL) == (CorDepthMax == 0U));
+    /* "帧栈与容量同为有/同为无"是**前置契约**: 违背属未定义行为(DEBUG 档由断言上报);
+     * 按"单一强制点"规则, 此处不再重复 `return XC_FAIL`(边界规则见 Docs/架构概览/XCOS_V2.1.0_架构概览.md §11.6) */
+    /**
+     *  ⚠️ 顺序不可颠倒: `XC_Task_Reg` 是"无嵌套入口", 会把 `pCorStack`/`CorDepthMax` **清空** ⇒
+     *  必须先注册成功、再写帧栈配置; 否则嵌套配置被静默抹掉(表现为任务一 `XC_Cor_Call` 就因"未设栈"被复位);
+     */
+    rc = XC_Task_Reg(phXCOS, phTCB, fTask, pParam);
+    if(rc == XC_OK) {
+        phTCB->pCorStack   = pCorStack;   // 帧栈
+        phTCB->CorDepthMax = CorDepthMax; // 栈容量
+    }
+    return (rc);
+}
+
+/**
+ * @brief       [用户]设置协程帧栈(支持/撤销协程嵌套能力)
+ * @param[in]   phTCB         协程任务控制块
+ * @param[in]   pCorStack     协程帧栈(用户按需提供;撤销嵌套能力传NULL)
+ * @param[in]   CorDepthMax   帧栈容量(最大嵌套层数;撤销传0)
+ * @return      XC_Return_t
+ * @retval      XC_OK :      设置成功
+ * @retval      XC_FAIL :    (不返回: 形参违背前置契约属未定义行为, 见 @details)
+ * @details
+ *  写配置并置"CorDepth = 0U"与"CorState = 未完成";传"(NULL, 0U)"撤销嵌套能力;
+ *  > **分步注册的顺序**: `XC_Task_SetEntry` →(需要嵌套再)本函数 → `XC_Task_Add`
+ *  > (`SetEntry` 在**未注册**的 TCB 上会把帧栈/容量清成 `NULL/0`, 故"先本函数再 SetEntry"会丢配置);
+ */
+XC_Return_t XC_Task_SetCorStack(XC_TaskHandle_t phTCB, XC_CorFrame_t* pCorStack, uint8_t CorDepthMax)
+{
+    XC_DIAG_ASSERT(phTCB != NULL);
+    XC_DIAG_ASSERT((pCorStack == NULL) == (CorDepthMax == 0U));
+    /* 前置契约(违背=未定义行为; DEBUG 档由断言上报) —— 不再重复返回 XC_FAIL(单一强制点) */
+    phTCB->pCorStack   = pCorStack;                 // 帧栈
+    phTCB->CorDepthMax = CorDepthMax;               // 栈容量
+    phTCB->CorDepth    = 0U;                        // 清当前深度
+    phTCB->CorState    = (uint8_t)XC_COR_SUSPENDED; // 本轮结果复位(未完成)
+    return (XC_OK);
+}
+#endif
 
 /************************************************ 我是分割线 ************************************************/
 /**
@@ -470,7 +506,19 @@ void XC_Task_SetEntry(XC_TaskHandle_t phTCB, void (*fTask)(XC_TaskHandle_t), voi
      *  会在 Reset/Remove/嵌套越界保护 时被用来恢复 fTask => 新入口静默失效/跳回旧函数;
      *  语义: **嵌套中换入口 = 丢弃当前嵌套层, 按新入口从头运行**;
      */
-    phTCB->CorDepth = 0U;   // 丢弃当前嵌套帧(栈底帧不变量: [0].pfn == 最外层入口)
+    phTCB->CorDepth = 0U;                        // 丢弃当前嵌套帧(栈底帧不变量: [0].pfn == 最外层入口)
+    phTCB->CorState = (uint8_t)XC_COR_SUSPENDED; // 本轮结果复位(未完成)
+    /**
+     *  **分步注册阶段**(本 TCB 尚未注册: `phXCOS == NULL`)顺带把"帧栈/容量"落成**确定值**:
+     *  未清零 TCB 上的垃圾配置会被 `XC_Cor_Call`(PushFrame) 当真 ⇒ 野指针写;
+     *  ⚠️ 因此分步注册的顺序是: **`XC_Task_SetEntry` →(需要嵌套再)`XC_Task_SetCorStack` → `XC_Task_Add`**
+     *  ("先 SetCorStack 再 SetEntry"的写法会把刚配好的帧栈清掉);
+     *  已注册任务的"换入口"**不动**帧栈(嵌套能力保留); 确要撤销请显式 `XC_Task_SetCorStack(NULL, 0U)`;
+     */
+    if(phTCB->phXCOS == NULL) {
+        phTCB->pCorStack   = NULL;
+        phTCB->CorDepthMax = 0U;
+    }
 #endif
     COR_Init(phTCB->BP);    // 重置断点(避免脏断点跳入新函数的非法位置)
     phTCB->fTask  = fTask;  // 更新任务入口
@@ -488,6 +536,10 @@ void XC_Task_SetEntry(XC_TaskHandle_t phTCB, void (*fTask)(XC_TaskHandle_t), voi
  *  添加的任务必须先调用"XC_Task_SetEntry";
  *  设置好任务入口和传递的参数才可添加;
  *  添加后挂载到就绪表;
+ * @note
+ *  - **TCB 必须静态分配(BSS 零初始化)或先清零**(同 `XC_Task_Reg` 的说明);
+ *  - 本函数**不清空** `pCorStack`/`CorDepthMax`(分步注册允许"先 `XC_Task_SetCorStack` 再添加")
+ *    ⇒ 在未清零的 TCB 上直接 `XC_Task_Add` 时, 请确保帧栈配置已被显式设置;
  */
 XC_Return_t XC_Task_Add(XC_OSHandle_t phXCOS, XC_TaskHandle_t phTCB)
 {
@@ -532,9 +584,8 @@ void XC_Task_Reset(XC_TaskHandle_t phTCB)
  * @brief       [用户]任务挂起
  * @param[in]   phTCB   任务控制块
  * @return      XC_Return_t
- * @retval      XC_OK :          挂起成功
+ * @retval      XC_OK :          挂起成功(任务**已经是挂起态**时也返回 XC_OK, 幂等)
  * @retval      XC_FAIL:         失败(任务不存在)
- * @retval      XC_CONTINUE :    异步操作中
  * @details
  *  将任务挂起,**本次任务运行完成后暂停任务**;
  *  需要在任务中立刻挂起,可以在协程块中调用"XC_Cor_Suspend";

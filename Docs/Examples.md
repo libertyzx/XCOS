@@ -3,7 +3,7 @@
 <div align="center">
 
 ![示例](https://img.shields.io/badge/示例-完整测试-blue.svg)
-![版本](https://img.shields.io/badge/版本-2.1.0-green.svg)
+![版本](https://img.shields.io/badge/版本-2.1.1-green.svg)
 ![环境](https://img.shields.io/badge/环境-MDK_V5.39-orange.svg)
 ![芯片](https://img.shields.io/badge/芯片-STM32F103ZE-green.svg)
 
